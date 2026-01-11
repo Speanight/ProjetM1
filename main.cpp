@@ -1,6 +1,8 @@
 #include <iostream>
+#include "communication/Server.hpp"
 
 int main() {
-    std::cout << "Hello, World!" << std::endl;
+    Server server;
+
     return 0;
 }
