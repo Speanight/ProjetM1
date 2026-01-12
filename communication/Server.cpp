@@ -6,7 +6,7 @@ Server::Server() {
     }
     else {
         thread = std::thread([this] {
-            this->listen((const sf::IpAddress &) SERVER_IP);
+            this->listen();
         });
     }
 }
@@ -17,15 +17,17 @@ Server::~Server() {
     }
 }
 
-int Server::listen(sf::IpAddress sende) {
-    std::optional<sf::IpAddress> sender;
-    //sf::IpAddress sender(127, 0, 0, 1);
+int Server::listen() {
+    std::optional<sf::IpAddress> sender = sf::IpAddress::resolve("127.0.0.1");
     bool loop = true;
     sf::Packet packet;
     short unsigned int port = COMM_PORT;
 
         if (socket.receive(packet, sender, port) == sf::Socket::Status::Done) {
+            Position position;
+            packet >> position;
 
+            std::cout << "Received: (" << position.getX() << "; " << position.getY() << ")" << std::endl;
         }
 
     return ERR_NONE; // Exited without any issue.

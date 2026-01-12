@@ -3,6 +3,7 @@
 
 #include <SFML/Network.hpp>
 #include "../Utils.hpp"
+#include "../game/Position.hpp"
 #include <iostream>
 #include <thread>
 
@@ -18,7 +19,7 @@ public:
     ~Server();
 
     // Functions
-    int listen(sf::IpAddress sender);
+    int listen();
 };
 
 

@@ -14,6 +14,8 @@ add_executable(ProjetM1 main.cpp
         Utils.hpp
         communication/Server.cpp
         game/Position.cpp
+        communication/Client.cpp
+        communication/Client.hpp
 )
 
 target_link_libraries(ProjetM1 PRIVATE

@@ -21,10 +21,10 @@ public:
     void setX(int x);
     void setY(int y);
 
-    // Packets
-    sf::Packet& operator <<(sf::Packet& packet);
-    sf::Packet& operator >>(sf::Packet& packet);
+    int operator<<(int _cpp_par_) const;
 };
 
+sf::Packet& operator<<(sf::Packet& packet, const Position& position);
+sf::Packet& operator>>(sf::Packet& packet, Position& position);
 
 #endif //PROJETM1_POSITION_HPP

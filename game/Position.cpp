@@ -30,10 +30,17 @@ void Position::setY(int y) {
     this->y = y;
 }
 
-sf::Packet& Position::operator<<(sf::Packet &packet) {
-    return packet << this->x << this->y;
+sf::Packet& operator<<(sf::Packet &packet, const Position& position) {
+    return packet << position.getX() << position.getY();
 }
 
-sf::Packet& Position::operator>>(sf::Packet &packet) {
-    return packet >> this->x >> this->y;
+sf::Packet& operator>>(sf::Packet &packet, Position& position) {
+    int x;
+    int y;
+    packet >> x >> y;
+
+    position.setX(x);
+    position.setY(y);
+
+    return packet;
 }
