@@ -5,11 +5,27 @@
 #include "Client.hpp"
 
 #include <iostream>
+//#include <utility>
 
-Client::Client() : server(SERVER_IP_BYTE1, SERVER_IP_BYTE2, SERVER_IP_BYTE3, SERVER_IP_BYTE4) {
-    if (socket.bind(COMM_PORT) != sf::Socket::Status::Done) {
+Client::Client(std::string name) : server(SERVER_IP_BYTE1, SERVER_IP_BYTE2, SERVER_IP_BYTE3, SERVER_IP_BYTE4) {
+    this->name = std::move(name);
+    if (socket.bind(sf::Socket::AnyPort) != sf::Socket::Status::Done) {
         std::cout << "Error: port isn't available? - Client" << std::endl;
+        this->port = 0;
     }
+    else {
+        port = socket.getLocalPort();
+    }
+}
+
+std::unordered_map<std::string, std::any> Client::init() {
+    std::unordered_map<std::string, std::any> infos = {
+            {"error", port == 0},
+            {"name", name},
+            {"port", port},
+    };
+
+    return infos;
 }
 
 void Client::sendData() {
@@ -17,9 +33,9 @@ void Client::sendData() {
     sf::Packet packet;
     Position position(5, 6);
 
-    packet << position;
+    packet << Pkt::POSITION << position;
 
-    if (socket.send(packet, server, COMM_PORT) == sf::Socket::Status::Done) {
+    if (socket.send(packet, server, COMM_PORT_SERVER) == sf::Socket::Status::Done) {
         std::cout << "Sent packet!" << std::endl;
     }
 }

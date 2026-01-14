@@ -10,15 +10,25 @@ namespace Const {
     static const int SERVER_IP_BYTE3 = 0;
     static const int SERVER_IP_BYTE4 = 1;
 
-    static constexpr short COMM_PORT = 3773;
+    static constexpr short COMM_PORT_SERVER = 3773;
+}
 
-
+namespace Err {
     /////////////////////
     //// ERROR CODES ////
     /////////////////////
     static constexpr int ERR_NONE = 0;
     static constexpr int ERR_SERVER_INIT = 1;
+    static constexpr int ERR_CLIENT_INIT = 2;
     // ...
+}
+
+namespace Pkt {
+    /////////////////////
+    // PACKETS HEADERS //
+    /////////////////////
+    static const int SHUTDOWN = 0;
+    static const int POSITION = 1;
 }
 
 

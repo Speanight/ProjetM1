@@ -6,16 +6,22 @@
 #include <SFML/Network/Packet.hpp>
 #include "../Utils.hpp"
 #include <iostream>
+#include <unordered_map>
+#include <any>
 
 using namespace Const;
 
 class Client {
 private:
+    std::string name;
+    unsigned short port;
     sf::UdpSocket socket;
     sf::IpAddress server;
 
 public:
-    Client();
+    Client(std::string name);
+
+    std::unordered_map<std::string, std::any> init();
 
     void sendData();
 };
