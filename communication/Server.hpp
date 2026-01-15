@@ -8,22 +8,24 @@
 #include <unordered_map>
 #include <any>
 #include <thread>
+#include <chrono>
 
 using namespace Const;
 
 class Server {
 private:
+    std::chrono::time_point<std::chrono::steady_clock> clock;
     sf::UdpSocket socket;
     std::thread thread;
     std::unordered_map<std::string, unsigned short> clients;
 
 public:
-    Server();
+    Server(std::chrono::time_point<std::chrono::steady_clock> clock);
     ~Server();
 
     // Functions
     int addClient(std::unordered_map<std::string, std::any> infos);
-    int listen();
+    int updateLoop();
     int shutdown();
 };
 

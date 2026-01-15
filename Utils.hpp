@@ -10,6 +10,8 @@ namespace Const {
     static const int SERVER_IP_BYTE3 = 0;
     static const int SERVER_IP_BYTE4 = 1;
 
+    constexpr auto TICKRATE = std::chrono::milliseconds(1000 / 1); // Amount of ticks in 1s (1s / tickrate)
+
     static constexpr short COMM_PORT_SERVER = 3773;
 }
 
@@ -20,6 +22,7 @@ namespace Err {
     static constexpr int ERR_NONE = 0;
     static constexpr int ERR_SERVER_INIT = 1;
     static constexpr int ERR_CLIENT_INIT = 2;
+    static constexpr int ERR_SERVER_SHUTDOWN = 3;
     // ...
 }
 

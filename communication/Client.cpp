@@ -4,10 +4,8 @@
 
 #include "Client.hpp"
 
-#include <iostream>
-//#include <utility>
-
-Client::Client(std::string name) : server(SERVER_IP_BYTE1, SERVER_IP_BYTE2, SERVER_IP_BYTE3, SERVER_IP_BYTE4) {
+Client::Client(std::chrono::time_point<std::chrono::steady_clock> clock, std::string name) : server(SERVER_IP_BYTE1, SERVER_IP_BYTE2, SERVER_IP_BYTE3, SERVER_IP_BYTE4) {
+    this->clock = clock;
     this->name = std::move(name);
     if (socket.bind(sf::Socket::AnyPort) != sf::Socket::Status::Done) {
         std::cout << "Error: port isn't available? - Client" << std::endl;
@@ -15,8 +13,17 @@ Client::Client(std::string name) : server(SERVER_IP_BYTE1, SERVER_IP_BYTE2, SERV
     }
     else {
         port = socket.getLocalPort();
+
+        thread = std::thread(&Client::updateLoop, this);
     }
 }
+
+Client::~Client() {
+    if (thread.joinable()) {
+        thread.join();
+    }
+}
+
 
 std::unordered_map<std::string, std::any> Client::init() {
     std::unordered_map<std::string, std::any> infos = {
@@ -28,14 +35,22 @@ std::unordered_map<std::string, std::any> Client::init() {
     return infos;
 }
 
-void Client::sendData() {
-    // DUMMY VALUES
-    sf::Packet packet;
-    Position position(5, 6);
+void Client::updateLoop() {
+    bool loop = true;
+    while (loop) {
+        sf::Packet packet;
 
-    packet << Pkt::POSITION << position;
+        // DUMMY VALUES - RANDOM INTS
+        Position position(std::experimental::randint(0, 50), std::experimental::randint(0, 50));
 
-    if (socket.send(packet, server, COMM_PORT_SERVER) == sf::Socket::Status::Done) {
-        std::cout << "Sent packet!" << std::endl;
+        packet << Pkt::POSITION << position;
+
+        if (socket.send(packet, server, COMM_PORT_SERVER) == sf::Socket::Status::Done) {
+            std::cout << name << " sent packet! position: (" << position.getX() << ", " << position.getY() << ")" << std::endl;
+        }
+
+        // SLEEP UNTIL NEXT TICK
+        clock += TICKRATE;
+        std::this_thread::sleep_until(clock);
     }
 }
