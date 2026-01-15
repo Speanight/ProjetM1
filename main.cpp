@@ -19,6 +19,7 @@ int main() {
 
     // INFINITE LOOP - NEEDED FOR THREADS TO FUNCTION PROPERLY!
     // TODO: Threads should be blocking (eventually?)
+    std::cout << std::endl;
     while (true) {}
 
     server.shutdown();

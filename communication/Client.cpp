@@ -46,7 +46,7 @@ void Client::updateLoop() {
         packet << Pkt::POSITION << position;
 
         if (socket.send(packet, server, COMM_PORT_SERVER) == sf::Socket::Status::Done) {
-            std::cout << name << " sent packet! position: (" << position.getX() << ", " << position.getY() << ")" << std::endl;
+            std::cout << name << " >>> Server | position: (" << position.getX() << ", " << position.getY() << ")" << std::endl;
         }
 
         // SLEEP UNTIL NEXT TICK

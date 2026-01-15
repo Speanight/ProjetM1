@@ -6,7 +6,7 @@ Server::Server(const std::chrono::time_point<std::chrono::steady_clock> clock) {
         std::cout << "Error: port isn't available?" << std::endl;
     }
     else {
-        socket.setBlocking(false);
+        socket.setBlocking(true);
         thread = std::thread(&Server::updateLoop, this);
     }
 }
@@ -59,19 +59,18 @@ int Server::updateLoop() {
             // Checks for all connected clients:
             for (auto & [name, remotePort] : clients) {
                 if (socket.receive(packet, sender, remotePort) == sf::Socket::Status::Done) {
-                    std::cout << "CLIENT PACKET: ";
+                    std::cout << "Server >>> " << name << " ";
                     packet >> type;
 
                     switch (type) {
                         case Pkt::POSITION:
-                            std::cout << "Received position packet!" << std::endl;
                             packet >> position;
 
-                            std::cout << "Received: (" << position.getX() << ", " << position.getY() << ")" << std::endl;
+                            std::cout << " | position: (" << position.getX() << ", " << position.getY() << ")" << std::endl;
                             break;
 
                         default:
-                            std::cout << "UNKNOWN CLIENT PACKET! Type: " << type << " from client " << name << std::endl;
+                            std::cout << " UNKNOWN CLIENT PACKET! Type: " << type << " from client " << name << std::endl;
                     }
                 }
             }
