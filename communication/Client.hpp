@@ -23,9 +23,18 @@ private:
     sf::UdpSocket socket;
     sf::IpAddress server;
 
+    int packetLoss;
+
 public:
     Client(std::chrono::time_point<std::chrono::steady_clock> clock, std::string name);
     ~Client();
+
+    // Getters / Setters
+    std::string getName();
+    unsigned short getPort();
+    int getPacketLoss() const;
+    void setPacketLoss(int packetLoss);
+
 
     std::unordered_map<std::string, std::any> init();
 

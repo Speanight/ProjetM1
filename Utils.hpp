@@ -12,7 +12,7 @@ namespace Const {
 
     constexpr auto TICKRATE = std::chrono::milliseconds(1000 / 1); // Amount of ticks in 1s (1s / tickrate)
 
-    static constexpr short COMM_PORT_SERVER = 3773;
+    static constexpr unsigned short COMM_PORT_SERVER = 35496;
 }
 
 namespace Err {

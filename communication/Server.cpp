@@ -17,6 +17,10 @@ Server::~Server() {
     }
 }
 
+std::unordered_map<std::string, unsigned short> Server::getClients() {
+    return clients;
+}
+
 int Server::addClient(std::unordered_map<std::string, std::any> infos) {
     if (std::any_cast<bool>(infos["error"])) {
         std::cout << "Error initializing client " << std::any_cast<std::string>(infos["name"]) << std::endl;
@@ -41,6 +45,7 @@ int Server::updateLoop() {
         std::this_thread::sleep_until(clock);
 
         if (socket.receive(packet, sender, port) == sf::Socket::Status::Done) {
+            std::cout << "Server >>> ";
             if (port == COMM_PORT_SERVER) {
                 std::cout << "SERVER PACKET: ";
                 packet >> type;
@@ -48,6 +53,7 @@ int Server::updateLoop() {
                 switch (type) {
                     case Pkt::SHUTDOWN:
                         std::cout << "Received shutdown packet!" << std::endl;
+                        // TODO: Send server shutdown packet to clients!
                         loop = false;
                         break;
 
@@ -58,8 +64,8 @@ int Server::updateLoop() {
 
             // Checks for all connected clients:
             for (auto & [name, remotePort] : clients) {
-                if (socket.receive(packet, sender, remotePort) == sf::Socket::Status::Done) {
-                    std::cout << "Server >>> " << name << " ";
+                if (remotePort == port) { // Check if ports corresponds (AKA the expected client)
+                    std::cout << name << " ";
                     packet >> type;
 
                     switch (type) {
@@ -90,11 +96,13 @@ int Server::shutdown() {
 
     if (socket.bind(COMM_PORT_SERVER) == sf::Socket::Status::Done) {
         if (socket.send(packet, sender.value(), COMM_PORT_SERVER) == sf::Socket::Status::Done) {
+            // Sends DC packet to all clients
+            for (auto & [name, remotePort] : clients) {
+                socket.send(packet, sender.value(), remotePort);
+            }
             return Err::ERR_NONE;
         }
     }
-
-
 
     return Err::ERR_SERVER_SHUTDOWN;
 }

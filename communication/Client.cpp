@@ -5,6 +5,7 @@
 #include "Client.hpp"
 
 Client::Client(std::chrono::time_point<std::chrono::steady_clock> clock, std::string name) : server(SERVER_IP_BYTE1, SERVER_IP_BYTE2, SERVER_IP_BYTE3, SERVER_IP_BYTE4) {
+    this->packetLoss = 0;
     this->clock = clock;
     this->name = std::move(name);
     if (socket.bind(sf::Socket::AnyPort) != sf::Socket::Status::Done) {
@@ -35,18 +36,40 @@ std::unordered_map<std::string, std::any> Client::init() {
     return infos;
 }
 
+std::string Client::getName() {
+    return name;
+}
+
+unsigned short Client::getPort() {
+    return port;
+}
+
+int Client::getPacketLoss() const {
+    return packetLoss;
+}
+
+void Client::setPacketLoss(int packetLoss) {
+    this->packetLoss = packetLoss;
+}
+
 void Client::updateLoop() {
     bool loop = true;
     while (loop) {
+        int packetLossChance = std::experimental::randint(1, 100);
+
         sf::Packet packet;
 
         // DUMMY VALUES - RANDOM INTS
         Position position(std::experimental::randint(0, 50), std::experimental::randint(0, 50));
 
         packet << Pkt::POSITION << position;
+        std::cout << name << " >>> Server | position: (" << position.getX() << ", " << position.getY() << ")" << std::endl;
 
-        if (socket.send(packet, server, COMM_PORT_SERVER) == sf::Socket::Status::Done) {
-            std::cout << name << " >>> Server | position: (" << position.getX() << ", " << position.getY() << ")" << std::endl;
+        if (packetLossChance > packetLoss) {
+            socket.send(packet, server, COMM_PORT_SERVER);
+        }
+        else {
+            std::cout << "Server >X> " << name << " | LOST PACKET!" << std::endl;
         }
 
         // SLEEP UNTIL NEXT TICK

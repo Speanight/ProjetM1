@@ -23,6 +23,9 @@ public:
     Server(std::chrono::time_point<std::chrono::steady_clock> clock);
     ~Server();
 
+    // Getters / Setters
+    std::unordered_map<std::string, unsigned short> getClients();
+
     // Functions
     int addClient(std::unordered_map<std::string, std::any> infos);
     int updateLoop();
