@@ -9,6 +9,8 @@
 #include <SFML/Window/VideoMode.hpp>
 #include <SFML/Graphics.hpp>
 
+#include "ui/Console.hpp"
+
 
 int main() {
     // Clock will be used to sync clients, server, and refresh times (packets travels)
@@ -22,9 +24,26 @@ int main() {
     server.addClient(client.init());
 
 
-    sf::RenderWindow window(sf::VideoMode({640, 480}), "Projet M1");
+    sf::RenderWindow window(sf::VideoMode({1280, 720}), "Projet M1");
     window.setFramerateLimit(60);
     ImGui::SFML::Init(window);
+
+    sf::View gameView;
+    sf::View serverView;
+
+    gameView.setViewport(sf::FloatRect({0.f, 0.f}, {0.7f, 1.f}));
+    serverView.setViewport(sf::FloatRect({0.f, 0.7f}, {0.3f, 1.f}));
+
+    Console console("../arial.ttf", sf::Vector2f (0, 0));
+    console.addLine("Test1");
+    console.addLine("Test2");
+    console.addLine("Test3", sf::Color::Red);
+
+    sf::CircleShape shape(100.f);
+    shape.setFillColor(sf::Color::Green);
+
+    sf::CircleShape shape2(80.f);
+    shape.setFillColor(sf::Color::Blue);
 
     sf::Clock deltaClock;
     while (window.isOpen()) {
@@ -43,14 +62,19 @@ int main() {
         ImGui::SFML::Update(window, deltaClock.restart());
 
         ImGui::Begin((client.getName() + "'s settings").c_str());
-        ImGui::Text(("Port: " + std::to_string(client.getPort())).c_str());
+        ImGui::Text("%s", ("Port: " + std::to_string(client.getPort())).c_str());
         ImGui::SliderInt("Packet loss (%)", &clientPacketLoss, 0, 100);
         client.setPacketLoss(clientPacketLoss);
         ImGui::End();
 
-        window.clear();
+        window.clear(); // Clears the past screen.
+        window.setView(gameView);
+        window.draw(shape);
+        window.setView(serverView);
+        console.draw(window);
+        window.setView(window.getDefaultView());
         ImGui::SFML::Render(window);
-        window.display();
+        window.display(); // Display the new screen
     }
 
     ImGui::SFML::Shutdown();

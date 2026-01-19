@@ -22,6 +22,7 @@ add_executable(ProjetM1 main.cpp
         game/Position.cpp
         communication/Client.cpp
         communication/Client.hpp
+        ui/Console.cpp
 )
 
 target_link_libraries(ProjetM1 PRIVATE
