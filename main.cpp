@@ -5,15 +5,83 @@
 #include <chrono>
 #include <thread>
 #include <imgui.h>
-#include <imgui-SFML.h>
-#include <SFML/Window/VideoMode.hpp>
-#include <SFML/Graphics.hpp>
+#include <cstring>
 
-#include "ui/Console.hpp"
+#include "ui/ServerUI.hpp"
+
+struct NetConfig {
+    // Default configuration
+    int packetLossGame1 = 0;
+    int pingGame1 = 50;
+
+    int packetLossGame2 = 0;
+    int pingGame2 = 50;
+
+    int tickrate = 60;
+
+    enum class CompensationMode {
+        COMPO_1 , COMPO_2, COMPO_3, MODE_1, MODE_2, None
+    } compensation = CompensationMode::None;
+};
+
+const char* toString(NetConfig::CompensationMode mode) {
+    switch (mode) {
+        case NetConfig::CompensationMode::None:    return "None";
+        case NetConfig::CompensationMode::COMPO_1: return "COMPO_1";
+        case NetConfig::CompensationMode::COMPO_2: return "COMPO_2";
+        case NetConfig::CompensationMode::COMPO_3: return "COMPO_3";
+        case NetConfig::CompensationMode::MODE_1:  return "MODE_1";
+        case NetConfig::CompensationMode::MODE_2:  return "MODE_2";
+        default: return "Unknown";
+    }
+}
+
+void onNetConfigChanged(const NetConfig& config) {
+    std::cout << "Changement dans la config\n";
+
+    std::cout << "Game 1:\n";
+    std::cout << "  Packet loss: " << config.packetLossGame1 << "%\n";
+    std::cout << "  Ping: " << config.pingGame1 << " ms\n";
+
+    std::cout << "Game 2:\n";
+    std::cout << "  Packet loss: " << config.packetLossGame2 << "%\n";
+    std::cout << "  Ping: " << config.pingGame2 << " ms\n";
+
+    std::cout << "Global:\n";
+    std::cout << "  Tickrate: " << config.tickrate << "\n";
+    std::cout << "  Compensation: "
+              << toString(config.compensation) << "\n";
+
+    std::cout << "=============================\n\n";
+}
+
+
+
+void drawGameZone(const char* title) {}
+
+bool drawGameConfig(const char* title, int& packetLoss, int& ping) {}
+
+bool drawGlobalConfig(NetConfig& config) {
+    bool changed = false;
+
+    const char* modes[] = { "COMPO 1 ", "COMPO 2", "COMPO 3", "MODE 1", "MODE 2" };
+    int current = static_cast<int>(config.compensation);
+
+    changed |= ImGui::Combo("Compensation", &current, modes, IM_ARRAYSIZE(modes));
+    config.compensation = static_cast<NetConfig::CompensationMode>(current);
+
+    changed |= ImGui::InputInt("Tickrate", &config.tickrate);
+
+    return changed;
+}
+
+void drawServerZone() {}
+
+void drawMainUI(NetConfig& config) {}
 
 
 int main() {
-    // Clock will be used to sync clients, server, and refresh times (packets travels)
+    // Initializing objects
     auto clock = std::chrono::steady_clock::now();
 
     std::cout << "Starting server on IP: " << SERVER_IP << ":" << COMM_PORT_SERVER << std::endl;
@@ -23,68 +91,9 @@ int main() {
     std::cout << "Adding client to server..." << std::endl;
     server.addClient(client.init());
 
-
-    sf::RenderWindow window(sf::VideoMode({1280, 720}), "Projet M1");
-    window.setFramerateLimit(60);
-    ImGui::SFML::Init(window);
-
-    sf::View gameView;
-    sf::View serverView;
-
-    gameView.setViewport(sf::FloatRect({0.f, 0.f}, {0.7f, 1.f}));
-    serverView.setViewport(sf::FloatRect({0.f, 0.7f}, {0.3f, 1.f}));
-
-    Console console("../arial.ttf", sf::Vector2f (0, 0));
-    console.addLine("Test1");
-    console.addLine("Test2");
-    console.addLine("Test3", sf::Color::Red);
-
-    sf::CircleShape shape(100.f);
-    shape.setFillColor(sf::Color::Green);
-
-    sf::CircleShape shape2(80.f);
-    shape.setFillColor(sf::Color::Blue);
-
-    sf::Clock deltaClock;
-    while (window.isOpen()) {
-        //////////////////////
-        // TEMP - TO UPDATE //
-        //////////////////////
-        int clientPacketLoss = client.getPacketLoss();
-
-        while (const auto event = window.pollEvent()) {
-            ImGui::SFML::ProcessEvent(window, *event);
-
-            if (event->is<sf::Event::Closed>()) {
-                window.close();
-            }
-        }
-        ImGui::SFML::Update(window, deltaClock.restart());
-
-        ImGui::Begin((client.getName() + "'s settings").c_str());
-        ImGui::Text("%s", ("Port: " + std::to_string(client.getPort())).c_str());
-        ImGui::SliderInt("Packet loss (%)", &clientPacketLoss, 0, 100);
-        client.setPacketLoss(clientPacketLoss);
-        ImGui::End();
-
-        window.clear(); // Clears the past screen.
-        window.setView(gameView);
-        window.draw(shape);
-        window.setView(serverView);
-        console.draw(window);
-        window.setView(window.getDefaultView());
-        ImGui::SFML::Render(window);
-        window.display(); // Display the new screen
-    }
-
-    ImGui::SFML::Shutdown();
-    if (server.shutdown() == Err::ERR_SERVER_SHUTDOWN) {
-        std::cout << "Server failed to shut down! Calling destructors as a backup solution..." << std::endl;
-        server.~Server();
-        client.~Client();
-    }
-
-    std::cout << "Sent server shutdown!" << std::endl;
-
+    // Print window
+    sf::ContextSettings settings;
+    settings.majorVersion = 3;
+    settings.minorVersion = 3;
     return 0;
 }

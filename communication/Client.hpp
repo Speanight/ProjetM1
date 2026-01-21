@@ -24,6 +24,7 @@ private:
     sf::IpAddress server;
 
     int packetLoss;
+    int ping;
 
 public:
     Client(std::chrono::time_point<std::chrono::steady_clock> clock, std::string name);
@@ -34,6 +35,8 @@ public:
     unsigned short getPort();
     int getPacketLoss() const;
     void setPacketLoss(int packetLoss);
+    int getPing() const;
+    void setPing(int ping);
 
 
     std::unordered_map<std::string, std::any> init();

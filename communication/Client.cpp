@@ -1,7 +1,3 @@
-//
-// Created by Furball on 1/12/2026.
-//
-
 #include "Client.hpp"
 
 Client::Client(std::chrono::time_point<std::chrono::steady_clock> clock, std::string name) : server(SERVER_IP_BYTE1, SERVER_IP_BYTE2, SERVER_IP_BYTE3, SERVER_IP_BYTE4) {
@@ -9,7 +5,7 @@ Client::Client(std::chrono::time_point<std::chrono::steady_clock> clock, std::st
     this->clock = clock;
     this->name = std::move(name);
     if (socket.bind(sf::Socket::AnyPort) != sf::Socket::Status::Done) {
-        std::cout << "Error: port isn't available? - Client" << std::endl;
+        std::cout << "Error: port isn't available? - ClientUI" << std::endl;
         this->port = 0;
     }
     else {
@@ -48,8 +44,16 @@ int Client::getPacketLoss() const {
     return packetLoss;
 }
 
+int Client::getPing() const {
+    return ping;
+}
+
 void Client::setPacketLoss(int packetLoss) {
     this->packetLoss = packetLoss;
+}
+
+void Client::setPing(int ping) {
+    this->ping = ping;
 }
 
 void Client::updateLoop() {
