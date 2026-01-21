@@ -1,6 +1,6 @@
 #include "ClientUI.hpp"
 
-ClientUI::ClientUI(std::chrono::time_point<std::chrono::steady_clock> clock, std::string name, char *title) : Client(clock, name) {}
+ClientUI::ClientUI(std::chrono::time_point<std::chrono::steady_clock> clock, std::string name) : Client(clock, name) {}
 
 void ClientUI::drawGame() {
     const char* title = getName().c_str();
@@ -26,6 +26,9 @@ void ClientUI::drawConfig() {
 
     ImGui::SliderInt("Packet loss", &packetLoss, 0, 100);
     ImGui::InputInt("Ping", &ping);
+
+    setPacketLoss(packetLoss);
+    setPing(ping);
 
     ImGui::EndChild();
 }

@@ -3,9 +3,11 @@
 #include "communication/Client.hpp"
 #include "game/Position.hpp"
 #include <chrono>
-#include <thread>
 #include <imgui.h>
-#include <cstring>
+
+#include "ui/MainWindow.hpp"
+#include "ui/ClientUI.hpp"
+#include "ui/ServerUI.hpp"
 
 #include "ui/ServerUI.hpp"
 
@@ -84,16 +86,20 @@ int main() {
     // Initializing objects
     auto clock = std::chrono::steady_clock::now();
 
+    MainWindow window(clock);
+
     std::cout << "Starting server on IP: " << SERVER_IP << ":" << COMM_PORT_SERVER << std::endl;
-    Server server(clock);
-    Client client(clock, "Client A");
+    ClientUI* clientA = new ClientUI(clock, "Client A");
+    ClientUI* clientB = new ClientUI(clock, "Client B");
 
     std::cout << "Adding client to server..." << std::endl;
-    server.addClient(client.init());
+    window.addClient(clientA);
+    window.addClient(clientB);
 
     // Print window
     sf::ContextSettings settings;
     settings.majorVersion = 3;
     settings.minorVersion = 3;
+
     return 0;
 }

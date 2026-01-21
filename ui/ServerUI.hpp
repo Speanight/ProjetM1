@@ -6,7 +6,9 @@
 #include <SFML/Graphics/RenderWindow.hpp>
 #include <imgui.h>
 
-class ServerUI {
+#include "../communication/Server.hpp"
+
+class ServerUI : public Server {
 private:
     std::vector<sf::Text> lines;
     sf::Font font;
@@ -14,8 +16,7 @@ private:
     sf::Vector2f position;
     int size = 32;
 public:
-    ServerUI();
-    ServerUI(const std::string& fontPath, const sf::Vector2f& pos);
+    ServerUI(std::chrono::time_point<std::chrono::steady_clock> clock);
     void addLine(const std::string& text, sf::Color color = sf::Color::White, sf::Text::Style style = sf::Text::Regular);
     void draw();
 };

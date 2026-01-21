@@ -1,9 +1,22 @@
 #include "MainWindow.hpp"
 
-MainWindow::MainWindow() {}
+MainWindow::MainWindow(std::chrono::time_point<std::chrono::steady_clock> clock) : server(clock) {
+    thread = std::thread(&MainWindow::loop, this);
+}
+
+MainWindow::~MainWindow() {
+    if (thread.joinable()) {
+        thread.join();
+    }
+}
+
+void MainWindow::addClient(ClientUI* client) {
+    clients.push_back(client);
+    server.addClient(client->init());
+}
 
 void MainWindow::draw() {
-    static NetConfig last = config;
+//    static NetConfig last = config;
     bool changed = false;
 
     ImGui::SetNextWindowPos(ImVec2(0, 0));
@@ -16,38 +29,26 @@ void MainWindow::draw() {
                  ImGuiWindowFlags_NoTitleBar
     );
 
-    ImGui::Columns(2);
-    drawGameZone("CLIENT A");
-    ImGui::NextColumn();
-    drawGameZone("CLIENT B");
+    ImGui::Columns(clients.size());
+
+    for (auto & client : clients) {
+        client->drawGame();
+        ImGui::NextColumn();
+    }
     ImGui::Separator();
     ImGui::Columns(2, nullptr, false);
 
-    drawGameConfig(
-            "CLIENT A - config",
-            config.packetLossGame1,
-            config.pingGame1
-    );
-
-    ImGui::NextColumn();
-
-    drawGameConfig(
-            "CLIENT B - config",
-            config.packetLossGame2,
-            config.pingGame2
-    );
+    for (auto & client : clients) {
+        client->drawConfig();
+        ImGui::NextColumn();
+    }
 
     ImGui::Columns(1);
     ImGui::Separator();
-    changed |= drawGlobalConfig(config);
+//    changed |= drawGlobalConfig(config);
     ImGui::Separator();
     server.draw();
     ImGui::End();
-
-    if (changed && memcmp(&last, &config, sizeof(NetConfig)) != 0) {
-        onNetConfigChanged(config);
-        last = config;
-    }
 }
 
 void MainWindow::loop() {
