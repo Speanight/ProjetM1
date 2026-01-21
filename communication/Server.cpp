@@ -1,6 +1,7 @@
 #include "Server.hpp"
 
 Server::Server(const std::chrono::time_point<std::chrono::steady_clock> clock) {
+    colors = {sf::Color::White, sf::Color::Red, sf::Color::Blue, sf::Color::Green, sf::Color::Yellow};
     this->clock = clock;
     if (socket.bind(COMM_PORT_SERVER) != sf::Socket::Status::Done) {
         std::cout << "Error: port isn't available?" << std::endl;
@@ -38,8 +39,10 @@ int Server::updateLoop() {
     short unsigned int port;
     int type;
     Position position;
+    int senderNum;
 
     while (loop) {
+        senderNum = 0;
         // SLEEP UNTIL NEXT TICK
         clock += TICKRATE;
         std::this_thread::sleep_until(clock);
@@ -64,15 +67,15 @@ int Server::updateLoop() {
 
             // Checks for all connected clients:
             for (auto & [name, remotePort] : clients) {
+                senderNum++;
                 if (remotePort == port) { // Check if ports corresponds (AKA the expected client)
-                    std::cout << name << " ";
                     packet >> type;
 
                     switch (type) {
                         case Pkt::POSITION:
                             packet >> position;
 
-                            std::cout << " | position: (" << position.getX() << ", " << position.getY() << ")" << std::endl;
+                            addLine(name + " >>> Server | position: (" + std::to_string(position.getX()) + ", " + std::to_string(position.getY()) + ")", colors[senderNum]);
                             break;
 
                         default:

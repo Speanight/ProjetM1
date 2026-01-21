@@ -1,8 +1,9 @@
 #include "Client.hpp"
 
-Client::Client(std::chrono::time_point<std::chrono::steady_clock> clock, std::string name) : server(SERVER_IP_BYTE1, SERVER_IP_BYTE2, SERVER_IP_BYTE3, SERVER_IP_BYTE4) {
+Client::Client(std::chrono::time_point<std::chrono::steady_clock> clock, std::string name, sf::Color color) : server(SERVER_IP_BYTE1, SERVER_IP_BYTE2, SERVER_IP_BYTE3, SERVER_IP_BYTE4) {
     this->packetLoss = 0;
     this->clock = clock;
+    this->color = color;
     this->name = std::move(name);
     if (socket.bind(sf::Socket::AnyPort) != sf::Socket::Status::Done) {
         std::cout << "Error: port isn't available? - ClientUI" << std::endl;

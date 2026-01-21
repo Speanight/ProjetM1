@@ -5,21 +5,25 @@
 #include <SFML/Graphics/Font.hpp>
 #include <SFML/Graphics/RenderWindow.hpp>
 #include <imgui.h>
+#include <ranges>
 
-#include "../communication/Server.hpp"
 
-class ServerUI : public Server {
+struct ConsoleLine {
+    sf::Color color;
+    std::string text;
+};
+
+class ServerUI {
 private:
-    std::vector<sf::Text> lines;
+    std::vector<ConsoleLine> lines;
     sf::Font font;
     int lineSpace = 5;
     sf::Vector2f position;
     int size = 32;
 public:
-    ServerUI(std::chrono::time_point<std::chrono::steady_clock> clock);
-    void addLine(const std::string& text, sf::Color color = sf::Color::White, sf::Text::Style style = sf::Text::Regular);
+    ServerUI();
+    void addLine(std::string text, sf::Color color = sf::Color::White);
     void draw();
 };
-
 
 #endif //PROJETM1_SERVERUI_HPP

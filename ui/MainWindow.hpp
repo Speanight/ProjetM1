@@ -10,13 +10,13 @@
 #include <thread>
 
 #include "ClientUI.hpp"
-#include "ServerUI.hpp"
+#include "../communication/Server.hpp"
 
 
 class MainWindow {
 private:
     std::thread thread;
-    ServerUI server;
+    Server server;
     std::vector<ClientUI*> clients;
 public:
     MainWindow(std::chrono::time_point<std::chrono::steady_clock> clock);

@@ -11,6 +11,7 @@
 #include <chrono>
 #include <thread>
 #include <experimental/random>
+#include <SFML/Graphics/Color.hpp>
 
 using namespace Const;
 
@@ -18,6 +19,7 @@ class Client {
 private:
     std::chrono::time_point<std::chrono::steady_clock> clock;
     std::string name;
+    sf::Color color;
     std::thread thread;
     unsigned short port;
     sf::UdpSocket socket;
@@ -27,7 +29,7 @@ private:
     int ping;
 
 public:
-    Client(std::chrono::time_point<std::chrono::steady_clock> clock, std::string name);
+    Client(std::chrono::time_point<std::chrono::steady_clock> clock, std::string name, sf::Color color = sf::Color::Red);
     ~Client();
 
     // Getters / Setters

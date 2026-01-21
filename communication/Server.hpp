@@ -9,14 +9,17 @@
 #include <any>
 #include <thread>
 #include <chrono>
+#include "../ui/ServerUI.hpp"
 
 using namespace Const;
 
-class Server {
+
+class Server : public ServerUI {
 private:
     std::chrono::time_point<std::chrono::steady_clock> clock;
     sf::UdpSocket socket;
     std::thread thread;
+    std::array<sf::Color, 5> colors;
     std::unordered_map<std::string, unsigned short> clients;
 
 public:
