@@ -34,7 +34,7 @@ public:
 
     // Getters / Setters
     std::string getName();
-    unsigned short getPort();
+    unsigned short getPort() const;
     int getPacketLoss() const;
     void setPacketLoss(int packetLoss);
     int getPing() const;

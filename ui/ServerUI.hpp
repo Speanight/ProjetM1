@@ -6,7 +6,9 @@
 #include <SFML/Graphics/RenderWindow.hpp>
 #include <imgui.h>
 #include <ranges>
+#include <utility>
 
+#include "../Utils.hpp"
 
 struct ConsoleLine {
     sf::Color color;

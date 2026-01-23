@@ -1,5 +1,12 @@
 #include "Server.hpp"
 
+/**
+ * A server is being initialized with MainWindow. It's a needed component to ensure communication between the different
+ * clients. It receives the packets, and send packets back to each client. For that, they need to be added manually
+ * after creation of the server.
+ *
+ * @param clock Clock, needed to synchronise clients and server together for packet transmission.
+ */
 Server::Server(const std::chrono::time_point<std::chrono::steady_clock> clock) {
     colors = {sf::Color::White, sf::Color::Red, sf::Color::Blue, sf::Color::Green, sf::Color::Yellow};
     this->clock = clock;
@@ -18,10 +25,22 @@ Server::~Server() {
     }
 }
 
+/**
+ * Function that allows to get info of clients paired with the server.
+ *
+ * @return map of clients, keys being their name and values being their port.
+ */
 std::unordered_map<std::string, unsigned short> Server::getClients() {
     return clients;
 }
 
+/**
+ * Allows to add clients to the server's tracked routes. This means the server will send and receive packets from the
+ * port of the clients added.
+ *
+ * @param infos map of infos, usually returned by Client::init().
+ * @return Error code
+ */
 int Server::addClient(std::unordered_map<std::string, std::any> infos) {
     if (std::any_cast<bool>(infos["error"])) {
         std::cout << "Error initializing client " << std::any_cast<std::string>(infos["name"]) << std::endl;
@@ -32,6 +51,10 @@ int Server::addClient(std::unordered_map<std::string, std::any> infos) {
     return Err::ERR_NONE;
 }
 
+/**
+ * Loop that executes every tick rate: Server will calculate position of client if incorrect/impossible. Recovers
+ * positions of clients. This function shouldn't return, except if the server stops.
+ */
 int Server::updateLoop() {
     std::optional<sf::IpAddress> sender = sf::IpAddress::resolve("127.0.0.1");
     bool loop = true;
@@ -91,6 +114,12 @@ int Server::updateLoop() {
     return Err::ERR_NONE; // Exited without any issue.
 }
 
+/**
+ * Sends a shutdown packet to the server as well as the clients. Useful to stop the execution of the whole script
+ * gracefully.
+ *
+ * @return Error code
+ */
 int Server::shutdown() {
     sf::Packet packet;
     std::optional<sf::IpAddress> sender = sf::IpAddress::resolve("127.0.0.1");

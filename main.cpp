@@ -38,50 +38,6 @@ const char* toString(NetConfig::CompensationMode mode) {
     }
 }
 
-void onNetConfigChanged(const NetConfig& config) {
-    std::cout << "Changement dans la config\n";
-
-    std::cout << "Game 1:\n";
-    std::cout << "  Packet loss: " << config.packetLossGame1 << "%\n";
-    std::cout << "  Ping: " << config.pingGame1 << " ms\n";
-
-    std::cout << "Game 2:\n";
-    std::cout << "  Packet loss: " << config.packetLossGame2 << "%\n";
-    std::cout << "  Ping: " << config.pingGame2 << " ms\n";
-
-    std::cout << "Global:\n";
-    std::cout << "  Tickrate: " << config.tickrate << "\n";
-    std::cout << "  Compensation: "
-              << toString(config.compensation) << "\n";
-
-    std::cout << "=============================\n\n";
-}
-
-
-
-void drawGameZone(const char* title) {}
-
-bool drawGameConfig(const char* title, int& packetLoss, int& ping) {}
-
-bool drawGlobalConfig(NetConfig& config) {
-    bool changed = false;
-
-    const char* modes[] = { "COMPO 1 ", "COMPO 2", "COMPO 3", "MODE 1", "MODE 2" };
-    int current = static_cast<int>(config.compensation);
-
-    changed |= ImGui::Combo("Compensation", &current, modes, IM_ARRAYSIZE(modes));
-    config.compensation = static_cast<NetConfig::CompensationMode>(current);
-
-    changed |= ImGui::InputInt("Tickrate", &config.tickrate);
-
-    return changed;
-}
-
-void drawServerZone() {}
-
-void drawMainUI(NetConfig& config) {}
-
-
 int main() {
     // Initializing objects
     auto clock = std::chrono::steady_clock::now();

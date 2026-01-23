@@ -1,9 +1,18 @@
 #include "Client.hpp"
 
+/**
+ * Clients are being created by ClientUI (which extends this class). A client will have all the information needed
+ * for the server-client synchronisation, such as packet loss, ping, name (identification), ...
+ *
+ * @param clock Clock to synchronise with the server. Needed to sync packets!
+ * @param name Name given to the client. Can be any string, must be unique!
+ * @param color Color given to the client in the Server's console.
+ */
 Client::Client(std::chrono::time_point<std::chrono::steady_clock> clock, std::string name, sf::Color color) : server(SERVER_IP_BYTE1, SERVER_IP_BYTE2, SERVER_IP_BYTE3, SERVER_IP_BYTE4) {
     this->packetLoss = 0;
     this->clock = clock;
     this->color = color;
+    this->ping = 0;
     this->name = std::move(name);
     if (socket.bind(sf::Socket::AnyPort) != sf::Socket::Status::Done) {
         std::cout << "Error: port isn't available? - ClientUI" << std::endl;
@@ -22,7 +31,12 @@ Client::~Client() {
     }
 }
 
-
+/**
+ * Function that returns the result of the init phase of the client. Can be used to get the useful infos of the client,
+ * as well as check if it was able to successfully initialize.
+ *
+ * @return std::map - "error" is true if client couldn't bind to any port. "name" and "port" returns their values.
+ */
 std::unordered_map<std::string, std::any> Client::init() {
     std::unordered_map<std::string, std::any> infos = {
             {"error", port == 0},
@@ -37,7 +51,7 @@ std::string Client::getName() {
     return name;
 }
 
-unsigned short Client::getPort() {
+unsigned short Client::getPort() const {
     return port;
 }
 
@@ -57,6 +71,11 @@ void Client::setPing(int ping) {
     this->ping = ping;
 }
 
+/**
+ * Loop that executes every tick rate: client will calculate if packet must be dropped or not, and sends packet of
+ * position to the server. This function shouldn't return, except if the server stops and the client should stop
+ * executing.
+ */
 void Client::updateLoop() {
     bool loop = true;
     while (loop) {
@@ -66,15 +85,10 @@ void Client::updateLoop() {
 
         // DUMMY VALUES - RANDOM INTS
         Position position(std::experimental::randint(0, 50), std::experimental::randint(0, 50));
-
         packet << Pkt::POSITION << position;
-        std::cout << name << " >>> Server | position: (" << position.getX() << ", " << position.getY() << ")" << std::endl;
 
         if (packetLossChance > packetLoss) {
             socket.send(packet, server, COMM_PORT_SERVER);
-        }
-        else {
-            std::cout << "Server >X> " << name << " | LOST PACKET!" << std::endl;
         }
 
         // SLEEP UNTIL NEXT TICK

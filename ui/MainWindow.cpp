@@ -16,9 +16,6 @@ void MainWindow::addClient(ClientUI* client) {
 }
 
 void MainWindow::draw() {
-//    static NetConfig last = config;
-    bool changed = false;
-
     ImGui::SetNextWindowPos(ImVec2(0, 0));
     ImGui::SetNextWindowSize(ImGui::GetIO().DisplaySize);
 
@@ -44,8 +41,6 @@ void MainWindow::draw() {
     }
 
     ImGui::Columns(1);
-    ImGui::Separator();
-//    changed |= drawGlobalConfig(config);
     ImGui::Separator();
     server.draw();
     ImGui::End();

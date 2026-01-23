@@ -10,6 +10,8 @@ namespace Const {
     static const int SERVER_IP_BYTE3 = 0;
     static const int SERVER_IP_BYTE4 = 1;
 
+    static const int CONSOLE_LINES = 50;
+
     constexpr auto TICKRATE = std::chrono::milliseconds(1000 / 1); // Amount of ticks in 1s (1s / tickrate)
 
     static constexpr unsigned short COMM_PORT_SERVER = 35496;
