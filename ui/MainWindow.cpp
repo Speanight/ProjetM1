@@ -1,6 +1,6 @@
 #include "MainWindow.hpp"
 
-MainWindow::MainWindow(std::chrono::time_point<std::chrono::steady_clock> clock) : server(clock) {
+MainWindow::MainWindow(sf::Clock clock) : server(clock) {
     thread = std::thread(&MainWindow::loop, this);
 }
 
@@ -54,7 +54,10 @@ void MainWindow::loop() {
     ImGui::CreateContext();
     ImGui::StyleColorsDark();
 
-    ImGui::SFML::Init(window);
+    if (!ImGui::SFML::Init(window)) {
+        return;
+        // TODO: Error handler
+    }
 
     sf::Clock deltaClock;
     sf::Time delta;

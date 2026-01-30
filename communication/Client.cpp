@@ -8,7 +8,7 @@
  * @param name Name given to the client. Can be any string, must be unique!
  * @param color Color given to the client in the Server's console.
  */
-Client::Client(std::chrono::time_point<std::chrono::steady_clock> clock, std::string name, sf::Color color) : server(SERVER_IP_BYTE1, SERVER_IP_BYTE2, SERVER_IP_BYTE3, SERVER_IP_BYTE4) {
+Client::Client(const sf::Clock clock, std::string name, sf::Color color) : server(SERVER_IP_BYTE1, SERVER_IP_BYTE2, SERVER_IP_BYTE3, SERVER_IP_BYTE4) {
     this->packetLoss = 0;
     this->clock = clock;
     this->color = color;
@@ -78,21 +78,63 @@ void Client::setPing(int ping) {
  */
 void Client::updateLoop() {
     bool loop = true;
+    const sf::Time time = std::chrono::milliseconds(TICKRATE);
     while (loop) {
         int packetLossChance = std::experimental::randint(1, 100);
 
-        sf::Packet packet;
-
         // DUMMY VALUES - RANDOM INTS
         Position position(std::experimental::randint(0, 50), std::experimental::randint(0, 50));
-        packet << Pkt::POSITION << position;
+        QueuedPacket pkt;
+        pkt.timestamp = clock.getElapsedTime();
+        pkt.packet << Pkt::POSITION << pkt.timestamp.asMilliseconds() << position;
+        packets.push_back(pkt);
 
         if (packetLossChance > packetLoss) {
-            socket.send(packet, server, COMM_PORT_SERVER);
+            auto packet = getLatestPacket();
+
+            // Check that packet does exist:
+            if (packet.has_value()) {
+                socket.send(packet.value(), server, COMM_PORT_SERVER);
+            }
         }
 
         // SLEEP UNTIL NEXT TICK
-        clock += TICKRATE;
-        std::this_thread::sleep_until(clock);
+        sf::sleep(time);
     }
+}
+
+/**
+ * Function that returns the latest packet. This will go through the packets vector of the Client object, will check for
+ * ping value, and will return the last packet respecting the given context. If no packet matches the criteria, an
+ * empty packet will be returned.
+ * Please note that this will alter the packets deque!
+ *
+ * @return Latest packet respecting ping value. Empty packet if none corresponds.
+ */
+std::optional<sf::Packet> Client::getLatestPacket() {
+    // Shouldn't happen: only if packets is empty.
+    if (packets.empty()) {
+        return std::nullopt;
+    }
+
+    sf::Time now = clock.getElapsedTime();
+    sf::Time timestamp = now - sf::milliseconds(ping);
+
+    sf::Packet toSend;
+    bool found = false;
+
+    // Check in the packets until we find the right one.
+    while (!packets.empty() && packets.front().timestamp <= timestamp) {
+        toSend = packets.front().packet;
+        packets.pop_front();
+        found = true;
+    }
+
+    // Return the corresponding packet
+    if (found) {
+        return toSend;
+    }
+
+    // Shouldn't happen: error case.
+    return std::nullopt;
 }

@@ -9,7 +9,7 @@ class ClientUI : public Client {
 private:
 
 public:
-    ClientUI(std::chrono::time_point<std::chrono::steady_clock> clock, std::string name);
+    ClientUI(const sf::Clock clock, std::string name);
 
 
     void drawGame();

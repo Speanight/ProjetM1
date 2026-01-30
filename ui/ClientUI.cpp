@@ -1,6 +1,6 @@
 #include "ClientUI.hpp"
 
-ClientUI::ClientUI(std::chrono::time_point<std::chrono::steady_clock> clock, std::string name) : Client(clock, name) {}
+ClientUI::ClientUI(const sf::Clock clock, std::string name) : Client(clock, name) {}
 
 void ClientUI::drawGame() {
     const char* title = getName().c_str();

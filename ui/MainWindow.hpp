@@ -19,7 +19,7 @@ private:
     Server server;
     std::vector<ClientUI*> clients;
 public:
-    MainWindow(std::chrono::time_point<std::chrono::steady_clock> clock);
+    MainWindow(sf::Clock clock);
     ~MainWindow();
 
     void addClient(ClientUI* client);

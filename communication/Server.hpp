@@ -8,7 +8,7 @@
 #include <unordered_map>
 #include <any>
 #include <thread>
-#include <chrono>
+#include <SFML/System/Clock.hpp>
 #include "../ui/ServerUI.hpp"
 
 using namespace Const;
@@ -16,14 +16,14 @@ using namespace Const;
 
 class Server : public ServerUI {
 private:
-    std::chrono::time_point<std::chrono::steady_clock> clock;
+    sf::Clock clock;
     sf::UdpSocket socket;
     std::thread thread;
     std::array<sf::Color, 5> colors;
     std::unordered_map<std::string, unsigned short> clients;
 
 public:
-    Server(std::chrono::time_point<std::chrono::steady_clock> clock);
+    Server(sf::Clock clock);
 
     ~Server();
 

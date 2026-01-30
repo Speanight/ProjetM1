@@ -12,12 +12,20 @@
 #include <thread>
 #include <experimental/random>
 #include <SFML/Graphics/Color.hpp>
+#include <deque>
+#include <SFML/System/Clock.hpp>
+#include <SFML/System/Sleep.hpp>
 
 using namespace Const;
 
+struct QueuedPacket {
+    sf::Packet packet;
+    sf::Time timestamp;
+};
+
 class Client {
 private:
-    std::chrono::time_point<std::chrono::steady_clock> clock;
+    sf::Clock clock;
     std::string name;
     sf::Color color;
     std::thread thread;
@@ -25,11 +33,13 @@ private:
     sf::UdpSocket socket;
     sf::IpAddress server;
 
+    std::deque<QueuedPacket> packets;
+
     int packetLoss;
     int ping;
 
 public:
-    Client(std::chrono::time_point<std::chrono::steady_clock> clock, std::string name, sf::Color color = sf::Color::Red);
+    Client(const sf::Clock clock, std::string name, sf::Color color = sf::Color::Red);
     ~Client();
 
     // Getters / Setters
@@ -40,10 +50,10 @@ public:
     int getPing() const;
     void setPing(int ping);
 
-
     std::unordered_map<std::string, std::any> init();
 
     void updateLoop();
+    std::optional<sf::Packet> getLatestPacket();
 };
 
 

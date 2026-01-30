@@ -7,7 +7,7 @@
  *
  * @param clock Clock, needed to synchronise clients and server together for packet transmission.
  */
-Server::Server(const std::chrono::time_point<std::chrono::steady_clock> clock) {
+Server::Server(const sf::Clock clock) {
     colors = {sf::Color::White, sf::Color::Red, sf::Color::Blue, sf::Color::Green, sf::Color::Yellow};
     this->clock = clock;
     if (socket.bind(COMM_PORT_SERVER) != sf::Socket::Status::Done) {
@@ -63,17 +63,15 @@ int Server::updateLoop() {
     int type;
     Position position;
     int senderNum;
+    const sf::Time time = std::chrono::milliseconds(TICKRATE);
 
     while (loop) {
         senderNum = 0;
-        // SLEEP UNTIL NEXT TICK
-        clock += TICKRATE;
-        std::this_thread::sleep_until(clock);
+        // TODO: sleep until next tick ONLY FOR SENDING DATA!
+        // sf::sleep(time);
 
         if (socket.receive(packet, sender, port) == sf::Socket::Status::Done) {
-            std::cout << "Server >>> ";
             if (port == COMM_PORT_SERVER) {
-                std::cout << "SERVER PACKET: ";
                 packet >> type;
 
                 switch (type) {
@@ -96,9 +94,13 @@ int Server::updateLoop() {
 
                     switch (type) {
                         case Pkt::POSITION:
-                            packet >> position;
+                            int time;
+                            packet >> time >> position;
+                            std::cout << "Received packet @: " << time << " | Server is @:" << clock.getElapsedTime().asMilliseconds() << std::endl;
+                            std::cout << "This means a delay of: " << clock.getElapsedTime().asMilliseconds() - time << " ms" << std::endl;
+                            std::cout << "|------------------------------------|" << std::endl;
 
-                            addLine(name + " >>> Server | position: (" + std::to_string(position.getX()) + ", " + std::to_string(position.getY()) + ")", colors[senderNum]);
+                            addLine(name + " >>> Server [PING:" + std::to_string(clock.getElapsedTime().asMilliseconds() - time) + "ms] | position: (" + std::to_string(position.getX()) + ", " + std::to_string(position.getY()) + ")", colors[senderNum]);
                             break;
 
                         default:
