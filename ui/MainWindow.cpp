@@ -98,6 +98,8 @@ void MainWindow::loop() {
         window.display();
     }
 
+    server.shutdown();
+
     ImGui::SFML::Shutdown();
     ImGui::DestroyContext();
 

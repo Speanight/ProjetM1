@@ -1,27 +1,43 @@
 #ifndef PROJETM1_SERVER_HPP
 #define PROJETM1_SERVER_HPP
 
-#include <SFML/Network.hpp>
 #include "../Utils.hpp"
-#include "../game/Position.hpp"
 #include <iostream>
+
+#include <SFML/Network.hpp>
+#include <SFML/System/Clock.hpp>
+
 #include <unordered_map>
 #include <any>
 #include <thread>
-#include <SFML/System/Clock.hpp>
+
 #include "../ui/ServerUI.hpp"
+#include "../game/Position.hpp"
+#include "State.hpp"
 
 using namespace Const;
 
+struct Buffer {
+    int stateTick = 0;
+    std::unordered_map<std::string, State> currentState;
+    std::unordered_map<std::string, State> nextState;
+    std::unordered_map<std::string, State> bestGuess;
+};
 
 class Server : public ServerUI {
 private:
     sf::Clock clock;
     sf::UdpSocket socket;
+    Buffer buffer;
+
+    std::unordered_map<int, bool> compensations;
+
     std::thread sendThread;
     std::thread receiveThread;
+
     std::array<sf::Color, 5> colors;
     std::unordered_map<std::string, unsigned short> clients;
+
     bool loop = true;
 
 public:
@@ -37,6 +53,7 @@ public:
     int sendLoop();
     int receiveLoop();
     int shutdown();
+    void refreshBuffer(const std::string& client, State state, int clockState);
 };
 
 

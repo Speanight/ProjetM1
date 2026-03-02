@@ -2,6 +2,8 @@
 #define PROJETM1_POSITION_HPP
 
 #include <SFML/Network/Packet.hpp>
+#include <unordered_map>
+#include "../Utils.hpp"
 
 class Position {
 private:
@@ -20,8 +22,6 @@ public:
     // Setters
     void setX(int x);
     void setY(int y);
-
-    int operator<<(int _cpp_par_) const;
 };
 
 sf::Packet& operator<<(sf::Packet& packet, const Position& position);

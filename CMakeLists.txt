@@ -39,6 +39,7 @@ add_executable(ProjetM1
         ui/ServerUI.cpp
         ui/MainWindow.cpp
         ui/ClientUI.cpp
+        communication/State.cpp
 )
 # =========================
 # Link libraries

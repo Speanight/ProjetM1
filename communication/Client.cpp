@@ -20,14 +20,22 @@ Client::Client(const sf::Clock clock, std::string name, sf::Color color) : serve
     }
     else {
         port = socket.getLocalPort();
+        std::cout << "Client " << this->name << " started on port: " << port << std::endl;
 
-        thread = std::thread(&Client::updateLoop, this);
+        socket.setBlocking(true);
+
+        sendThread = std::thread(&Client::sendLoop, this);
+        receiveThread = std::thread(&Client::receiveLoop, this);
     }
 }
 
 Client::~Client() {
-    if (thread.joinable()) {
-        thread.join();
+    socket.unbind();
+    if (sendThread.joinable()) {
+        sendThread.join();
+    }
+    if (receiveThread.joinable()) {
+        receiveThread.join();
     }
 }
 
@@ -76,8 +84,7 @@ void Client::setPing(int ping) {
  * position to the server. This function shouldn't return, except if the server stops and the client should stop
  * executing.
  */
-void Client::updateLoop() {
-    bool loop = true;
+int Client::sendLoop() {
     const sf::Time time = std::chrono::milliseconds(TICKRATE);
     while (loop) {
         int packetLossChance = std::experimental::randint(1, 100);
@@ -86,11 +93,14 @@ void Client::updateLoop() {
         Position position(std::experimental::randint(0, 50), std::experimental::randint(0, 50));
         QueuedPacket pkt;
         pkt.timestamp = clock.getElapsedTime();
+        std::unordered_map<int,int> inputs = {{Inputs::MOVEMENT_X, 1}};
+        // TODO: add inputs to packet and add packet << / >> function to unordered_map
         pkt.packet << Pkt::POSITION << pkt.timestamp.asMilliseconds() << position;
-        packets.push_back(pkt);
+        packets.push_back(pkt); // Adds the packet to the array of packets.
 
+        // If the packet isn't lost (editable through packet loss % slider):
         if (packetLossChance > packetLoss) {
-            auto packet = getLatestPacket();
+            auto packet = getLatestPacket(); // Get latest packet that meets ping criteria.
 
             // Check that packet does exist:
             if (packet.has_value()) {
@@ -101,6 +111,49 @@ void Client::updateLoop() {
         // SLEEP UNTIL NEXT TICK
         sf::sleep(time);
     }
+
+    return Err::ERR_NONE;
+}
+
+int Client::receiveLoop() {
+    std::optional<sf::IpAddress> sender = sf::IpAddress::resolve(SERVER_IP);
+    sf::Packet packet;
+    int type;
+    const sf::Time tickrate = std::chrono::milliseconds(TICKRATE);
+    short unsigned int port;
+
+    while (loop) {
+        sf::sleep(sf::Time()); // "empty" sleep: required for loops.
+        if (socket.receive(packet, sender, port) == sf::Socket::Status::Done) {
+            if (port == COMM_PORT_SERVER) {
+                packet >> type;
+
+                switch (type) {
+                    case Pkt::SHUTDOWN:
+                        std::cout << "Client " << name << " received shutdown packet!" << std::endl;
+                        loop = false;
+                        break;
+
+                    case Pkt::POSITION: {
+                        Position tempPos;
+                        packet >> tempPos;
+
+                        position.setX(tempPos.getX());
+                        position.setY(tempPos.getY());
+                        // TODO: Handle position reception
+                        break;
+                    }
+
+                    default:
+                        std::cout << "UNKNOWN PACKET! Type: " << type << " for client " << name << std::endl;
+                }
+            }
+        }
+    }
+
+    sendThread.join();
+
+    return Err::ERR_NONE;
 }
 
 /**

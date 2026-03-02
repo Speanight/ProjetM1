@@ -2,25 +2,12 @@
 #include "communication/Server.hpp"
 #include "communication/Client.hpp"
 #include "game/Position.hpp"
-#include <chrono>
-#include <imgui.h>
 
 #include "ui/MainWindow.hpp"
 #include "ui/ClientUI.hpp"
 #include "ui/ServerUI.hpp"
 
-#include "ui/ServerUI.hpp"
-
 struct NetConfig {
-    // Default configuration
-    int packetLossGame1 = 0;
-    int pingGame1 = 50;
-
-    int packetLossGame2 = 0;
-    int pingGame2 = 50;
-
-    int tickrate = 60;
-
     enum class CompensationMode {
         COMPO_1 , COMPO_2, COMPO_3, MODE_1, MODE_2, None
     } compensation = CompensationMode::None;
@@ -45,7 +32,7 @@ int main() {
 
     MainWindow window(clock);
 
-    std::cout << "Starting server on IP: " << SERVER_IP << ":" << COMM_PORT_SERVER << std::endl;
+    std::cout << "Starting server on Network: " << SERVER_IP << ":" << COMM_PORT_SERVER << std::endl;
     ClientUI* clientA = new ClientUI(clock, "Client A");
     ClientUI* clientB = new ClientUI(clock, "Client B");
 

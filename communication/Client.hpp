@@ -28,18 +28,23 @@ private:
     sf::Clock clock;
     std::string name;
     sf::Color color;
-    std::thread thread;
+    Position position;
+    std::deque<QueuedPacket> packets;
+
+    sf::IpAddress server;
     unsigned short port;
     sf::UdpSocket socket;
-    sf::IpAddress server;
 
-    std::deque<QueuedPacket> packets;
+    std::thread sendThread;
+    std::thread receiveThread;
+
 
     int packetLoss;
     int ping;
+    bool loop = true;
 
 public:
-    Client(const sf::Clock clock, std::string name, sf::Color color = sf::Color::Red);
+    Client(sf::Clock clock, std::string name, sf::Color color = sf::Color::Red);
     ~Client();
 
     // Getters / Setters
@@ -52,6 +57,8 @@ public:
 
     std::unordered_map<std::string, std::any> init();
 
+    int sendLoop();
+    int receiveLoop();
     void updateLoop();
     std::optional<sf::Packet> getLatestPacket();
 };

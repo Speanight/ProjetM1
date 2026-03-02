@@ -8,7 +8,7 @@
  * @param clock Clock, needed to synchronise clients and server together for packet transmission.
  */
 Server::Server(const sf::Clock clock) {
-    colors = {sf::Color::White, sf::Color::Red, sf::Color::Blue, sf::Color::Green, sf::Color::Yellow};
+    colors = {sf::Color::White, sf::Color::Red, sf::Color::Cyan, sf::Color::Green, sf::Color::Yellow};
     this->clock = clock;
     if (socket.bind(COMM_PORT_SERVER) != sf::Socket::Status::Done) {
         std::cout << "Error: port isn't available?" << std::endl;
@@ -17,6 +17,9 @@ Server::Server(const sf::Clock clock) {
         socket.setBlocking(true);
         sendThread = std::thread(&Server::sendLoop, this);
         receiveThread = std::thread(&Server::receiveLoop, this);
+
+        // Adds all compensation methods:
+        compensations[Compensation::EXTRAPOLATION] = false;
     }
 }
 
@@ -59,6 +62,8 @@ int Server::addClient(std::unordered_map<std::string, std::any> infos) {
 /**
  * Loop that executes every tick rate: Server will calculate position of client if incorrect/impossible. Recovers
  * positions of clients. This function shouldn't return, except if the server stops.
+ *
+ *  @return int code for info as to how the server ended (type Err::)
  */
 int Server::receiveLoop() {
     std::optional<sf::IpAddress> sender = sf::IpAddress::resolve("127.0.0.1");
@@ -70,9 +75,8 @@ int Server::receiveLoop() {
     const sf::Time tickrate = std::chrono::milliseconds(TICKRATE);
 
     while (loop) {
+        sf::sleep(sf::Time());
         senderNum = 0;
-        // TODO: sleep until next tick ONLY FOR SENDING DATA!
-        // sf::sleep(time);
 
         if (socket.receive(packet, sender, port) == sf::Socket::Status::Done) {
             if (port == COMM_PORT_SERVER) {
@@ -81,7 +85,6 @@ int Server::receiveLoop() {
                 switch (type) {
                     case Pkt::SHUTDOWN:
                         std::cout << "Received shutdown packet!" << std::endl;
-                        // TODO: Send server shutdown packet to clients!
                         loop = false;
                         break;
 
@@ -97,15 +100,20 @@ int Server::receiveLoop() {
                     packet >> type;
 
                     switch (type) {
-                        case Pkt::POSITION:
+                        case Pkt::POSITION: {
                             int time;
                             packet >> time >> position;
 
                             addLine(name + " >>> Server [PING:" + std::to_string(clock.getElapsedTime().asMilliseconds() - time) + "ms] | position: (" + std::to_string(position.getX()) + ", " + std::to_string(position.getY()) + ")", colors[senderNum]);
-                            break;
 
-                        default:
+                            State s = State(time, position);
+                            refreshBuffer(name, s, clock.getElapsedTime().asMilliseconds());
+                            break;
+                        }
+
+                        default: {
                             std::cout << " UNKNOWN CLIENT PACKET! Type: " << type << " from client " << name << std::endl;
+                        }
                     }
                 }
             }
@@ -116,6 +124,11 @@ int Server::receiveLoop() {
     return Err::ERR_NONE; // Exited without any issue.
 }
 
+/**
+ * Loop that executes every tick rate: Needed info will be sent to the clients whenever needed. This is in a while loop.
+ *
+ *  @return int code for info as to how the server ended (type Err::)
+ */
 int Server::sendLoop() {
     const sf::Time tickrate = std::chrono::milliseconds(TICKRATE);
     std::optional<sf::IpAddress> sender = sf::IpAddress::resolve("127.0.0.1");
@@ -135,7 +148,34 @@ int Server::sendLoop() {
 
 
     receiveThread.join();
-    return Err::ERR_NONE;
+    return Err::ERR_NONE; // Exited without any issue.
+}
+
+void Server::refreshBuffer(const std::string& client, State state, int clockState) {
+    // We "push" the buffer if we're onto the next tick. (known by checking current server tick).
+    if (buffer.stateTick / Const::TICKRATE.count() < clockState / Const::TICKRATE.count()) {
+        for (auto & [name, remotePort] : clients) {
+
+            // If some values are missing, we add them with potential compensations:
+            if (auto search = buffer.nextState.find(name); search == buffer.nextState.end()) {
+                buffer.nextState[name] = buffer.currentState[name]; // Rollbacks to previously known position.
+                // TODO: Add compensation here:
+                if (compensations[Compensation::EXTRAPOLATION]) {
+                    // EXTRAPOLING - We guess the new position based of last known position AND inputs.
+                    std::unordered_map<int,int> inputs = buffer.nextState[name].getInputs();
+                    buffer.nextState[name].getPosition().setX(buffer.nextState[name].getPosition().getX() + inputs[Inputs::MOVEMENT_X] * Const::PLAYER_SPEED);
+                    buffer.nextState[name].getPosition().setY(buffer.nextState[name].getPosition().getY() + inputs[Inputs::MOVEMENT_Y] * Const::PLAYER_SPEED);
+                }
+            }
+        }
+
+        // Defines current state as last known one.
+        buffer.stateTick = clockState;
+        buffer.currentState = buffer.nextState;
+        buffer.nextState.clear();
+    }
+
+    buffer.nextState[client] = state;
 }
 
 /**
@@ -150,14 +190,12 @@ int Server::shutdown() {
 
     packet << Pkt::SHUTDOWN;
 
-    if (socket.bind(COMM_PORT_SERVER) == sf::Socket::Status::Done) {
-        if (socket.send(packet, sender.value(), COMM_PORT_SERVER) == sf::Socket::Status::Done) {
-            // Sends DC packet to all clients
-            for (auto & [name, remotePort] : clients) {
-                socket.send(packet, sender.value(), remotePort);
-            }
-            return Err::ERR_NONE;
+    if (socket.send(packet, sender.value(), COMM_PORT_SERVER) == sf::Socket::Status::Done) {
+        // Sends DC packet to all clients
+        for (auto & [name, remotePort] : clients) {
+            socket.send(packet, sender.value(), remotePort);
         }
+        return Err::ERR_NONE;
     }
 
     return Err::ERR_SERVER_SHUTDOWN;
