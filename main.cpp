@@ -47,11 +47,11 @@ int main() {
 
     std::cout << "Starting server on IP: " << SERVER_IP << ":" << COMM_PORT_SERVER << std::endl;
     ClientUI* clientA = new ClientUI(clock, "Client A");
-    // ClientUI* clientB = new ClientUI(clock, "Client B");
+    ClientUI* clientB = new ClientUI(clock, "Client B");
 
     std::cout << "Adding client to server..." << std::endl;
     window.addClient(clientA);
-    // window.addClient(clientB);
+    window.addClient(clientB);
 
     // Print window
     sf::ContextSettings settings;

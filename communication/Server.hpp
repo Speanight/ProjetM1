@@ -18,9 +18,11 @@ class Server : public ServerUI {
 private:
     sf::Clock clock;
     sf::UdpSocket socket;
-    std::thread thread;
+    std::thread sendThread;
+    std::thread receiveThread;
     std::array<sf::Color, 5> colors;
     std::unordered_map<std::string, unsigned short> clients;
+    bool loop = true;
 
 public:
     Server(sf::Clock clock);
@@ -32,7 +34,8 @@ public:
 
     // Functions
     int addClient(std::unordered_map<std::string, std::any> infos);
-    int updateLoop();
+    int sendLoop();
+    int receiveLoop();
     int shutdown();
 };
 

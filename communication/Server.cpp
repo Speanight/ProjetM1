@@ -15,13 +15,18 @@ Server::Server(const sf::Clock clock) {
     }
     else {
         socket.setBlocking(true);
-        thread = std::thread(&Server::updateLoop, this);
+        sendThread = std::thread(&Server::sendLoop, this);
+        receiveThread = std::thread(&Server::receiveLoop, this);
     }
 }
 
 Server::~Server() {
-    if (thread.joinable()) {
-        thread.join();
+    socket.unbind();
+    if (sendThread.joinable()) {
+        sendThread.join();
+    }
+    if (receiveThread.joinable()) {
+        receiveThread.join();
     }
 }
 
@@ -55,15 +60,14 @@ int Server::addClient(std::unordered_map<std::string, std::any> infos) {
  * Loop that executes every tick rate: Server will calculate position of client if incorrect/impossible. Recovers
  * positions of clients. This function shouldn't return, except if the server stops.
  */
-int Server::updateLoop() {
+int Server::receiveLoop() {
     std::optional<sf::IpAddress> sender = sf::IpAddress::resolve("127.0.0.1");
-    bool loop = true;
     sf::Packet packet;
     short unsigned int port;
     int type;
     Position position;
     int senderNum;
-    const sf::Time time = std::chrono::milliseconds(TICKRATE);
+    const sf::Time tickrate = std::chrono::milliseconds(TICKRATE);
 
     while (loop) {
         senderNum = 0;
@@ -96,9 +100,6 @@ int Server::updateLoop() {
                         case Pkt::POSITION:
                             int time;
                             packet >> time >> position;
-                            std::cout << "Received packet @: " << time << " | Server is @:" << clock.getElapsedTime().asMilliseconds() << std::endl;
-                            std::cout << "This means a delay of: " << clock.getElapsedTime().asMilliseconds() - time << " ms" << std::endl;
-                            std::cout << "|------------------------------------|" << std::endl;
 
                             addLine(name + " >>> Server [PING:" + std::to_string(clock.getElapsedTime().asMilliseconds() - time) + "ms] | position: (" + std::to_string(position.getX()) + ", " + std::to_string(position.getY()) + ")", colors[senderNum]);
                             break;
@@ -111,9 +112,30 @@ int Server::updateLoop() {
         }
     }
 
-    socket.unbind();
-    thread.join();
+    sendThread.join();
     return Err::ERR_NONE; // Exited without any issue.
+}
+
+int Server::sendLoop() {
+    const sf::Time tickrate = std::chrono::milliseconds(TICKRATE);
+    std::optional<sf::IpAddress> sender = sf::IpAddress::resolve("127.0.0.1");
+    sf::Packet packet;
+
+    while (loop) {
+        // DEFAULT BEHAVIOR - SEND SERVER-SIDE POSITIONS
+        for (auto & [name, remotePort] : clients) {
+            // TODO: Get position of user (according to server) to send it!
+            Position position(0, 0); // TEMP VALUES!
+            packet.clear();
+            packet << Pkt::POSITION << position;
+            socket.send(packet, sender.value(), remotePort);
+        }
+        sf::sleep(tickrate);
+    }
+
+
+    receiveThread.join();
+    return Err::ERR_NONE;
 }
 
 /**
