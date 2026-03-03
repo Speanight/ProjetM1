@@ -39,6 +39,10 @@ add_executable(ProjetM1
         ui/ServerUI.cpp
         ui/MainWindow.cpp
         ui/ClientUI.cpp
+        test_Ferolind/test_ferolind.cpp
+        test_Ferolind/test_ferolind.hpp
+        game/Player.cpp
+        game/Player.hpp
 )
 # =========================
 # Link libraries

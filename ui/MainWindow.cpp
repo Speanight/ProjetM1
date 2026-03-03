@@ -15,8 +15,13 @@ void MainWindow::addClient(ClientUI* client) {
     server.addClient(client->init());
 }
 
+/**
+ * Draw the main window
+ */
 void MainWindow::draw() {
+
     ImGui::SetNextWindowPos(ImVec2(0, 0));
+
     ImGui::SetNextWindowSize(ImGui::GetIO().DisplaySize);
 
     ImGui::Begin("Main", nullptr,
@@ -32,6 +37,7 @@ void MainWindow::draw() {
         client->drawGame();
         ImGui::NextColumn();
     }
+
     ImGui::Separator();
     ImGui::Columns(2, nullptr, false);
 

@@ -11,6 +11,7 @@
 
 #include "ui/ServerUI.hpp"
 
+#include "test_Ferolind/test_ferolind.hpp"
 struct NetConfig {
     // Default configuration
     int packetLossGame1 = 0;
@@ -39,6 +40,9 @@ const char* toString(NetConfig::CompensationMode mode) {
 }
 
 int main() {
+
+    // main_test_ferolind();
+
     // Initializing objects
     sf::Clock clock;
     // auto clock = std::chrono::steady_clock::now();
