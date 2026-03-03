@@ -19,7 +19,7 @@ Server::Server(const sf::Clock clock) {
         receiveThread = std::thread(&Server::receiveLoop, this);
 
         // Adds all compensation methods:
-        compensations[Compensation::EXTRAPOLATION] = false;
+        compensations[Compensation::EXTRAPOLATION] = true;
     }
 }
 
@@ -71,6 +71,7 @@ int Server::receiveLoop() {
     short unsigned int port;
     int type;
     Position position;
+    Input inputs;
     int senderNum;
     const sf::Time tickrate = std::chrono::milliseconds(TICKRATE);
 
@@ -102,11 +103,11 @@ int Server::receiveLoop() {
                     switch (type) {
                         case Pkt::POSITION: {
                             int time;
-                            packet >> time >> position;
+                            packet >> time >> position >> inputs;
 
                             addLine(name + " >>> Server [PING:" + std::to_string(clock.getElapsedTime().asMilliseconds() - time) + "ms] | position: (" + std::to_string(position.getX()) + ", " + std::to_string(position.getY()) + ")", colors[senderNum]);
 
-                            State s = State(time, position);
+                            State s = State(time, position, inputs);
                             refreshBuffer(name, s, clock.getElapsedTime().asMilliseconds());
                             break;
                         }
@@ -142,6 +143,7 @@ int Server::sendLoop() {
             packet.clear();
             packet << Pkt::POSITION << position;
             socket.send(packet, sender.value(), remotePort);
+            std::cout << "Sent positions!" << std::endl;
         }
         sf::sleep(tickrate);
     }
@@ -162,14 +164,23 @@ void Server::refreshBuffer(const std::string& client, State state, int clockStat
                 // TODO: Add compensation here:
                 if (compensations[Compensation::EXTRAPOLATION]) {
                     // EXTRAPOLING - We guess the new position based of last known position AND inputs.
-                    std::unordered_map<int,int> inputs = buffer.nextState[name].getInputs();
-                    buffer.nextState[name].getPosition().setX(buffer.nextState[name].getPosition().getX() + inputs[Inputs::MOVEMENT_X] * Const::PLAYER_SPEED);
-                    buffer.nextState[name].getPosition().setY(buffer.nextState[name].getPosition().getY() + inputs[Inputs::MOVEMENT_Y] * Const::PLAYER_SPEED);
+                    Position position = buffer.nextState[name].getPosition();
+                    Input inputs = buffer.nextState[name].getInputs();
+                    float x = position.getX() + inputs.getMovementX() * Const::PLAYER_SPEED;
+                    float y = position.getY() + inputs.getMovementY() * Const::PLAYER_SPEED;
+
+                    buffer.nextState[name].setPosition(Position(x, y));
                 }
+
+                std::cout << "COMPENSATED " << name << " - (" << buffer.nextState[name].getPosition().getX() << ", " << buffer.nextState[name].getPosition().getY() << ")" << std::endl;
             }
         }
 
-        // Defines current state as last known one.
+        // Refreshes buffer
+        buffer.pastStates[buffer.stateTick/TICKRATE.count()] = buffer.currentState;
+        if (buffer.pastStates.size() >= BUFFER_SIZE) {
+            buffer.pastStates.erase(buffer.pastStates.begin());
+        }
         buffer.stateTick = clockState;
         buffer.currentState = buffer.nextState;
         buffer.nextState.clear();

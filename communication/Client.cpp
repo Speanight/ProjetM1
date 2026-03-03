@@ -93,9 +93,8 @@ int Client::sendLoop() {
         Position position(std::experimental::randint(0, 50), std::experimental::randint(0, 50));
         QueuedPacket pkt;
         pkt.timestamp = clock.getElapsedTime();
-        std::unordered_map<int,int> inputs = {{Inputs::MOVEMENT_X, 1}};
-        // TODO: add inputs to packet and add packet << / >> function to unordered_map
-        pkt.packet << Pkt::POSITION << pkt.timestamp.asMilliseconds() << position;
+        Input inputs = Input(1.0, 0, false);
+        pkt.packet << Pkt::POSITION << pkt.timestamp.asMilliseconds() << position << inputs;
         packets.push_back(pkt); // Adds the packet to the array of packets.
 
         // If the packet isn't lost (editable through packet loss % slider):

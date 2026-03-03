@@ -15,6 +15,7 @@ namespace Const {
     static const int CONSOLE_LINES = 50;
 
     constexpr auto TICKRATE = std::chrono::milliseconds(1000 / 2); // Amount of ticks in 1s (1s / tickrate)
+    static const int BUFFER_SIZE = 5;
 
     static const int PLAYER_SPEED = 10;
 }
@@ -49,6 +50,7 @@ namespace Inputs {
 
 namespace Compensation {
     static constexpr int EXTRAPOLATION = 0;
+    static constexpr int INTRAPOLATION = 1;
 }
 
 

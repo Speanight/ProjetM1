@@ -5,6 +5,7 @@
 #include <SFML/Network/UdpSocket.hpp>
 #include <SFML/Network/Packet.hpp>
 #include "../Utils.hpp"
+#include "Input.hpp"
 #include <iostream>
 #include <unordered_map>
 #include <any>

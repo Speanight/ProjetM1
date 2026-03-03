@@ -5,6 +5,7 @@
 #ifndef PROJETM1_STATE_HPP
 #define PROJETM1_STATE_HPP
 
+#include "Input.hpp"
 #include "../game/Position.hpp"
 #include "../Utils.hpp"
 #include <unordered_set>
@@ -14,18 +15,19 @@ private:
     int timestamp;
     Position position;
 
-    std::unordered_map<int,int> inputs;
-    bool hasShot = false;
+    Input inputs;
 
 public:
     State();
-    State(int timestamp, Position position, const std::unordered_map<int,int>& inputs = {}, bool hasShot = false);
+    State(int timestamp, Position position, Input inputs);
 
     // Getters / Setters
     int getTimestamp() const;
     Position getPosition();
-    std::unordered_map<int,int> getInputs();
-    bool getHasShot() const;
+    Input getInputs();
+
+    void setPosition(Position position);
+    void setInputs(Input inputs);
 };
 
 

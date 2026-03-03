@@ -40,6 +40,7 @@ add_executable(ProjetM1
         ui/MainWindow.cpp
         ui/ClientUI.cpp
         communication/State.cpp
+        communication/Input.cpp
 )
 # =========================
 # Link libraries

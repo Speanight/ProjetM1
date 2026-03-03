@@ -7,21 +7,21 @@
 
 class Position {
 private:
-    int x;
-    int y;
+    float x;
+    float y;
 
 public:
     // Constructors
     Position();
-    Position(int x, int y);
+    Position(float x, float y);
 
     // Getters
-    int getX() const;
-    int getY() const;
+    float getX() const;
+    float getY() const;
 
     // Setters
-    void setX(int x);
-    void setY(int y);
+    void setX(float x);
+    void setY(float y);
 };
 
 sf::Packet& operator<<(sf::Packet& packet, const Position& position);

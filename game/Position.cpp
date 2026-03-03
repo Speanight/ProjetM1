@@ -7,26 +7,26 @@ Position::Position() {
 }
 
 
-Position::Position(int x, int y) {
+Position::Position(float x, float y) {
     this->x = x;
     this->y = y;
 }
 
 // Getters
-int Position::getX() const {
+float Position::getX() const {
     return x;
 }
 
-int Position::getY() const {
+float Position::getY() const {
     return y;
 }
 
 // Setters
-void Position::setX(int x) {
+void Position::setX(float x) {
     this->x = x;
 }
 
-void Position::setY(int y) {
+void Position::setY(float y) {
     this->y = y;
 }
 
@@ -35,8 +35,8 @@ sf::Packet& operator<<(sf::Packet &packet, const Position& position) {
 }
 
 sf::Packet& operator>>(sf::Packet &packet, Position& position) {
-    int x;
-    int y;
+    float x;
+    float y;
     packet >> x >> y;
 
     position.setX(x);

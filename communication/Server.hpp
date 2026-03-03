@@ -7,6 +7,7 @@
 #include <SFML/Network.hpp>
 #include <SFML/System/Clock.hpp>
 
+#include <map>
 #include <unordered_map>
 #include <any>
 #include <thread>
@@ -19,6 +20,7 @@ using namespace Const;
 
 struct Buffer {
     int stateTick = 0;
+    std::map<int, std::unordered_map<std::string, State>> pastStates;
     std::unordered_map<std::string, State> currentState;
     std::unordered_map<std::string, State> nextState;
     std::unordered_map<std::string, State> bestGuess;
