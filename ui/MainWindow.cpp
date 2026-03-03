@@ -38,11 +38,6 @@ void MainWindow::draw() {
     clients[1]->drawGamePl2();
     ImGui::NextColumn();
 
-    // for (auto & client : clients) {
-    //     client->drawGame();
-    //     ImGui::NextColumn();
-    // }
-
     ImGui::Separator();
     ImGui::Columns(2, nullptr, false);
 
