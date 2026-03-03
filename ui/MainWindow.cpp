@@ -35,7 +35,7 @@ void MainWindow::draw() {
 
     clients[0]->drawGamePl1();
     ImGui::NextColumn();
-    clients[1]->drawGamePl1();          //TODO : Change for PL2 when PL2 Done
+    clients[1]->drawGamePl2();
     ImGui::NextColumn();
 
     // for (auto & client : clients) {

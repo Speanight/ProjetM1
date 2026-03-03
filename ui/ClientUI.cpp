@@ -55,6 +55,49 @@ void ClientUI::drawGamePl1() { //Player 1 Game Space
 
 }
 
+void ClientUI::drawGamePl2() { //Player 1 Game Space
+    const char* title = getName().c_str();
+
+    ImGui::BeginChild(title, ImVec2(0, 400), true);
+
+    ImVec2 childMin = ImGui::GetWindowPos();
+    ImVec2 childMax = {
+        childMin.x + ImGui::GetWindowSize().x,
+        childMin.y + ImGui::GetWindowSize().y
+    };
+
+    static sf::Clock deltaClock;
+    float deltaTime = deltaClock.restart().asSeconds();
+
+    static Player player1(20.f, {ImGui::GetWindowSize().x/3, ImGui::GetWindowSize().y/2}, IM_COL32(0,255,0,255));
+    static Player player2(20.f, {2 * ImGui::GetWindowSize().x/3, ImGui::GetWindowSize().y/2}, IM_COL32(255,0,0,255));
+
+    // ========= INPUT =========
+    ImVec2 dir = {0.f, 0.f};
+
+    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::W)){dir.y -= 1.f;}
+    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::S)){dir.y += 1.f;}
+    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::A)){dir.x -= 1.f;}
+    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::D)){dir.x += 1.f;}
+
+    // ========= UPDATE =========
+    player2.move(dir, deltaTime);
+
+    player2.clampToChild(childMin, childMax);
+    player1.clampToChild(childMin, childMax);
+
+    player2.resolveCollision(player1);
+
+    // ========= DRAW =========
+    ImDrawList* draw_list = ImGui::GetWindowDrawList();
+
+    player2.draw(draw_list);
+    player1.draw(draw_list);
+
+    ImGui::EndChild();
+
+}
+
 void ClientUI::drawGame() { // Game space
     // const char* title = getName().c_str();
     //
