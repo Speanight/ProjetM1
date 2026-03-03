@@ -32,12 +32,12 @@ void ClientUI::drawGamePl1() { //Player 1 Game Space
     static Player player1(20.f,
         { childPos.x + childSize.x / 3.f,
           childPos.y + childSize.y / 2.f },
-        IM_COL32(0,255,0,255),0);
+        IM_COL32(0,255,0,255));
 
     static Player player2(20.f,
         { childPos.x + 2.f * childSize.x / 3.f,
           childPos.y + childSize.y / 2.f },
-        IM_COL32(255,0,0,255),0);
+        IM_COL32(255,0,0,255));
 
     // ========= INPUT =========
     ImVec2 dir = {0.f, 0.f};
@@ -47,8 +47,11 @@ void ClientUI::drawGamePl1() { //Player 1 Game Space
     if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::A)){dir.x -= 1.f;}
     if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::D)){dir.x += 1.f;}
 
+    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Space)){player1.atk(player2);}
+
     // ========= UPDATE =========
     player1.move(dir, deltaTime);
+    player1.updateAttack(deltaTime);
 
     player1.clampToChild(childMin, childMax);
     player2.clampToChild(childMin, childMax);
@@ -100,8 +103,11 @@ void ClientUI::drawGamePl2() { //Player 1 Game Space
     if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Left))  dir.x -= 1.f;
     if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Right)) dir.x += 1.f;
 
+    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Enter)){player2.atk(player1);}
+
     // ========= UPDATE =========
     player2.move(dir, deltaTime);
+    player2.updateAttack(deltaTime);
 
     player2.clampToChild(childMin, childMax);
     player1.clampToChild(childMin, childMax);

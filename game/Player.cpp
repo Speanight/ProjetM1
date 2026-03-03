@@ -2,6 +2,7 @@
 // Created by julie on 03/03/2026.
 //
 #include "Player.hpp"
+#include <math.h>
 
 //=================== GETTERS ===================
 
@@ -20,8 +21,50 @@ void Player::move(ImVec2 direction, float deltaTime){
     m_center.y += direction.y * m_speed * deltaTime;
 }
 
-void Player::atk() {
+//=================== ATTAQUE ===================
+void Player::atk(Player& other) {
+    ImVec2 diff = { other.m_center.x - m_center.x,
+                    other.m_center.y - m_center.y };
+    float distance = sqrtf(diff.x*diff.x + diff.y*diff.y);
 
+    if (!m_isAttacking){
+        m_isAttacking = true;
+        m_attackTimer = 0.f;
+
+        if(distance <= m_radius * 2 + m_radius * 0.8f + 10.f) {        // player1_lengt+player2_length + Triangle_Heigth + Range
+            m_point += 1;
+        }
+    }
+}
+
+void Player::updateAttack(float deltaTime) {
+    if (!m_isAttacking)
+        return;
+
+    m_attackTimer += deltaTime;
+
+    float totalTime = m_attack + m_reload;
+
+    if (m_attackTimer >= totalTime) {
+        m_isAttacking = false;
+        m_attackOffset = {0.f, 0.f};
+        return;
+    }
+
+    float progress;
+
+    if (m_attackTimer <= m_attack) {
+        // triangle going forward (0 → 1)
+        progress = m_attackTimer / m_attack;
+    }
+    else {
+        // triangle going backward (1 → 0)
+        float backTime = m_attackTimer - m_attack;
+        progress = 1.f - (backTime / m_reload);
+    }
+
+    m_attackOffset.x = m_attackDirection.x * m_range * progress;
+    m_attackOffset.y = m_attackDirection.y * m_range * progress;
 }
 
 //=================== COLLISIONS ===================
@@ -71,14 +114,19 @@ void Player::draw(ImDrawList* draw_list){
     float triangleHeight = m_radius * 0.8f;
     float triangleWidth  = m_radius * 1.2f;
 
-    ImVec2 top   = { m_center.x,
-                     m_center.y - m_radius - triangleHeight };
+    ImVec2 baseCenter = {
+        m_center.x + m_attackOffset.x,
+        m_center.y + m_attackOffset.y
+    };
 
-    ImVec2 left  = { m_center.x - triangleWidth/2.f,
-                     m_center.y - m_radius };
+    ImVec2 top   = { baseCenter.x,
+                     baseCenter.y - m_radius - triangleHeight };
 
-    ImVec2 right = { m_center.x + triangleWidth/2.f,
-                     m_center.y - m_radius };
+    ImVec2 left  = { baseCenter.x - triangleWidth/2.f,
+                     baseCenter.y - m_radius };
+
+    ImVec2 right = { baseCenter.x + triangleWidth/2.f,
+                     baseCenter.y - m_radius };
 
     draw_list->AddTriangleFilled(top, left, right, m_color);
 
