@@ -4,8 +4,8 @@
 
 #include "../game/Player.hpp"
 
-int main_test_ferolind()
-{
+int main_test_ferolind(){
+    /*
     sf::RenderWindow window(sf::VideoMode({1600,900}), "Window-test_Ferolind");
     window.setFramerateLimit(240);
 
@@ -65,4 +65,5 @@ int main_test_ferolind()
 
     ImGui::SFML::Shutdown();
     return 0;
+    */
 }

@@ -3,6 +3,7 @@
 //
 #include "Player.hpp"
 
+/*
 // ================= CREATION =================
 
 Player::Player(float radius, sf::Vector2f centerPosition, sf::Color color, float speed) : m_radius(radius), m_speed(speed) {
@@ -85,3 +86,4 @@ void Player::resolveCollision(Player& other)
         other.m_weapon.move(normal * penetration);
     }
 }
+*/

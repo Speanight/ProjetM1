@@ -33,10 +33,15 @@ void MainWindow::draw() {
 
     ImGui::Columns(clients.size());
 
-    for (auto & client : clients) {
-        client->drawGame();
-        ImGui::NextColumn();
-    }
+    clients[0]->drawGamePl1();
+    ImGui::NextColumn();
+    clients[1]->drawGamePl1();          //TODO : Change for PL2 when PL2 Done
+    ImGui::NextColumn();
+
+    // for (auto & client : clients) {
+    //     client->drawGame();
+    //     ImGui::NextColumn();
+    // }
 
     ImGui::Separator();
     ImGui::Columns(2, nullptr, false);

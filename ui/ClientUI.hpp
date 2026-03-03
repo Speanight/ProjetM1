@@ -11,8 +11,9 @@ private:
 public:
     ClientUI(const sf::Clock clock, std::string name);
 
-
-    void drawGame();
+    void drawGamePl1();
+    void drawGamePl2();
+    void drawGame();        //TODO : Delete when drawgamePl1 and DrawGamePl2 finished
     void drawConfig();
 };
 

@@ -6,75 +6,102 @@
 #include <SFML/Graphics/Texture.hpp>
 #include <SFML/Window/VideoMode.hpp>
 #include <SFML/Graphics/Color.hpp>
+#include <SFML/Graphics/RectangleShape.hpp>
 #include "../game/Player.hpp"
 
 ClientUI::ClientUI(const sf::Clock clock, std::string name) : Client(clock, name) {}
 
-void ClientUI::drawGame() { // Game space
+
+void ClientUI::drawGamePl1() { //Player 1 Game Space
     const char* title = getName().c_str();
 
-    sf::RenderWindow window(sf::VideoMode({400,400}), "Window-player");
-    window.setFramerateLimit(240);
+    ImGui::BeginChild(title, ImVec2(0, 400), true);
 
-    ImGui::SFML::Init(window);
-    sf::Clock deltaClock;
+    ImVec2 childMin = ImGui::GetWindowPos();
+    ImVec2 childMax = {
+        childMin.x + ImGui::GetWindowSize().x,
+        childMin.y + ImGui::GetWindowSize().y
+    };
 
-    Player player1(50.f, {200.f, 200.f}, sf::Color::Green);
-    Player player2(50.f, {600.f, 400.f}, sf::Color::Red);
+    static sf::Clock deltaClock;
+    float deltaTime = deltaClock.restart().asSeconds();
 
-    while (window.isOpen())
-    {
-        while (auto event = window.pollEvent())
-        {
-            ImGui::SFML::ProcessEvent(window, *event);
+    static Player player1(20.f, {ImGui::GetWindowSize().x/3, ImGui::GetWindowSize().y/2}, IM_COL32(0,255,0,255));
+    static Player player2(20.f, {2 * ImGui::GetWindowSize().x/3, ImGui::GetWindowSize().y/2}, IM_COL32(255,0,0,255));
 
-            if (event->is<sf::Event::Closed>())
-                window.close();
-        }
+    // ========= INPUT =========
+    ImVec2 dir = {0.f, 0.f};
 
-        sf::Time dt = deltaClock.restart();
-        float deltaTime = dt.asSeconds();
+    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Up))    dir.y -= 1.f;
+    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Down))  dir.y += 1.f;
+    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Left))  dir.x -= 1.f;
+    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Right)) dir.x += 1.f;
 
-        ImGui::SFML::Update(window, dt);
+    // ========= UPDATE =========
+    player1.move(dir, deltaTime);
 
-        // ================= INPUT PLAYER 1 =================
-        sf::Vector2f direction1(0.f, 0.f);
+    player1.clampToChild(childMin, childMax);
+    player2.clampToChild(childMin, childMax);
 
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Up))
-            direction1.y -= 1.f;
+    player1.resolveCollision(player2);
 
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Down))
-            direction1.y += 1.f;
+    // ========= DRAW =========
+    ImDrawList* draw_list = ImGui::GetWindowDrawList();
 
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Left))
-            direction1.x -= 1.f;
+    player1.draw(draw_list);
+    player2.draw(draw_list);
 
-        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Right))
-            direction1.x += 1.f;
+    ImGui::EndChild();
 
-        // ================= UPDATE =================
-        player1.move(direction1, deltaTime);
+}
 
-        player1.clampToWindow(window);
-        player2.clampToWindow(window);
+void ClientUI::drawGame() { // Game space
+    // const char* title = getName().c_str();
+    //
+    // ImGui::BeginChild(title, ImVec2(0, 400), true);
+    // ImGui::Separator();
+    //
+    // ImGui::EndChild();
+        const char* title = getName().c_str();
+
+        ImGui::BeginChild(title, ImVec2(0, 400), true);
+
+        ImVec2 childMin = ImGui::GetWindowPos();
+        ImVec2 childMax = {
+            childMin.x + ImGui::GetWindowSize().x,
+            childMin.y + ImGui::GetWindowSize().y
+        };
+
+        static sf::Clock deltaClock;
+        float deltaTime = deltaClock.restart().asSeconds();
+
+        static Player player1(20.f, {ImGui::GetWindowSize().x/3, ImGui::GetWindowSize().y/2}, IM_COL32(0,255,0,255));
+        static Player player2(20.f, {2 * ImGui::GetWindowSize().x/3, ImGui::GetWindowSize().y/2}, IM_COL32(255,0,0,255));
+
+        // ========= INPUT =========
+        ImVec2 dir = {0.f, 0.f};
+
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Up))    dir.y -= 1.f;
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Down))  dir.y += 1.f;
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Left))  dir.x -= 1.f;
+        if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Right)) dir.x += 1.f;
+
+        // ========= UPDATE =========
+        player1.move(dir, deltaTime);
+
+        player1.clampToChild(childMin, childMax);
+        player2.clampToChild(childMin, childMax);
 
         player1.resolveCollision(player2);
 
-        // ================= RENDER =================
-        window.clear(sf::Color::White);
+        // ========= DRAW =========
+        ImDrawList* draw_list = ImGui::GetWindowDrawList();
 
-        window.draw(player1);
-        window.draw(player2);
+        player1.draw(draw_list);
+        player2.draw(draw_list);
 
-        ImGui::SFML::Render(window);
-        window.display();
-    }
+        ImGui::EndChild();
 
-    // ImGui::SFML::Shutdown();
-
-    ImGui::Separator();
-
-    ImGui::EndChild();
 }
 
 void ClientUI::drawConfig() {
