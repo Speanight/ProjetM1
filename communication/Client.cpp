@@ -1,5 +1,8 @@
 #include "Client.hpp"
 
+#include <utility>
+#include <SFML/Window/Keyboard.hpp>
+
 /**
  * Clients are being created by ClientUI (which extends this class). A client will have all the information needed
  * for the server-client synchronisation, such as packet loss, ping, name (identification), ...
@@ -14,19 +17,6 @@ Client::Client(const sf::Clock clock, std::string name, sf::Color color) : serve
     this->color = color;
     this->ping = 0;
     this->name = std::move(name);
-    if (socket.bind(sf::Socket::AnyPort) != sf::Socket::Status::Done) {
-        std::cout << "Error: port isn't available? - ClientUI" << std::endl;
-        this->port = 0;
-    }
-    else {
-        port = socket.getLocalPort();
-        std::cout << "Client " << this->name << " started on port: " << port << std::endl;
-
-        socket.setBlocking(true);
-
-        sendThread = std::thread(&Client::sendLoop, this);
-        receiveThread = std::thread(&Client::receiveLoop, this);
-    }
 }
 
 Client::~Client() {
@@ -46,6 +36,20 @@ Client::~Client() {
  * @return std::map - "error" is true if client couldn't bind to any port. "name" and "port" returns their values.
  */
 std::unordered_map<std::string, std::any> Client::init() {
+    if (socket.bind(sf::Socket::AnyPort) != sf::Socket::Status::Done) {
+        std::cout << "Error: port isn't available? - ClientUI" << std::endl;
+        this->port = 0;
+    }
+    else {
+        port = socket.getLocalPort();
+        std::cout << "Client " << this->name << " started on port: " << port << std::endl;
+
+        socket.setBlocking(true);
+
+        sendThread = std::thread(&Client::sendLoop, this);
+        receiveThread = std::thread(&Client::receiveLoop, this);
+    }
+
     std::unordered_map<std::string, std::any> infos = {
             {"error", port == 0},
             {"name", name},
@@ -59,10 +63,6 @@ std::string Client::getName() {
     return name;
 }
 
-unsigned short Client::getPort() const {
-    return port;
-}
-
 int Client::getPacketLoss() const {
     return packetLoss;
 }
@@ -71,12 +71,75 @@ int Client::getPing() const {
     return ping;
 }
 
+Position Client::getPosition() {
+    return position;
+}
+
 void Client::setPacketLoss(int packetLoss) {
     this->packetLoss = packetLoss;
 }
 
 void Client::setPing(int ping) {
     this->ping = ping;
+}
+
+///////////////
+// FUNCTIONS //
+///////////////
+void Client::move(ImVec2 direction, float deltaTime) {
+    position.setX(position.getX() + direction.x * Const::PLAYER_SPEED * deltaTime);
+    position.setY(position.getY() + direction.y * Const::PLAYER_SPEED * deltaTime);
+}
+
+void Client::clampToChild(ImVec2 childMin, ImVec2 childMax) {
+    if (position.getX() - m_radius < childMin.x)
+        position.setX(childMin.x + m_radius);
+
+    if (position.getX() + m_radius > childMax.x)
+        position.setX(childMax.x - m_radius);
+
+    if (position.getY() - m_radius < childMin.y)
+        position.setY(childMin.y + m_radius);
+
+    if (position.getY() + m_radius > childMax.y)
+        position.setY(childMax.y - m_radius);
+}
+
+void Client::resolveCollision(Client& other) {
+    ImVec2 diff = { other.getPosition().getX() - position.getX(),
+                    other.getPosition().getY() - position.getY()};
+
+    float distance = sqrtf(diff.x*diff.x + diff.y*diff.y);
+    float minDistance = m_radius + other.m_radius;
+
+    if (distance < minDistance)
+    {
+        if (distance == 0.f)
+        {
+            diff = {1.f, 0.f};
+            distance = 1.f;
+        }
+
+        ImVec2 normal = { diff.x / distance, diff.y / distance };
+        float penetration = minDistance - distance;
+
+        other.getPosition().setX(other.getPosition().getX() + normal.x * penetration);
+        other.getPosition().setY(other.getPosition().getY() + normal.y * penetration);
+    }
+}
+
+
+Input Client::getInputs() {
+    Input input;
+    for (const std::pair<const int, sf::Keyboard::Key> & i : keybinds) {
+        input.handleInput(i.first, isKeyPressed(i.second));
+    }
+
+    return input;
+}
+
+void Client::setKeybinds(std::unordered_map<int, sf::Keyboard::Key> keybinds) {
+    this->keybinds = std::move(keybinds);
 }
 
 /**
@@ -89,11 +152,9 @@ int Client::sendLoop() {
     while (loop) {
         int packetLossChance = std::experimental::randint(1, 100);
 
-        // DUMMY VALUES - RANDOM INTS
-        Position position(std::experimental::randint(0, 50), std::experimental::randint(0, 50));
         QueuedPacket pkt;
         pkt.timestamp = clock.getElapsedTime();
-        Input inputs = Input(1.0, 0, false);
+        auto inputs = getInputs();
         pkt.packet << Pkt::POSITION << pkt.timestamp.asMilliseconds() << position << inputs;
         packets.push_back(pkt); // Adds the packet to the array of packets.
 
@@ -137,8 +198,8 @@ int Client::receiveLoop() {
                         Position tempPos;
                         packet >> tempPos;
 
-                        position.setX(tempPos.getX());
-                        position.setY(tempPos.getY());
+//                        position.setX(tempPos.getX());
+//                        position.setY(tempPos.getY());
                         // TODO: Handle position reception
                         break;
                     }
@@ -153,6 +214,24 @@ int Client::receiveLoop() {
     sendThread.join();
 
     return Err::ERR_NONE;
+}
+
+sf::Color Client::getColor() {
+    return this->color;
+}
+
+Client::Client(const Client& other) : server(other.server) {
+    this->name = other.name;
+    this->color = other.color;
+    this->position = Position(other.position.getX(), other.position.getY());
+}
+
+Client& Client::operator=(const Client& other) {
+    this->color = other.color;
+    this->clock = other.clock;
+    this->name = other.name;
+
+    return *this;
 }
 
 /**

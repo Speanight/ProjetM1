@@ -143,7 +143,6 @@ int Server::sendLoop() {
             packet.clear();
             packet << Pkt::POSITION << position;
             socket.send(packet, sender.value(), remotePort);
-            std::cout << "Sent positions!" << std::endl;
         }
         sf::sleep(tickrate);
     }

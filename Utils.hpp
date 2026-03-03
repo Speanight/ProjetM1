@@ -3,6 +3,8 @@
 
 #include <string>
 #include <chrono>
+#include <any>
+#include <typeindex>
 
 namespace Const {
     static const std::string SERVER_IP = "127.0.0.1";
@@ -17,7 +19,7 @@ namespace Const {
     constexpr auto TICKRATE = std::chrono::milliseconds(1000 / 2); // Amount of ticks in 1s (1s / tickrate)
     static const int BUFFER_SIZE = 5;
 
-    static const int PLAYER_SPEED = 10;
+    static const int PLAYER_SPEED = 400;
 }
 
 namespace Err {
@@ -41,8 +43,13 @@ namespace Pkt {
 
 namespace Inputs {
     // Movement
-    static constexpr int MOVEMENT_X = 0;
-    static constexpr int MOVEMENT_Y = 1;
+    static constexpr int MOVEMENT_LOWER = 0; // Defines 1st movement value
+    static constexpr int MOVEMENT_UP = 0;
+    static constexpr int MOVEMENT_DOWN = 1;
+    static constexpr int MOVEMENT_LEFT = 2;
+    static constexpr int MOVEMENT_RIGHT = 3;
+    static constexpr int MOVEMENT_UPPER = 3; // Defines last movement value
+    static constexpr int ATTACK = 4;
 
     // Actions
     static constexpr int SHOOT = 2;
@@ -52,6 +59,5 @@ namespace Compensation {
     static constexpr int EXTRAPOLATION = 0;
     static constexpr int INTRAPOLATION = 1;
 }
-
 
 #endif

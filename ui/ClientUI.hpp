@@ -8,12 +8,18 @@
 class ClientUI : public Client {
 private:
 
+protected:
+    std::map<std::string, ClientUI> opponents;
 public:
-    ClientUI(const sf::Clock clock, std::string name);
+    ClientUI(sf::Clock clock, std::string name, sf::Color color = sf::Color::Red);
 
-    void drawGamePl1();
-    void drawGamePl2();
-    void drawGame();        //TODO : Delete when drawgamePl1 and DrawGamePl2 finished
+    // PlayerInit
+    void drawInit(ImVec2 center, float radius, float speed, ImU32 color);
+
+    void addOpponent(sf::Clock clock, const std::string& name, sf::Color color);
+
+    void drawGame();
+    void drawPlayer(ImDrawList* draw_list);
     void drawConfig();
 };
 

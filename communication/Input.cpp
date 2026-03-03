@@ -38,6 +38,28 @@ void Input::setAttack(bool attack) {
     this->attack = attack;
 }
 
+void Input::handleInput(int inputCode, float value) {
+    switch (inputCode) {
+        case Inputs::MOVEMENT_UP:
+            movementY -= value;
+            break;
+        case Inputs::MOVEMENT_DOWN:
+            movementY += value;
+            break;
+        case Inputs::MOVEMENT_LEFT:
+            movementX -= value;
+            break;
+        case Inputs::MOVEMENT_RIGHT:
+            movementX += value;
+            break;
+        case Inputs::ATTACK:
+            attack = true;
+            break;
+        default:
+            break;
+    }
+}
+
 sf::Packet& operator<<(sf::Packet &packet, Input inputs) {
     return packet << inputs.getMovementX() << inputs.getMovementY() << inputs.getAttack();
 }
