@@ -20,6 +20,10 @@ void Player::move(ImVec2 direction, float deltaTime){
     m_center.y += direction.y * m_speed * deltaTime;
 }
 
+void Player::atk() {
+
+}
+
 //=================== COLLISIONS ===================
 
 void Player::clampToChild(ImVec2 childMin, ImVec2 childMax){
@@ -60,7 +64,7 @@ void Player::resolveCollision(Player& other){
 }
 
 void Player::draw(ImDrawList* draw_list){
-    // Cercle
+    // Circle
     draw_list->AddCircleFilled(m_center, m_radius, m_color);
 
     // Triangle
@@ -77,4 +81,16 @@ void Player::draw(ImDrawList* draw_list){
                      m_center.y - m_radius };
 
     draw_list->AddTriangleFilled(top, left, right, m_color);
+
+    // Point
+    std::string score = std::to_string(m_point);
+
+    ImVec2 textSize = ImGui::CalcTextSize(score.c_str());
+
+    ImVec2 textPos = {
+        m_center.x - textSize.x / 2.f,
+        m_center.y - textSize.y / 2.f
+    };
+
+    draw_list->AddText(ImGui::GetFont(),20.f,textPos, IM_COL32(0,0,0,255), score.c_str());
 }

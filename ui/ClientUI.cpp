@@ -32,12 +32,12 @@ void ClientUI::drawGamePl1() { //Player 1 Game Space
     static Player player1(20.f,
         { childPos.x + childSize.x / 3.f,
           childPos.y + childSize.y / 2.f },
-        IM_COL32(0,255,0,255));
+        IM_COL32(0,255,0,255),0);
 
     static Player player2(20.f,
         { childPos.x + 2.f * childSize.x / 3.f,
           childPos.y + childSize.y / 2.f },
-        IM_COL32(255,0,0,255));
+        IM_COL32(255,0,0,255),0);
 
     // ========= INPUT =========
     ImVec2 dir = {0.f, 0.f};
