@@ -85,15 +85,14 @@ void ClientUI::drawGamePl2() { //Player 1 Game Space
     ImVec2 childPos  = ImGui::GetWindowPos();
     ImVec2 childSize = ImGui::GetWindowSize();
 
-    static Player player1(20.f,
+    static Player2 player1(IM_COL32(0,255,0,255),
         { childPos.x + childSize.x / 3.f,
-          childPos.y + childSize.y / 2.f },
-        IM_COL32(0,255,0,255));
+          childPos.y + childSize.y / 2.f });
 
-    static Player player2(20.f,
+    static Player2 player2(IM_COL32(255,0,0,255),
         { childPos.x + 2.f * childSize.x / 3.f,
-          childPos.y + childSize.y / 2.f },
-        IM_COL32(255,0,0,255));
+          childPos.y + childSize.y / 2.f }
+        );
 
     // ========= INPUT =========
     ImVec2 dir = {0.f, 0.f};
@@ -103,14 +102,28 @@ void ClientUI::drawGamePl2() { //Player 1 Game Space
     if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Left))  dir.x -= 1.f;
     if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Right)) dir.x += 1.f;
 
-    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Enter)){player2.atk(player1);}
+    // if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Enter)){player2.atk(player1);}
+    // if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::P)){player2.UpdateWpn(0.05f, deltaTime);}
+    // if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::M)){player2.UpdateWpn(-0.05f, deltaTime);}
+    //
+    // // ========= UPDATE =========
+    // player2.move(dir, deltaTime);
+    // player2.updateAttack(deltaTime);
+    //
+    // player2.clampToChild(childMin, childMax);
+    // player1.clampToChild(childMin, childMax);
+
+    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Enter)){player2.atkAction(player1);}
+    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::P)){player2.mooveWeapon(0.05f, deltaTime);}
+    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::M)){player2.mooveWeapon(-0.05f, deltaTime);}
 
     // ========= UPDATE =========
-    player2.move(dir, deltaTime);
-    player2.updateAttack(deltaTime);
+    player2.moovePlayer(dir, deltaTime);
+    player2.atkAnimation(deltaTime);
 
-    player2.clampToChild(childMin, childMax);
-    player1.clampToChild(childMin, childMax);
+    player2.clampToMap(childMin, childMax);
+    player1.clampToMap(childMin, childMax);
+
 
     player2.resolveCollision(player1);
 

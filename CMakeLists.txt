@@ -43,6 +43,8 @@ add_executable(ProjetM1
         test_Ferolind/test_ferolind.hpp
         game/Player.cpp
         game/Player.hpp
+        game/Weapon.cpp
+        game/Weapon.hpp
 )
 # =========================
 # Link libraries
