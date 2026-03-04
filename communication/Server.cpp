@@ -119,14 +119,20 @@ int Server::receiveLoop() {
                             int time;
                             packet >> time >> inputs;
 
+                            if (inputs.getMovementX() != 0) {
+                                std::cout << "Changing position of user: " << name << std::endl;
+                            }
+
+
                             addLine(name + " >>> Server [PING:" + std::to_string(clock.getElapsedTime().asMilliseconds() - time) + "ms] | inputs: x=" + std::to_string(inputs.getMovementX()) + "; y=" + std::to_string(inputs.getMovementY()));
 //                            player.position.setX(position.getX() + inputs.getMovementX() * Const::PLAYER_SPEED * (clock.getElapsedTime().asMilliseconds() - buffer.currentState[name].getTimestamp()) / 1000);
 //                            player.position.setY(position.getY() + inputs.getMovementY() * Const::PLAYER_SPEED * (clock.getElapsedTime().asMilliseconds() - buffer.currentState[name].getTimestamp()) / 1000);
+                            Position position = buffer.currentState[name].getPosition();
                             position.setX(position.getX() + inputs.getMovementX() * Const::PLAYER_SPEED * (clock.getElapsedTime().asMilliseconds() - buffer.currentState[name].getTimestamp()) / 1000);
                             position.setY(position.getY() + inputs.getMovementY() * Const::PLAYER_SPEED * (clock.getElapsedTime().asMilliseconds() - buffer.currentState[name].getTimestamp()) / 1000);
                             State s = State(time, position, inputs);
-                            player.position.setX(buffer.currentState[player.name].getPosition().getX());
-                            player.position.setY(buffer.currentState[player.name].getPosition().getY());
+                            // player.position.setX(buffer.currentState[player.name].getPosition().getX());
+                            // player.position.setY(buffer.currentState[player.name].getPosition().getY());
                             refreshBuffer(name, s, time);
                             break;
                         }
@@ -159,7 +165,9 @@ int Server::sendLoop() {
         for (auto & [name, player] : clients) {
             packet.clear();
             packet << Pkt::GLOBAL << int(buffer.stateTick) << int(buffer.currentState.size());
+
             for (auto & [n, state] : buffer.currentState) {
+                std::cout << "Packet: + " << n << " (" << state.getPosition().getX() << ", " << state.getPosition().getY() << ")" << std::endl;
                 packet << n << state.getPosition();
             }
 
@@ -209,16 +217,16 @@ void Server::refreshBuffer(const std::string& client, State state, int clockStat
                 buffer.nextState[name] = buffer.currentState[name]; // Rollbacks to previously known position.
                 // Add compensations here:
 //                int toCompensate = clockState - buffer.currentState[name].getTimestamp();
-                float toCompensate = 0.003; // TODO: find time to compensate!
-                if (compensations[Compensation::EXTRAPOLATION]) {
-                    // EXTRAPOLING - We guess the new position based of last known position AND inputs.
-                    Position position = buffer.nextState[name].getPosition();
-                    Input inputs = buffer.nextState[name].getInputs();
-                    float x = position.getX() + inputs.getMovementX() * Const::PLAYER_SPEED * toCompensate;
-                    float y = position.getY() + inputs.getMovementY() * Const::PLAYER_SPEED * toCompensate;
-
-                    buffer.nextState[name].setPosition(Position(x, y));
-                }
+                // float toCompensate = 0.003; // TODO: find time to compensate!
+                // if (compensations[Compensation::EXTRAPOLATION]) {
+                //     // EXTRAPOLING - We guess the new position based of last known position AND inputs.
+                //     Position position = buffer.nextState[name].getPosition();
+                //     Input inputs = buffer.nextState[name].getInputs();
+                //     float x = position.getX() + inputs.getMovementX() * Const::PLAYER_SPEED * toCompensate;
+                //     float y = position.getY() + inputs.getMovementY() * Const::PLAYER_SPEED * toCompensate;
+                //
+                //     buffer.nextState[name].setPosition(Position(x, y));
+                // }
 
                 std::cout << "COMPENSATED " << name << " - (" << buffer.nextState[name].getPosition().getX() << ", " << buffer.nextState[name].getPosition().getY() << ")" << std::endl;
             }

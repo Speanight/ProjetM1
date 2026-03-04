@@ -120,7 +120,7 @@ int Client::sendLoop() {
 
         QueuedPacket pkt;
         pkt.timestamp = clock.getElapsedTime();
-        auto inputs = getInputs();
+        auto inputs = this->getInputs();
         pkt.packet << Pkt::INPUTS << pkt.timestamp.asMilliseconds() << inputs;
         packets.push_back(pkt); // Adds the packet to the array of packets.
 
@@ -181,13 +181,11 @@ int Client::receiveLoop() {
                         while (nbPlayers > 0) {
                             packet >> name >> position;
 
-                            std::cout << this->getName() << " -> " << name << " (" << position.getX() << ", " << position.getY() << ")" << std::endl;
-
                             if (name == this->getName()) {
                                 // TODO: Handler of "fixing" of local position.
                                 this->position = position;
-//                                this->getPosition().setX(position.getX());
-//                                this->getPosition().setY(position.getY());
+                                // this->getPosition().setX(position.getX());
+                                // this->getPosition().setY(position.getY());
                             }
                             else {
                                 // Opponent position:
