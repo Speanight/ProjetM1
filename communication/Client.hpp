@@ -1,10 +1,10 @@
 #ifndef PROJETM1_CLIENT_H
 #define PROJETM1_CLIENT_H
 
+#include "../Utils.hpp"
 #include "../game/Position.hpp"
 #include <SFML/Network/UdpSocket.hpp>
 #include <SFML/Network/Packet.hpp>
-#include "../Utils.hpp"
 #include "Input.hpp"
 #include <iostream>
 #include <unordered_map>
@@ -29,9 +29,18 @@ struct QueuedPacket {
     sf::Time timestamp;
 };
 
+struct Player {
+    std::string name;
+    sf::Color color;
+    Position position;
+    unsigned short port = 0;
+};
+
+
+
+
 class Client {
 private:
-    sf::Clock clock;
     std::string name;
     sf::Color color;
     Position position;
@@ -50,7 +59,8 @@ private:
     bool loop = true;
 
 protected:
-    float m_radius = 20.f;
+    sf::Clock clock;
+    std::map<std::string, Player> opponents;
 
 public:
     Client(sf::Clock clock, std::string name, sf::Color color = sf::Color::Red);
@@ -73,13 +83,10 @@ public:
     void setPing(int ping);
     void setKeybinds(std::unordered_map<int,sf::Keyboard::Key> keybinds);
 
-
     // Functions
     std::unordered_map<std::string, std::any> init();
 
     void move(ImVec2 direction, float deltaTime);
-    void clampToChild(ImVec2 childMin, ImVec2 childMax);
-    void resolveCollision(Client& other);
 
     int sendLoop();
     int receiveLoop();

@@ -16,10 +16,11 @@ namespace Const {
 
     static const int CONSOLE_LINES = 50;
 
-    constexpr auto TICKRATE = std::chrono::milliseconds(1000 / 2); // Amount of ticks in 1s (1s / tickrate)
+    constexpr auto TICKRATE = std::chrono::milliseconds(1000 / 1); // Amount of ticks in 1s (1s / tickrate)
     static const int BUFFER_SIZE = 5;
 
     static const int PLAYER_SPEED = 400;
+    static const float PLAYER_RADIUS = 20.f;
 }
 
 namespace Err {
@@ -37,8 +38,10 @@ namespace Pkt {
     /////////////////////
     // PACKETS HEADERS //
     /////////////////////
-    static const int SHUTDOWN = 0;
-    static const int POSITION = 1;
+    static const int SHUTDOWN = 0;  // None
+    static const int GLOBAL = 1;    // tick << amtPlayers << client.name << client.position << [...]
+    static const int POSITION = 2;  // tick << client.position
+    static const int INPUTS = 3;    // tick << inputs
 }
 
 namespace Inputs {

@@ -46,6 +46,7 @@ add_executable(ProjetM1
         ui/ClientUI.cpp
         communication/State.cpp
         communication/Input.cpp
+        game/gameUtils.cpp
 )
 # =========================
 # Link libraries

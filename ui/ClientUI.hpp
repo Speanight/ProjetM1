@@ -4,22 +4,26 @@
 #include <imgui.h>
 #include <imgui-SFML.h>
 #include "../communication/Client.hpp"
+#include "../game/gameUtils.hpp"
+
+#include <SFML/Graphics/RenderWindow.hpp>
+#include <SFML/Graphics/Sprite.hpp>
+#include <SFML/Graphics/Texture.hpp>
+#include <SFML/Window/VideoMode.hpp>
+#include <SFML/Graphics/Color.hpp>
 
 class ClientUI : public Client {
 private:
+    float lastUpdate;
+
 
 protected:
-    std::map<std::string, ClientUI> opponents;
 public:
     ClientUI(sf::Clock clock, std::string name, sf::Color color = sf::Color::Red);
 
-    // PlayerInit
-    void drawInit(ImVec2 center, float radius, float speed, ImU32 color);
-
-    void addOpponent(sf::Clock clock, const std::string& name, sf::Color color);
+    void addOpponent(const std::string& name, sf::Color color);
 
     void drawGame();
-    void drawPlayer(ImDrawList* draw_list);
     void drawConfig();
 };
 

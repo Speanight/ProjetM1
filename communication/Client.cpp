@@ -54,6 +54,7 @@ std::unordered_map<std::string, std::any> Client::init() {
             {"error", port == 0},
             {"name", name},
             {"port", port},
+            {"color", color}
     };
 
     return infos;
@@ -80,52 +81,17 @@ void Client::setPacketLoss(int packetLoss) {
 }
 
 void Client::setPing(int ping) {
-    this->ping = ping;
+    if (ping >= 0) {
+        this->ping = ping;
+    }
 }
 
 ///////////////
 // FUNCTIONS //
 ///////////////
 void Client::move(ImVec2 direction, float deltaTime) {
-    position.setX(position.getX() + direction.x * Const::PLAYER_SPEED * deltaTime);
-    position.setY(position.getY() + direction.y * Const::PLAYER_SPEED * deltaTime);
-}
-
-void Client::clampToChild(ImVec2 childMin, ImVec2 childMax) {
-    if (position.getX() - m_radius < childMin.x)
-        position.setX(childMin.x + m_radius);
-
-    if (position.getX() + m_radius > childMax.x)
-        position.setX(childMax.x - m_radius);
-
-    if (position.getY() - m_radius < childMin.y)
-        position.setY(childMin.y + m_radius);
-
-    if (position.getY() + m_radius > childMax.y)
-        position.setY(childMax.y - m_radius);
-}
-
-void Client::resolveCollision(Client& other) {
-    ImVec2 diff = { other.getPosition().getX() - position.getX(),
-                    other.getPosition().getY() - position.getY()};
-
-    float distance = sqrtf(diff.x*diff.x + diff.y*diff.y);
-    float minDistance = m_radius + other.m_radius;
-
-    if (distance < minDistance)
-    {
-        if (distance == 0.f)
-        {
-            diff = {1.f, 0.f};
-            distance = 1.f;
-        }
-
-        ImVec2 normal = { diff.x / distance, diff.y / distance };
-        float penetration = minDistance - distance;
-
-        other.getPosition().setX(other.getPosition().getX() + normal.x * penetration);
-        other.getPosition().setY(other.getPosition().getY() + normal.y * penetration);
-    }
+//    position.setX(position.getX() + direction.x * Const::PLAYER_SPEED * deltaTime / 1000);
+//    position.setY(position.getY() + direction.y * Const::PLAYER_SPEED * deltaTime / 1000);
 }
 
 
@@ -155,7 +121,7 @@ int Client::sendLoop() {
         QueuedPacket pkt;
         pkt.timestamp = clock.getElapsedTime();
         auto inputs = getInputs();
-        pkt.packet << Pkt::POSITION << pkt.timestamp.asMilliseconds() << position << inputs;
+        pkt.packet << Pkt::INPUTS << pkt.timestamp.asMilliseconds() << inputs;
         packets.push_back(pkt); // Adds the packet to the array of packets.
 
         // If the packet isn't lost (editable through packet loss % slider):
@@ -201,6 +167,36 @@ int Client::receiveLoop() {
 //                        position.setX(tempPos.getX());
 //                        position.setY(tempPos.getY());
                         // TODO: Handle position reception
+                        break;
+                    }
+
+                    // amtPlayers << player.name << player.position << [...]
+                    case Pkt::GLOBAL: {
+                        int nbPlayers;
+                        int stateTick;
+                        std::string name;
+                        Position position;
+                        packet >> stateTick >> nbPlayers;
+
+                        while (nbPlayers > 0) {
+                            packet >> name >> position;
+
+                            std::cout << this->getName() << " -> " << name << " (" << position.getX() << ", " << position.getY() << ")" << std::endl;
+
+                            if (name == this->getName()) {
+                                // TODO: Handler of "fixing" of local position.
+                                this->position = position;
+//                                this->getPosition().setX(position.getX());
+//                                this->getPosition().setY(position.getY());
+                            }
+                            else {
+                                // Opponent position:
+                                opponents[name].position.setX(position.getX());
+                                opponents[name].position.setY(position.getY());
+                            }
+                            nbPlayers--;
+                        }
+
                         break;
                     }
 

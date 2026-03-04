@@ -33,8 +33,8 @@ int main() {
                           {Inputs::MOVEMENT_LEFT, sf::Keyboard::Key::Left},
                           {Inputs::MOVEMENT_RIGHT, sf::Keyboard::Key::Right}});
 
-    clientA->addOpponent(clock, clientB->getName(), clientB->getColor());
-    clientB->addOpponent(clock, clientA->getName(), clientA->getColor());
+    clientA->addOpponent(clientB->getName(), clientB->getColor());
+    clientB->addOpponent(clientA->getName(), clientA->getColor());
 
     std::cout << "Adding client to server..." << std::endl;
     window.addClient(clientA);

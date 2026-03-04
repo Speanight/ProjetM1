@@ -38,7 +38,7 @@ Server::~Server() {
  *
  * @return map of clients, keys being their name and values being their port.
  */
-std::unordered_map<std::string, unsigned short> Server::getClients() {
+std::unordered_map<std::string, Player> Server::getClients() {
     return clients;
 }
 
@@ -54,8 +54,9 @@ int Server::addClient(std::unordered_map<std::string, std::any> infos) {
         std::cout << "Error initializing client " << std::any_cast<std::string>(infos["name"]) << std::endl;
         return Err::ERR_CLIENT_INIT;
     }
-    clients[std::any_cast<std::string>(infos["name"])] = std::any_cast<unsigned short>(infos["port"]);
-    std::cout << "Added client " << std::any_cast<std::string>(infos["name"]) << " on port " << clients[std::any_cast<std::string>(infos["name"])] << std::endl;
+    Player player(std::any_cast<std::string>(infos["name"]), std::any_cast<sf::Color>(infos["color"]), Position(), std::any_cast<unsigned short>(infos["port"]));
+    clients[std::any_cast<std::string>(infos["name"])] = player;
+    std::cout << "Added client " << std::any_cast<std::string>(infos["name"]) << " on port " << clients[std::any_cast<std::string>(infos["name"])].port << std::endl;
     return Err::ERR_NONE;
 }
 
@@ -95,20 +96,38 @@ int Server::receiveLoop() {
             }
 
             // Checks for all connected clients:
-            for (auto & [name, remotePort] : clients) {
+            for (auto & [name, player] : clients) {
                 senderNum++;
-                if (remotePort == port) { // Check if ports corresponds (AKA the expected client)
+                if (player.port == port) { // Check if ports corresponds (AKA the expected client)
                     packet >> type;
 
                     switch (type) {
                         case Pkt::POSITION: {
+//                            int time;
+//                            packet >> time >> position >> inputs;
+//
+//                            addLine(name + " >>> Server [PING:" + std::to_string(clock.getElapsedTime().asMilliseconds() - time) + "ms] | position: (" + std::to_string(position.getX()) + ", " + std::to_string(position.getY()) + ")", colors[senderNum]);
+//
+//                            State s = State(time, position, inputs);
+//                            refreshBuffer(name, s, time);
+//                            player.position.setX(buffer.currentState[player.name].getPosition().getX());
+//                            player.position.setY(buffer.currentState[player.name].getPosition().getY());
+                            break;
+                        }
+
+                        case Pkt::INPUTS: {
                             int time;
-                            packet >> time >> position >> inputs;
+                            packet >> time >> inputs;
 
-                            addLine(name + " >>> Server [PING:" + std::to_string(clock.getElapsedTime().asMilliseconds() - time) + "ms] | position: (" + std::to_string(position.getX()) + ", " + std::to_string(position.getY()) + ")", colors[senderNum]);
-
+                            addLine(name + " >>> Server [PING:" + std::to_string(clock.getElapsedTime().asMilliseconds() - time) + "ms] | inputs: x=" + std::to_string(inputs.getMovementX()) + "; y=" + std::to_string(inputs.getMovementY()));
+//                            player.position.setX(position.getX() + inputs.getMovementX() * Const::PLAYER_SPEED * (clock.getElapsedTime().asMilliseconds() - buffer.currentState[name].getTimestamp()) / 1000);
+//                            player.position.setY(position.getY() + inputs.getMovementY() * Const::PLAYER_SPEED * (clock.getElapsedTime().asMilliseconds() - buffer.currentState[name].getTimestamp()) / 1000);
+                            position.setX(position.getX() + inputs.getMovementX() * Const::PLAYER_SPEED * (clock.getElapsedTime().asMilliseconds() - buffer.currentState[name].getTimestamp()) / 1000);
+                            position.setY(position.getY() + inputs.getMovementY() * Const::PLAYER_SPEED * (clock.getElapsedTime().asMilliseconds() - buffer.currentState[name].getTimestamp()) / 1000);
                             State s = State(time, position, inputs);
-                            refreshBuffer(name, s, clock.getElapsedTime().asMilliseconds());
+                            player.position.setX(buffer.currentState[player.name].getPosition().getX());
+                            player.position.setY(buffer.currentState[player.name].getPosition().getY());
+                            refreshBuffer(name, s, time);
                             break;
                         }
 
@@ -137,13 +156,39 @@ int Server::sendLoop() {
 
     while (loop) {
         // DEFAULT BEHAVIOR - SEND SERVER-SIDE POSITIONS
-        for (auto & [name, remotePort] : clients) {
-            // TODO: Get position of user (according to server) to send it!
-            Position position(0, 0); // TEMP VALUES!
+        for (auto & [name, player] : clients) {
             packet.clear();
-            packet << Pkt::POSITION << position;
-            socket.send(packet, sender.value(), remotePort);
+            packet << Pkt::GLOBAL << int(buffer.stateTick) << int(buffer.currentState.size());
+            for (auto & [n, state] : buffer.currentState) {
+                packet << n << state.getPosition();
+            }
+
+            socket.send(packet, sender.value(), player.port);
+            addLine("Server >>> " + name + " position: (" + std::to_string(player.position.getX()) + ", " + std::to_string(player.position.getY()) + ")", sf::Color::White);
         }
+
+        // PAST IMPLEMENTATION
+//        for (auto & [name, player] : clients) {
+//            for (auto & [n, p] : clients) {
+//                if (n != name) {
+//                    Position pos = resolveCollision(player.position, p.position);
+////                    p.position.setX(pos.getX());
+////                    p.position.setY(pos.getY());
+//                }
+//            }
+//        }
+//
+//        // Sends the packet to each client
+//        for (auto & [name, player] : clients) {
+//            packet.clear();
+//            packet << Pkt::GLOBAL << int(clients.size());
+//
+//            for (auto & [n, p] : clients) {
+//                packet << p.name << p.position;
+//            }
+//            socket.send(packet, sender.value(), player.port);
+//            addLine("Server >>> " + name + " position: (" + std::to_string(player.position.getX()) + ", " + std::to_string(player.position.getY()) + ")", sf::Color::White);
+//        }
         sf::sleep(tickrate);
     }
 
@@ -153,6 +198,8 @@ int Server::sendLoop() {
 }
 
 void Server::refreshBuffer(const std::string& client, State state, int clockState) {
+    buffer.nextState[client] = state;
+
     // We "push" the buffer if we're onto the next tick. (known by checking current server tick).
     if (buffer.stateTick / Const::TICKRATE.count() < clockState / Const::TICKRATE.count()) {
         for (auto & [name, remotePort] : clients) {
@@ -160,13 +207,15 @@ void Server::refreshBuffer(const std::string& client, State state, int clockStat
             // If some values are missing, we add them with potential compensations:
             if (auto search = buffer.nextState.find(name); search == buffer.nextState.end()) {
                 buffer.nextState[name] = buffer.currentState[name]; // Rollbacks to previously known position.
-                // TODO: Add compensation here:
+                // Add compensations here:
+//                int toCompensate = clockState - buffer.currentState[name].getTimestamp();
+                float toCompensate = 0.003; // TODO: find time to compensate!
                 if (compensations[Compensation::EXTRAPOLATION]) {
                     // EXTRAPOLING - We guess the new position based of last known position AND inputs.
                     Position position = buffer.nextState[name].getPosition();
                     Input inputs = buffer.nextState[name].getInputs();
-                    float x = position.getX() + inputs.getMovementX() * Const::PLAYER_SPEED;
-                    float y = position.getY() + inputs.getMovementY() * Const::PLAYER_SPEED;
+                    float x = position.getX() + inputs.getMovementX() * Const::PLAYER_SPEED * toCompensate;
+                    float y = position.getY() + inputs.getMovementY() * Const::PLAYER_SPEED * toCompensate;
 
                     buffer.nextState[name].setPosition(Position(x, y));
                 }
@@ -176,16 +225,14 @@ void Server::refreshBuffer(const std::string& client, State state, int clockStat
         }
 
         // Refreshes buffer
-        buffer.pastStates[buffer.stateTick/TICKRATE.count()] = buffer.currentState;
-        if (buffer.pastStates.size() >= BUFFER_SIZE) {
-            buffer.pastStates.erase(buffer.pastStates.begin());
-        }
+//        buffer.pastStates[buffer.stateTick/TICKRATE.count()] = buffer.currentState;
+//        if (buffer.pastStates.size() >= BUFFER_SIZE) {
+//            buffer.pastStates.erase(buffer.pastStates.begin());
+//        }
         buffer.stateTick = clockState;
         buffer.currentState = buffer.nextState;
         buffer.nextState.clear();
     }
-
-    buffer.nextState[client] = state;
 }
 
 /**
@@ -202,8 +249,8 @@ int Server::shutdown() {
 
     if (socket.send(packet, sender.value(), COMM_PORT_SERVER) == sf::Socket::Status::Done) {
         // Sends DC packet to all clients
-        for (auto & [name, remotePort] : clients) {
-            socket.send(packet, sender.value(), remotePort);
+        for (auto & [name, player] : clients) {
+            socket.send(packet, sender.value(), player.port);
         }
         return Err::ERR_NONE;
     }
