@@ -14,6 +14,7 @@
 
 #include "../ui/ServerUI.hpp"
 #include "../game/Position.hpp"
+#include "../ui/ClientUI.hpp"
 #include "State.hpp"
 
 using namespace Const;
@@ -38,17 +39,16 @@ private:
     std::thread receiveThread;
 
     std::array<sf::Color, 5> colors;
-    std::unordered_map<std::string, unsigned short> clients;
+    std::unordered_map<std::string, Player> clients;
 
     bool loop = true;
 
 public:
     Server(sf::Clock clock);
-
     ~Server();
 
     // Getters / Setters
-    std::unordered_map<std::string, unsigned short> getClients();
+    std::unordered_map<std::string, Player> getClients();
 
     // Functions
     int addClient(std::unordered_map<std::string, std::any> infos);

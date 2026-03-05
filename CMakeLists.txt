@@ -27,6 +27,11 @@ find_package(SFML 3 REQUIRED COMPONENTS
 find_package(ImGui-SFML REQUIRED)
 
 # =========================
+# X11 (for Multi-threading/keyboard)
+# =========================
+find_package(X11 REQUIRED)
+
+# =========================
 # Executable
 # =========================
 add_executable(ProjetM1
@@ -41,8 +46,7 @@ add_executable(ProjetM1
         ui/ClientUI.cpp
         communication/State.cpp
         communication/Input.cpp
-        game/Player.cpp
-        game/Player.hpp
+        game/gameUtils.cpp
 )
 # =========================
 # Link libraries
@@ -54,4 +58,6 @@ target_link_libraries(ProjetM1 PRIVATE
         SFML::Network
         OpenGL::GL
         ImGui-SFML::ImGui-SFML
+
+        X11::X11
 )

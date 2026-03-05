@@ -8,35 +8,10 @@
 #include "ui/MainWindow.hpp"
 #include "ui/ClientUI.hpp"
 #include "ui/ServerUI.hpp"
-
-struct NetConfig {
-    // Default configuration
-    int packetLossGame1 = 0;
-    int pingGame1 = 50;
-
-    int packetLossGame2 = 0;
-    int pingGame2 = 50;
-
-    int tickrate = 60;
-
-    enum class CompensationMode {
-        COMPO_1 , COMPO_2, COMPO_3, MODE_1, MODE_2, None
-    } compensation = CompensationMode::None;
-};
-
-const char* toString(NetConfig::CompensationMode mode) {
-    switch (mode) {
-        case NetConfig::CompensationMode::None:    return "None";
-        case NetConfig::CompensationMode::COMPO_1: return "COMPO_1";
-        case NetConfig::CompensationMode::COMPO_2: return "COMPO_2";
-        case NetConfig::CompensationMode::COMPO_3: return "COMPO_3";
-        case NetConfig::CompensationMode::MODE_1:  return "MODE_1";
-        case NetConfig::CompensationMode::MODE_2:  return "MODE_2";
-        default: return "Unknown";
-    }
-}
+#include <X11/Xlib.h>
 
 int main() {
+    XInitThreads(); // Needed for multi-threading.
     // Initializing objects
     sf::Clock clock;
     // auto clock = std::chrono::steady_clock::now();
@@ -44,8 +19,22 @@ int main() {
     MainWindow window(clock);
 
     std::cout << "Starting server on Network: " << SERVER_IP << ":" << COMM_PORT_SERVER << std::endl;
-    ClientUI* clientA = new ClientUI(clock, "Client A");
-    ClientUI* clientB = new ClientUI(clock, "Client B");
+    ClientUI* clientA = new ClientUI(clock, "Client A", sf::Color::Red);
+    ClientUI* clientB = new ClientUI(clock, "Client B", sf::Color::Green);
+
+    // Settings players keybinds...
+    clientA->setKeybinds({{Inputs::MOVEMENT_UP, sf::Keyboard::Key::W},
+                          {Inputs::MOVEMENT_DOWN, sf::Keyboard::Key::S},
+                          {Inputs::MOVEMENT_LEFT, sf::Keyboard::Key::A},
+                          {Inputs::MOVEMENT_RIGHT, sf::Keyboard::Key::D}});
+
+    clientB->setKeybinds({{Inputs::MOVEMENT_UP, sf::Keyboard::Key::Up},
+                          {Inputs::MOVEMENT_DOWN, sf::Keyboard::Key::Down},
+                          {Inputs::MOVEMENT_LEFT, sf::Keyboard::Key::Left},
+                          {Inputs::MOVEMENT_RIGHT, sf::Keyboard::Key::Right}});
+
+    clientA->addOpponent(clientB->getName(), clientB->getColor());
+    clientB->addOpponent(clientA->getName(), clientA->getColor());
 
     std::cout << "Adding client to server..." << std::endl;
     window.addClient(clientA);

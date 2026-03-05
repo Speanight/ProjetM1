@@ -2,7 +2,7 @@
 #define PROJETM1_INPUT_HPP
 
 #include <SFML/Network/Packet.hpp>
-
+#include "../Utils.hpp"
 
 class Input {
 private:
@@ -23,6 +23,9 @@ public:
     void setMovementX(float x);
     void setMovementY(float y);
     void setAttack(bool attack);
+
+    // Functions
+    void handleInput(int inputCode, float value);
 };
 
 sf::Packet& operator<<(sf::Packet& packet, Input inputs);

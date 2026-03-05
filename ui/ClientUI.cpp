@@ -1,121 +1,53 @@
 #include "ClientUI.hpp"
 
-#include <SFML/Graphics/CircleShape.hpp>
-#include <SFML/Graphics/RenderWindow.hpp>
-#include <SFML/Graphics/Sprite.hpp>
-#include <SFML/Graphics/Texture.hpp>
-#include <SFML/Window/VideoMode.hpp>
-#include <SFML/Graphics/Color.hpp>
-#include <SFML/Graphics/RectangleShape.hpp>
-#include "../game/Player.hpp"
+ClientUI::ClientUI(const sf::Clock clock, std::string name, sf::Color color) : Client(clock, name, color) {}
 
-ClientUI::ClientUI(const sf::Clock clock, std::string name) : Client(clock, name) {}
+void ClientUI::drawGame() { // Game space
+        const char* title = getName().c_str();
 
+        ImGui::BeginChild(title, ImVec2(0, 400), true);
 
-void ClientUI::drawGamePl1() { //Player 1 Game Space
-    const char* title = getName().c_str();
+        ImVec2 childMin = ImGui::GetWindowPos();
+        ImVec2 childMax = {
+            childMin.x + ImGui::GetWindowSize().x,
+            childMin.y + ImGui::GetWindowSize().y
+        };
 
-    ImGui::BeginChild(title, ImVec2(0, 400), true);
+//        float deltaTime = clock.getElapsedTime().asMilliseconds() - lastUpdate;
+//        std::cout << "TIME: " << clock.getElapsedTime().asSeconds() << "s // " << clock.getElapsedTime().asMilliseconds() << "ms" << std::endl;
 
-    ImVec2 childMin = ImGui::GetWindowPos();
-    ImVec2 childMax = {
-        childMin.x + ImGui::GetWindowSize().x,
-        childMin.y + ImGui::GetWindowSize().y
-    };
+        // ========= INPUT =========
+        ImVec2 dir = {0.f, 0.f};
 
-    static sf::Clock deltaClock;
-    float deltaTime = deltaClock.restart().asSeconds();
+        Input inputs = getInputs();
 
-    ImVec2 childPos  = ImGui::GetWindowPos();
-    ImVec2 childSize = ImGui::GetWindowSize();
+        dir.x += 1.f * inputs.getMovementX();
+        dir.y += 1.f * inputs.getMovementY();
 
-    static Player player1(20.f,
-        { childPos.x + childSize.x / 3.f,
-          childPos.y + childSize.y / 2.f },
-        IM_COL32(0,255,0,255));
+        // ========= UPDATE =========
+//        move(dir, deltaTime);
 
-    static Player player2(20.f,
-        { childPos.x + 2.f * childSize.x / 3.f,
-          childPos.y + childSize.y / 2.f },
-        IM_COL32(255,0,0,255));
+//        for (auto & [name, other] : opponents) {
+//            Position p = resolveCollision(getPosition(), other.position);
+//            other.position.setX(p.getX());
+//            other.position.setY(p.getY());
+//        }
 
-    // ========= INPUT =========
-    ImVec2 dir = {0.f, 0.f};
+        // ========= DRAW =========
+        ImDrawList* draw_list = ImGui::GetWindowDrawList();
+        drawPlayer(draw_list, getPosition(), getColor(), childMin, childMax);
 
-    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::W)){dir.y -= 1.f;}
-    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::S)){dir.y += 1.f;}
-    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::A)){dir.x -= 1.f;}
-    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::D)){dir.x += 1.f;}
+        for (auto & [name, other] : opponents) {
+            drawPlayer(draw_list, other.position, other.color, childMin, childMax);
+        }
 
-    // ========= UPDATE =========
-    player1.move(dir, deltaTime);
-
-    player1.clampToChild(childMin, childMax);
-    player2.clampToChild(childMin, childMax);
-
-    player1.resolveCollision(player2);
-
-    // ========= DRAW =========
-    ImDrawList* draw_list = ImGui::GetWindowDrawList();
-
-    player1.draw(draw_list);
-    player2.draw(draw_list);
-
-    ImGui::EndChild();
-
+        lastUpdate = clock.getElapsedTime().asMilliseconds();
+        ImGui::EndChild();
 }
 
-void ClientUI::drawGamePl2() { //Player 1 Game Space
-    const char* title = getName().c_str();
 
-    ImGui::BeginChild(title, ImVec2(0, 400), true);
-
-    ImVec2 childMin = ImGui::GetWindowPos();
-    ImVec2 childMax = {
-        childMin.x + ImGui::GetWindowSize().x,
-        childMin.y + ImGui::GetWindowSize().y
-    };
-
-    static sf::Clock deltaClock;
-    float deltaTime = deltaClock.restart().asSeconds();
-
-    ImVec2 childPos  = ImGui::GetWindowPos();
-    ImVec2 childSize = ImGui::GetWindowSize();
-
-    static Player player1(20.f,
-        { childPos.x + childSize.x / 3.f,
-          childPos.y + childSize.y / 2.f },
-        IM_COL32(0,255,0,255));
-
-    static Player player2(20.f,
-        { childPos.x + 2.f * childSize.x / 3.f,
-          childPos.y + childSize.y / 2.f },
-        IM_COL32(255,0,0,255));
-
-    // ========= INPUT =========
-    ImVec2 dir = {0.f, 0.f};
-
-    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Up))    dir.y -= 1.f;
-    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Down))  dir.y += 1.f;
-    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Left))  dir.x -= 1.f;
-    if (sf::Keyboard::isKeyPressed(sf::Keyboard::Key::Right)) dir.x += 1.f;
-
-    // ========= UPDATE =========
-    player2.move(dir, deltaTime);
-
-    player2.clampToChild(childMin, childMax);
-    player1.clampToChild(childMin, childMax);
-
-    player2.resolveCollision(player1);
-
-    // ========= DRAW =========
-    ImDrawList* draw_list = ImGui::GetWindowDrawList();
-
-    player2.draw(draw_list);
-    player1.draw(draw_list);
-
-    ImGui::EndChild();
-
+void ClientUI::addOpponent(const std::string& name, sf::Color color) {
+    opponents.insert(std::make_pair(name, Player(name, color, Position())));
 }
 
 void ClientUI::drawConfig() {

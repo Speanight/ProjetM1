@@ -33,10 +33,15 @@ void MainWindow::draw() {
 
     ImGui::Columns(clients.size());
 
-    clients[0]->drawGamePl1();
-    ImGui::NextColumn();
-    clients[1]->drawGamePl2();
-    ImGui::NextColumn();
+//    clients[0]->drawGamePl1();
+//    ImGui::NextColumn();
+//    clients[1]->drawGamePl2();
+//    ImGui::NextColumn();
+
+     for (auto & client : clients) {
+         client->drawGame();
+         ImGui::NextColumn();
+     }
 
     ImGui::Separator();
     ImGui::Columns(2, nullptr, false);
@@ -67,7 +72,6 @@ void MainWindow::loop() {
 
     sf::Clock deltaClock;
     sf::Time delta;
-//    NetConfig config;
 
     // thread of window
     while (window.isOpen())
