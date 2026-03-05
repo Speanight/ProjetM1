@@ -8,8 +8,10 @@ Position::Position() {
 
 
 Position::Position(float x, float y) {
-    this->x = x;
-    this->y = y;
+    setX(x);
+    setY(y);
+//    this->x = x;
+//    this->y = y;
 }
 
 // Getters
@@ -23,10 +25,22 @@ float Position::getY() const {
 
 // Setters
 void Position::setX(float x) {
+    if (x < 0) {
+        x = 0;
+    }
+    if (x > Const::MAP_SIZE_X) {
+        x = Const::MAP_SIZE_X;
+    }
     this->x = x;
 }
 
 void Position::setY(float y) {
+    if (y < 0) {
+        y = 0;
+    }
+    if (y > Const::MAP_SIZE_Y) {
+        y = Const::MAP_SIZE_Y;
+    }
     this->y = y;
 }
 

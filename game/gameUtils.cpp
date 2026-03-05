@@ -2,20 +2,20 @@
 
 void drawPlayer(ImDrawList* draw_list, Position p, sf::Color c, ImVec2 min, ImVec2 max) {
     // Cercle
-    draw_list->AddCircleFilled(ImVec2(p.getX() + min.x, p.getY() + min.y), Const::PLAYER_RADIUS, IM_COL32(int{c.r}, int{c.g}, int{c.b}, int{c.a}));
+    draw_list->AddCircleFilled(ImVec2(p.getX() * (max.x - min.x) / Const::MAP_SIZE_X + min.x, p.getY() * (max.y - min.y) / Const::MAP_SIZE_Y + min.y), Const::PLAYER_RADIUS, IM_COL32(int{c.r}, int{c.g}, int{c.b}, int{c.a}));
 
     // Triangle
     float triangleHeight = Const::PLAYER_RADIUS * 0.8f;
     float triangleWidth  = Const::PLAYER_RADIUS * 1.2f;
 
-    ImVec2 top   = { p.getX() + min.x,
-                     p.getY() + min.y - Const::PLAYER_RADIUS - triangleHeight };
+    ImVec2 top   = { p.getX() * (max.x - min.x) / Const::MAP_SIZE_X + min.x,
+                     p.getY() * (max.y - min.y) / Const::MAP_SIZE_Y + min.y - Const::PLAYER_RADIUS - triangleHeight };
 
-    ImVec2 left  = { p.getX() + min.x - triangleWidth/2.f,
-                     p.getY() + min.y - Const::PLAYER_RADIUS };
+    ImVec2 left  = { p.getX() * (max.x - min.x) / Const::MAP_SIZE_X + min.x - triangleWidth/2.f,
+                     p.getY() * (max.y - min.y) / Const::MAP_SIZE_Y + min.y - Const::PLAYER_RADIUS };
 
-    ImVec2 right = { p.getX() + min.x + triangleWidth/2.f,
-                     p.getY() + min.y - Const::PLAYER_RADIUS };
+    ImVec2 right = { p.getX() * (max.x - min.x) / Const::MAP_SIZE_X + min.x + triangleWidth/2.f,
+                     p.getY() * (max.y - min.y) / Const::MAP_SIZE_Y + min.y - Const::PLAYER_RADIUS };
 
     draw_list->AddTriangleFilled(top, left, right, IM_COL32(int{c.r}, int{c.g}, int{c.b}, int{c.a}));
 }

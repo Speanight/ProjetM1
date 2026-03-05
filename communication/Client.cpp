@@ -184,8 +184,6 @@ int Client::receiveLoop() {
                             if (name == this->getName()) {
                                 // TODO: Handler of "fixing" of local position.
                                 this->position = position;
-                                // this->getPosition().setX(position.getX());
-                                // this->getPosition().setY(position.getY());
                             }
                             else {
                                 // Opponent position:

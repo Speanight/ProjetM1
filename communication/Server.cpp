@@ -119,9 +119,6 @@ int Server::receiveLoop() {
                             int time;
                             packet >> time >> inputs;
 
-                            if (inputs.getMovementX() != 0) {
-                                std::cout << "Changing position of user: " << name << std::endl;
-                            }
 
 
                             addLine(name + " >>> Server [PING:" + std::to_string(clock.getElapsedTime().asMilliseconds() - time) + "ms] | inputs: x=" + std::to_string(inputs.getMovementX()) + "; y=" + std::to_string(inputs.getMovementY()));
@@ -130,6 +127,20 @@ int Server::receiveLoop() {
                             Position position = buffer.currentState[name].getPosition();
                             position.setX(position.getX() + inputs.getMovementX() * Const::PLAYER_SPEED * (clock.getElapsedTime().asMilliseconds() - buffer.currentState[name].getTimestamp()) / 1000);
                             position.setY(position.getY() + inputs.getMovementY() * Const::PLAYER_SPEED * (clock.getElapsedTime().asMilliseconds() - buffer.currentState[name].getTimestamp()) / 1000);
+
+                            // TODO: Fix collisions
+//                            for (auto & [n, player] : clients) {
+//                                if (name != n) {
+//                                    Position playerPos = buffer.nextState[name].getPosition();
+//                                    Position opponentPos = buffer.nextState[n].getPosition();
+//                                    Position pos = resolveCollision(playerPos, opponentPos);
+////                                    if (pos.getX() != buffer.currentState[n].getPosition().getX() and pos.getY() != buffer.currentState[n].getPosition().getY()) {
+////                                    std::cout << "Collision!" << std::endl;
+//                                    State s = State(time, pos, inputs);
+//                                    refreshBuffer(n, s, time);
+//                                }
+//                            }
+
                             State s = State(time, position, inputs);
                             // player.position.setX(buffer.currentState[player.name].getPosition().getX());
                             // player.position.setY(buffer.currentState[player.name].getPosition().getY());
@@ -167,7 +178,6 @@ int Server::sendLoop() {
             packet << Pkt::GLOBAL << int(buffer.stateTick) << int(buffer.currentState.size());
 
             for (auto & [n, state] : buffer.currentState) {
-                std::cout << "Packet: + " << n << " (" << state.getPosition().getX() << ", " << state.getPosition().getY() << ")" << std::endl;
                 packet << n << state.getPosition();
             }
 
