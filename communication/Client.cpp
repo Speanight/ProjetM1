@@ -1,5 +1,8 @@
 #include "Client.hpp"
 
+#include <utility>
+#include <SFML/Window/Keyboard.hpp>
+
 /**
  * Clients are being created by ClientUI (which extends this class). A client will have all the information needed
  * for the server-client synchronisation, such as packet loss, ping, name (identification), ...
@@ -14,20 +17,15 @@ Client::Client(const sf::Clock clock, std::string name, sf::Color color) : serve
     this->color = color;
     this->ping = 0;
     this->name = std::move(name);
-    if (socket.bind(sf::Socket::AnyPort) != sf::Socket::Status::Done) {
-        std::cout << "Error: port isn't available? - ClientUI" << std::endl;
-        this->port = 0;
-    }
-    else {
-        port = socket.getLocalPort();
-
-        thread = std::thread(&Client::updateLoop, this);
-    }
 }
 
 Client::~Client() {
-    if (thread.joinable()) {
-        thread.join();
+    socket.unbind();
+    if (sendThread.joinable()) {
+        sendThread.join();
+    }
+    if (receiveThread.joinable()) {
+        receiveThread.join();
     }
 }
 
@@ -38,10 +36,25 @@ Client::~Client() {
  * @return std::map - "error" is true if client couldn't bind to any port. "name" and "port" returns their values.
  */
 std::unordered_map<std::string, std::any> Client::init() {
+    if (socket.bind(sf::Socket::AnyPort) != sf::Socket::Status::Done) {
+        std::cout << "Error: port isn't available? - ClientUI" << std::endl;
+        this->port = 0;
+    }
+    else {
+        port = socket.getLocalPort();
+        std::cout << "Client " << this->name << " started on port: " << port << std::endl;
+
+        socket.setBlocking(true);
+
+        sendThread = std::thread(&Client::sendLoop, this);
+        receiveThread = std::thread(&Client::receiveLoop, this);
+    }
+
     std::unordered_map<std::string, std::any> infos = {
             {"error", port == 0},
             {"name", name},
             {"port", port},
+            {"color", color}
     };
 
     return infos;
@@ -49,10 +62,6 @@ std::unordered_map<std::string, std::any> Client::init() {
 
 std::string Client::getName() {
     return name;
-}
-
-unsigned short Client::getPort() const {
-    return port;
 }
 
 int Client::getPacketLoss() const {
@@ -63,12 +72,40 @@ int Client::getPing() const {
     return ping;
 }
 
+Position Client::getPosition() {
+    return position;
+}
+
 void Client::setPacketLoss(int packetLoss) {
     this->packetLoss = packetLoss;
 }
 
 void Client::setPing(int ping) {
-    this->ping = ping;
+    if (ping >= 0) {
+        this->ping = ping;
+    }
+}
+
+///////////////
+// FUNCTIONS //
+///////////////
+void Client::move(ImVec2 direction, float deltaTime) {
+//    position.setX(position.getX() + direction.x * Const::PLAYER_SPEED * deltaTime / 1000);
+//    position.setY(position.getY() + direction.y * Const::PLAYER_SPEED * deltaTime / 1000);
+}
+
+
+Input Client::getInputs() {
+    Input input;
+    for (const std::pair<const int, sf::Keyboard::Key> & i : keybinds) {
+        input.handleInput(i.first, isKeyPressed(i.second));
+    }
+
+    return input;
+}
+
+void Client::setKeybinds(std::unordered_map<int, sf::Keyboard::Key> keybinds) {
+    this->keybinds = std::move(keybinds);
 }
 
 /**
@@ -76,21 +113,20 @@ void Client::setPing(int ping) {
  * position to the server. This function shouldn't return, except if the server stops and the client should stop
  * executing.
  */
-void Client::updateLoop() {
-    bool loop = true;
+int Client::sendLoop() {
     const sf::Time time = std::chrono::milliseconds(TICKRATE);
     while (loop) {
         int packetLossChance = std::experimental::randint(1, 100);
 
-        // DUMMY VALUES - RANDOM INTS
-        Position position(std::experimental::randint(0, 50), std::experimental::randint(0, 50));
         QueuedPacket pkt;
         pkt.timestamp = clock.getElapsedTime();
-        pkt.packet << Pkt::POSITION << pkt.timestamp.asMilliseconds() << position;
-        packets.push_back(pkt);
+        auto inputs = this->getInputs();
+        pkt.packet << Pkt::INPUTS << pkt.timestamp.asMilliseconds() << inputs;
+        packets.push_back(pkt); // Adds the packet to the array of packets.
 
+        // If the packet isn't lost (editable through packet loss % slider):
         if (packetLossChance > packetLoss) {
-            auto packet = getLatestPacket();
+            auto packet = getLatestPacket(); // Get latest packet that meets ping criteria.
 
             // Check that packet does exist:
             if (packet.has_value()) {
@@ -101,6 +137,93 @@ void Client::updateLoop() {
         // SLEEP UNTIL NEXT TICK
         sf::sleep(time);
     }
+
+    return Err::ERR_NONE;
+}
+
+int Client::receiveLoop() {
+    std::optional<sf::IpAddress> sender = sf::IpAddress::resolve(SERVER_IP);
+    sf::Packet packet;
+    int type;
+    const sf::Time tickrate = std::chrono::milliseconds(TICKRATE);
+    short unsigned int port;
+
+    while (loop) {
+        sf::sleep(sf::Time()); // "empty" sleep: required for loops.
+        if (socket.receive(packet, sender, port) == sf::Socket::Status::Done) {
+            if (port == COMM_PORT_SERVER) {
+                packet >> type;
+
+                switch (type) {
+                    case Pkt::SHUTDOWN:
+                        std::cout << "Client " << name << " received shutdown packet!" << std::endl;
+                        loop = false;
+                        break;
+
+                    case Pkt::POSITION: {
+                        Position tempPos;
+                        packet >> tempPos;
+
+//                        position.setX(tempPos.getX());
+//                        position.setY(tempPos.getY());
+                        // TODO: Handle position reception
+                        break;
+                    }
+
+                    // amtPlayers << player.name << player.position << [...]
+                    case Pkt::GLOBAL: {
+                        int nbPlayers;
+                        int stateTick;
+                        std::string name;
+                        Position position;
+                        packet >> stateTick >> nbPlayers;
+
+                        while (nbPlayers > 0) {
+                            packet >> name >> position;
+
+                            if (name == this->getName()) {
+                                // TODO: Handler of "fixing" of local position.
+                                this->position = position;
+                            }
+                            else {
+                                // Opponent position:
+                                opponents[name].position.setX(position.getX());
+                                opponents[name].position.setY(position.getY());
+                            }
+                            nbPlayers--;
+                        }
+
+                        break;
+                    }
+
+                    default:
+                        std::cout << "UNKNOWN PACKET! Type: " << type << " for client " << name << std::endl;
+                }
+            }
+        }
+    }
+
+    sendThread.join();
+
+    return Err::ERR_NONE;
+}
+
+sf::Color Client::getColor() {
+    return this->color;
+}
+
+Client::Client(const Client& other) : server(other.server) {
+    this->name = other.name;
+    this->color = other.color;
+    this->position = Position(other.position.getX(), other.position.getY());
+}
+
+Client& Client::operator=(const Client& other) {
+    this->color = other.color;
+    this->clock = other.clock;
+    this->name = other.name;
+
+    return *this;
 }
 
 /**

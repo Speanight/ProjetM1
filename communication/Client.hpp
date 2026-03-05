@@ -1,10 +1,11 @@
 #ifndef PROJETM1_CLIENT_H
 #define PROJETM1_CLIENT_H
 
+#include "../Utils.hpp"
 #include "../game/Position.hpp"
 #include <SFML/Network/UdpSocket.hpp>
 #include <SFML/Network/Packet.hpp>
-#include "../Utils.hpp"
+#include "Input.hpp"
 #include <iostream>
 #include <unordered_map>
 #include <any>
@@ -15,6 +16,11 @@
 #include <deque>
 #include <SFML/System/Clock.hpp>
 #include <SFML/System/Sleep.hpp>
+#include <imgui-SFML.h>
+#include <SFML/Window/Keyboard.hpp>
+#include <imgui.h>
+#include <map>
+#include "../communication/Input.hpp"
 
 using namespace Const;
 
@@ -23,35 +29,67 @@ struct QueuedPacket {
     sf::Time timestamp;
 };
 
-class Client {
-private:
-    sf::Clock clock;
+struct Player {
     std::string name;
     sf::Color color;
-    std::thread thread;
+    Position position;
+    unsigned short port = 0;
+};
+
+
+
+
+class Client {
+private:
+    std::string name;
+    sf::Color color;
+    Position position;
+    std::deque<QueuedPacket> packets;
+
+    sf::IpAddress server;
     unsigned short port;
     sf::UdpSocket socket;
-    sf::IpAddress server;
+    std::unordered_map<int,sf::Keyboard::Key> keybinds;
 
-    std::deque<QueuedPacket> packets;
+    std::thread sendThread;
+    std::thread receiveThread;
 
     int packetLoss;
     int ping;
+    bool loop = true;
+
+protected:
+    sf::Clock clock;
+    std::map<std::string, Player> opponents;
 
 public:
-    Client(const sf::Clock clock, std::string name, sf::Color color = sf::Color::Red);
+    Client(sf::Clock clock, std::string name, sf::Color color = sf::Color::Red);
     ~Client();
+
+    // Copy constructors
+    Client(const Client& other);
+    Client& operator=(const Client& other);
 
     // Getters / Setters
     std::string getName();
-    unsigned short getPort() const;
     int getPacketLoss() const;
-    void setPacketLoss(int packetLoss);
     int getPing() const;
-    void setPing(int ping);
+    Input getInputs();
+    Position getPosition();
 
+    sf::Color getColor();
+
+    void setPacketLoss(int packetLoss);
+    void setPing(int ping);
+    void setKeybinds(std::unordered_map<int,sf::Keyboard::Key> keybinds);
+
+    // Functions
     std::unordered_map<std::string, std::any> init();
 
+    void move(ImVec2 direction, float deltaTime);
+
+    int sendLoop();
+    int receiveLoop();
     void updateLoop();
     std::optional<sf::Packet> getLatestPacket();
 };

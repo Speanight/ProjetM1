@@ -27,6 +27,11 @@ find_package(SFML 3 REQUIRED COMPONENTS
 find_package(ImGui-SFML REQUIRED)
 
 # =========================
+# X11 (for Multi-threading/keyboard)
+# =========================
+find_package(X11 REQUIRED)
+
+# =========================
 # Executable
 # =========================
 add_executable(ProjetM1
@@ -39,12 +44,9 @@ add_executable(ProjetM1
         ui/ServerUI.cpp
         ui/MainWindow.cpp
         ui/ClientUI.cpp
-        test_Ferolind/test_ferolind.cpp
-        test_Ferolind/test_ferolind.hpp
-        game/Player.cpp
-        game/Player.hpp
-        game/Weapon.cpp
-        game/Weapon.hpp
+        communication/State.cpp
+        communication/Input.cpp
+        game/gameUtils.cpp
 )
 # =========================
 # Link libraries
@@ -56,4 +58,6 @@ target_link_libraries(ProjetM1 PRIVATE
         SFML::Network
         OpenGL::GL
         ImGui-SFML::ImGui-SFML
+
+        X11::X11
 )

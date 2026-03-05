@@ -7,26 +7,40 @@ Position::Position() {
 }
 
 
-Position::Position(int x, int y) {
-    this->x = x;
-    this->y = y;
+Position::Position(float x, float y) {
+    setX(x);
+    setY(y);
+//    this->x = x;
+//    this->y = y;
 }
 
 // Getters
-int Position::getX() const {
+float Position::getX() const {
     return x;
 }
 
-int Position::getY() const {
+float Position::getY() const {
     return y;
 }
 
 // Setters
-void Position::setX(int x) {
+void Position::setX(float x) {
+    if (x < 0) {
+        x = 0;
+    }
+    if (x > Const::MAP_SIZE_X) {
+        x = Const::MAP_SIZE_X;
+    }
     this->x = x;
 }
 
-void Position::setY(int y) {
+void Position::setY(float y) {
+    if (y < 0) {
+        y = 0;
+    }
+    if (y > Const::MAP_SIZE_Y) {
+        y = Const::MAP_SIZE_Y;
+    }
     this->y = y;
 }
 
@@ -35,8 +49,8 @@ sf::Packet& operator<<(sf::Packet &packet, const Position& position) {
 }
 
 sf::Packet& operator>>(sf::Packet &packet, Position& position) {
-    int x;
-    int y;
+    float x;
+    float y;
     packet >> x >> y;
 
     position.setX(x);
