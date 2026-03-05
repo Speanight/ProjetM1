@@ -14,23 +14,6 @@
 #ifndef PLAYER_HPP
 
 //TODO : Put this values in the utils.hpp
-/*
-// ===== PLAYER =====
-float M_SPEED = 0.400f;
-float M_PLAYER_RADIUS = 20.f;
-float M_TRIANGLEHEIGTH = M_PLAYER_RADIUS * 0.8f;
-float M_TRIANGLEWIDTH  = M_PLAYER_RADIUS * 1.2f;
-
-// ===== POINT =====
-int M_ORIGIN_POINT = 0;
-float M_TEXTSIZE = 20.f;
-
-// ===== ATTACK =====
-float M_TIME_ATK = 0.1f;
-float M_TIME_RELOAD = 0.2f;
-float M_RANGE = 0.10f;
-*/
-
 class Player {private:
     // ===== PLAYER =====
     ImU32  p_color;                                 // Color of the player
