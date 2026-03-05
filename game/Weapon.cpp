@@ -7,7 +7,7 @@
 #include "Weapon.hpp"
 
 // ===== CONSTRUCTORS =====
-Weapon::Weapon( float height, float width, float type, float atk_spd, float rld, float range ){
+Weapon::Weapon( float height, float width, float type, float atk_spd, float rld, float range, float transform ){
     // ===== FORM =====
     w_height    = height;
     w_width     = width;
@@ -17,6 +17,7 @@ Weapon::Weapon( float height, float width, float type, float atk_spd, float rld,
     w_atk_speed = atk_spd;
     w_rld       = rld;
     w_range     = range;
+    w_transform = transform;
 }
 
 Weapon::Weapon(const Weapon& other)
@@ -25,7 +26,8 @@ Weapon::Weapon(const Weapon& other)
       w_type(other.w_type),
       w_atk_speed(other.w_atk_speed),
       w_rld(other.w_rld),
-      w_range(other.w_range)
+      w_range(other.w_range),
+      w_transform(other.w_transform)
 {
 }
 
@@ -54,6 +56,8 @@ float Weapon::getReload() const {
 float Weapon::getRange() const {
     return w_range;
 }
+
+float Weapon::getTransform() const {return w_transform;}
 
 // ===== SETTERS =====
 

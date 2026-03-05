@@ -4,183 +4,10 @@
 #include "Player.hpp"
 #include <math.h>
 
-//=================== GETTERS ===================
 
-ImVec2 Player::getPosition() const {
-    return m_center;
-}
-
-//=================== MOOVMENTS ===================
-
-void Player::move(ImVec2 direction, float deltaTime){
-    m_center.x += direction.x * m_speed  * deltaTime;
-    m_center.y += direction.y * m_speed  * deltaTime;
-}
-
-void Player::UpdateWpn(float angle, float deltaTime) {
-    if(!m_isAttacking) {
-        m_radius_wpn += (angle*1.111111) * m_speed * deltaTime; //Conversion in gradiant
-        if(m_radius_wpn > 360*1.111111 || m_radius_wpn < -360*1.111111) {
-            m_radius_wpn = 0;
-        }
-    }
-}
-
-//=================== ATTAQUE ===================
-void Player::atk(Player& other) {
-    if (m_isAttacking)
-        return;
-
-    m_isAttacking = true;
-    m_attackTimer = 0.f;
-
-    ImVec2 diff = {
-        other.m_center.x - m_center.x,
-        other.m_center.y - m_center.y
-    };
-
-    float distance = sqrtf(diff.x*diff.x + diff.y*diff.y);
-
-    if(distance <= m_radius * 2 + m_radius * 0.8f + 10.f){
-        m_point += 1;
-    }
-}
-
-void Player::updateAttack(float deltaTime){
-    if (!m_isAttacking)
-        return;
-
-    // printf("ATTACK !\n");
-    m_attackTimer += deltaTime;
-
-    float totalTime = m_attack + m_reload;
-
-    if (m_attackTimer >= totalTime) {
-        m_isAttacking = false;
-        m_attackOffset = {0.f, 0.f};
-        return;
-    }
-
-    float progress;
-
-    if (m_attackTimer <= m_attack) {
-        progress = m_attackTimer / m_attack; // 0 → 1
-    }
-    else {
-        float backTime = m_attackTimer - m_attack;
-        progress = 1.f - (backTime / m_reload); // 1 → 0
-    }
-
-    float attackDistance = 10.f;
-
-    m_attackOffset.x = attackDistance * progress;
-    m_attackOffset.y = attackDistance * progress;
-}
-
-//=================== COLLISIONS ===================
-
-void Player::clampToChild(ImVec2 childMin, ImVec2 childMax){
-    if (m_center.x - m_radius < childMin.x)
-        m_center.x = childMin.x + m_radius;
-
-    if (m_center.x + m_radius > childMax.x)
-        m_center.x = childMax.x - m_radius;
-
-    if (m_center.y - m_radius < childMin.y)
-        m_center.y = childMin.y + m_radius;
-
-    if (m_center.y + m_radius > childMax.y)
-        m_center.y = childMax.y - m_radius;
-}
-
-void Player::resolveCollision(Player& other){
-    ImVec2 diff = { other.m_center.x - m_center.x,
-                    other.m_center.y - m_center.y };
-
-    float distance = sqrtf(diff.x*diff.x + diff.y*diff.y);
-    float minDistance = m_radius + other.m_radius;
-
-    if (distance < minDistance)
-    {
-        if (distance == 0.f)
-        {
-            diff = {1.f, 0.f};
-            distance = 1.f;
-        }
-
-        ImVec2 normal = { diff.x / distance, diff.y / distance };
-        float penetration = minDistance - distance;
-
-        other.m_center.x += normal.x * penetration;
-        other.m_center.y += normal.y * penetration;
-    }
-}
-
-void Player::draw(ImDrawList* draw_list){
-    // Circle
-    draw_list->AddCircleFilled(m_center, m_radius, m_color);
-
-    // Triangle
-    float triangleHeight = m_radius * 0.8f;
-    float triangleWidth  = m_radius * 1.2f;
-
-    // Angle en radians
-    float angle = m_radius_wpn; //must be in radiant
-
-    ImVec2 dir = {
-        -sinf(angle),
-        -cosf(angle)
-    };
-
-    // We can use the trigonometry to define the position of the top point of the wpn
-    ImVec2 top = {
-        m_center.x + dir.x * (m_radius + triangleHeight+2.f + m_attackOffset.x),
-        m_center.y + dir.y * (m_radius + triangleHeight+2.f + m_attackOffset.y)
-    };
-
-    // then we can define the relative position of the left angle and the rigth angle, but first we need to find the center of the bottom of the triangle
-    // for that, we can use
-    ImVec2 bottom = {
-        m_center.x + dir.x * (m_radius+2.f + m_attackOffset.x),
-        m_center.y + dir.y * (m_radius+2.f + m_attackOffset.y)
-    };
-
-
-    ImVec2 perp = {
-        -dir.y,
-         dir.x
-    };
-
-    //And finally, we can calculate the point to the left and the rigth using this formula
-    ImVec2 left = {
-        bottom.x + perp.x * (triangleWidth / 2.f),
-        bottom.y + perp.y * (triangleWidth / 2.f)
-    };
-
-    ImVec2 right = {
-        bottom.x - perp.x * (triangleWidth / 2.f),
-        bottom.y - perp.y * (triangleWidth / 2.f)
-    };
-
-    draw_list->AddTriangleFilled(top, left, right, m_color);
-
-    // Point
-    std::string score = std::to_string(m_point);
-
-    ImVec2 textSize = ImGui::CalcTextSize(score.c_str());
-
-    ImVec2 textPos = {
-        m_center.x - textSize.x / 2.f,
-        m_center.y - textSize.y / 2.f
-    };
-
-    draw_list->AddText(ImGui::GetFont(),20.f,textPos, IM_COL32(0,0,0,255), score.c_str());
-}
-
-//-----------------------------------------------------------------------------------------------------------------------------
-//PLAYER2
+//PLAYER
 // ===== CONSTRUCTORS =====
-Player2::Player2(
+Player::Player(
         ImU32  p_color,
         ImVec2 p_position,
         float  p_radius,
@@ -214,11 +41,9 @@ Player2::Player2(
     this->p_weapon          = p_weapon;
     this->p_wpn_pos         = p_wpn_pos;
     this->p_wpn_radius      = p_wpn_radius;
-
-    this->p_wpn_mode        = p_wpn_mode;
 }
 
-Player2::Player2(const Player2& other) :
+Player::Player(const Player& other) :
     p_color(other.p_color),
     p_position(other.p_position),
     p_radius(other.p_radius),
@@ -230,23 +55,22 @@ Player2::Player2(const Player2& other) :
     p_attackDirection(other.p_attackDirection),
     p_weapon(other.p_weapon),
     p_wpn_pos(other.p_wpn_pos),
-    p_wpn_radius(other.p_wpn_radius),
-    p_wpn_mode(other.p_wpn_mode)
+    p_wpn_radius(other.p_wpn_radius)
 {}
 
 //=================== SETTERS ===================
-void Player2::setWeapon(const Weapon wpn) {
+void Player::setWeapon(const Weapon wpn) {
     this->p_weapon = wpn;
 }
 
 //=================== MOOVMENTS ===================
 
-void Player2::moovePlayer(ImVec2 direction, float deltaTime){
+void Player::moovePlayer(ImVec2 direction, float deltaTime){
     p_position.x += direction.x * p_speed  * deltaTime;
     p_position.y += direction.y * p_speed  * deltaTime;
 }
 
-void Player2::mooveWeapon(float angle, float deltaTime) {
+void Player::mooveWeapon(float angle, float deltaTime) {
     if(!p_isAttacking) {        // Cannot mooving the weapon while attacking
         p_wpn_radius += (angle*1.111111) * p_speed * deltaTime; //Conversion in gradiant
         if(p_wpn_radius > 360*1.111111 || p_wpn_radius < -360*1.111111) {
@@ -256,8 +80,8 @@ void Player2::mooveWeapon(float angle, float deltaTime) {
 }
 
 //=================== ATTAQUE ===================
-void Player2::atkAction(Player2& other) {
-    if (p_isAttacking)
+void Player::atkAction(Player& other) {
+    if (p_isAttacking || p_isShield || p_isTransforming)
         return;
 
     // Start the action
@@ -277,7 +101,7 @@ void Player2::atkAction(Player2& other) {
     }
 }
 
-void Player2::atkAnimation(float deltaTime){
+void Player::atkAnimation(float deltaTime){
     if (!p_isAttacking)
         return;
 
@@ -307,9 +131,44 @@ void Player2::atkAnimation(float deltaTime){
     p_attackOffset.y = attackDistance * progress;
 }
 
+//=================== DEFENSE ===================
+void Player::defAction()
+{
+    if (p_isTransforming)
+        return;
+
+    p_isTransforming = true;
+    p_transformTimer = 0.f;
+}
+
+void Player::defAnimation(float deltaTime)
+{
+    if (!p_isTransforming)
+        return;
+
+    p_transformTimer += deltaTime;
+
+    float duration = p_weapon.getTransform(); // w_transform
+
+    float progress = p_transformTimer / duration;
+
+    if (progress >= 1.f)
+    {
+        progress = 1.f;
+        p_isTransforming = false;
+        p_isShield = !p_isShield; // toggle état final
+    }
+
+    // Si on est déjà en shield → animation inverse
+    if (p_isShield)
+        p_transformProgress = 1.f - progress;
+    else
+        p_transformProgress = progress;
+}
+
 //=================== COLLISIONS ===================
 
-void Player2::clampToMap(ImVec2 topRight, ImVec2 bottomLeft){
+void Player::clampToMap(ImVec2 topRight, ImVec2 bottomLeft){
     if (p_position.x - p_radius < topRight.x)
         p_position.x = topRight.x + p_radius;
 
@@ -323,7 +182,7 @@ void Player2::clampToMap(ImVec2 topRight, ImVec2 bottomLeft){
         p_position.y = bottomLeft.y - p_radius;
 }
 
-void Player2::resolveCollision(Player2& other){
+void Player::resolveCollision(Player& other){
     ImVec2 diff = { other.p_position.x - p_position.x,
                     other.p_position.y - p_position.y };
 
@@ -346,7 +205,7 @@ void Player2::resolveCollision(Player2& other){
     }
 }
 
-void Player2::draw(ImDrawList* draw_list){
+void Player::draw(ImDrawList* draw_list){
     // Circle
     draw_list->AddCircleFilled(p_position, p_radius, p_color);
 
@@ -393,7 +252,38 @@ void Player2::draw(ImDrawList* draw_list){
         bottom.y - perp.y * (triangleWidth / 2.f)
     };
 
-    draw_list->AddTriangleFilled(top, left, right, p_color);
+    if (p_transformProgress < 1.f)
+    {
+        // TRIANGLE (wpn)
+        float scale = 1.f - p_transformProgress;
+
+        ImVec2 scaledTop = {
+            bottom.x + (top.x - bottom.x) * scale,
+            bottom.y + (top.y - bottom.y) * scale
+        };
+
+        draw_list->AddTriangleFilled(scaledTop, left, right, p_color);
+    }
+    else
+    {
+        // ARC (bocle)
+        float arcRadius = p_radius + 1.6f;
+
+        float correctedAngle = p_wpn_radius - 3.14f * 0.5f;
+
+        float angleStart = correctedAngle - 0.8f;
+        float angleEnd   = correctedAngle + 0.8f;
+
+        draw_list->PathArcTo(
+            p_position,
+            arcRadius,
+            angleStart,
+            angleEnd,
+            20
+        );
+
+        draw_list->PathStroke(p_color, false, 4.f);
+    }
 
     // Point
     std::string score = std::to_string(p_point);

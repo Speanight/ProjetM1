@@ -20,10 +20,11 @@ class Weapon {
     float w_atk_speed;      // wpn attack speed (will depend of the game clock)
     float w_rld;            // wpn realod speed (will depend of the game clock)
     float w_range;          // wpn range
+    float w_transform;      // wpn transformation time
 
 public:
     // ===== CONSTRUCTORS =====
-    Weapon(float height = 0.8f, float width = 1.2f, float type = 0.f, float atk_spd = 0.1f, float rld=0.3f, float range = 10.f);
+    Weapon(float height = 0.8f, float width = 1.2f, float type = 0.f, float atk_spd = 0.1f, float rld=0.3f, float range = 10.f, float transform = 0.2f);
     Weapon(const Weapon& other);
 
     // ===== GETTERS =====
@@ -34,6 +35,8 @@ public:
     float  getAttackSpeed() const;
     float  getReload() const;
     float  getRange() const;
+
+    float getTransform() const;
 
     // ===== SETTERS =====
     void setHeight(float height);
