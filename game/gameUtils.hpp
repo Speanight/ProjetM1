@@ -13,5 +13,6 @@
 
 void drawPlayer(ImDrawList* draw_list, Position p, sf::Color c, ImVec2 min, ImVec2 max);
 Position resolveCollision(Position player, Position opponent);
+Position smoothenDeplacement(Position p, ImVec2 direction, int timestampPos, int timestampNow);
 
 #endif //PROJETM1_GAMEUTILS_HPP

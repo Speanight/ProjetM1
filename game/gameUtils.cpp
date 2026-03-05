@@ -1,3 +1,4 @@
+#include <iostream>
 #include "gameUtils.hpp"
 
 void drawPlayer(ImDrawList* draw_list, Position p, sf::Color c, ImVec2 min, ImVec2 max) {
@@ -24,7 +25,7 @@ Position resolveCollision(Position player, Position opponent) {
     ImVec2 diff = { opponent.getX() - player.getX(),
                     opponent.getY() - player.getY()};
 
-    float distance = sqrtf(diff.x*diff.x + diff.y*diff.y);
+    float distance = sqrtf(pow(diff.x, 2) + pow(diff.y, 2));
     float minDistance = Const::PLAYER_RADIUS + Const::PLAYER_RADIUS;
 
     if (distance < minDistance)
@@ -38,22 +39,16 @@ Position resolveCollision(Position player, Position opponent) {
         ImVec2 normal = { diff.x / distance, diff.y / distance };
         float penetration = minDistance - distance;
 
-        opponent.setX(player.getX() + normal.x * penetration);
-        opponent.setY(player.getY() + normal.y * penetration);
+        opponent.setX(opponent.getX() + normal.x * penetration);
+        opponent.setY(opponent.getY() + normal.y * penetration);
     }
 
     return opponent;
 }
 
-Position checkPositionRealistic(Position posFrom, Position posTo, float timestampFrom, float timestampTo) {
-    float distance = sqrt(pow(posTo.getX() - posFrom.getX(), 2) + pow(posTo.getY() - posFrom.getY(), 2));
+Position smoothenDeplacement(Position p, ImVec2 direction, int timestampPos, int timestampNow) {
+    p.setX(p.getX() + direction.x * Const::PLAYER_SPEED * (timestampNow - timestampPos) / 1000);
+    p.setY(p.getY() + direction.y * Const::PLAYER_SPEED * (timestampNow - timestampPos) / 1000);
 
-    // We give a 5% eventual wiggle-room.
-    if (distance < timestampTo + Const::TICKRATE.count() *1.05 - timestampFrom) {
-        return posTo;
-    }
-    else {
-        float angle = 0;
-        return Position();
-    }
+    return p;
 }

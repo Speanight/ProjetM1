@@ -3,28 +3,28 @@
 ClientUI::ClientUI(const sf::Clock clock, std::string name, sf::Color color) : Client(clock, name, color) {}
 
 void ClientUI::drawGame() { // Game space
-        const char* title = getName().c_str();
+    const char* title = getName().c_str();
 
-        ImGui::BeginChild(title, ImVec2(0, 400), true);
+    ImGui::BeginChild(title, ImVec2(0, 400), true);
 
-        ImVec2 childMin = ImGui::GetWindowPos();
-        ImVec2 childMax = {
-            childMin.x + ImGui::GetWindowSize().x,
-            childMin.y + ImGui::GetWindowSize().y
-        };
+    ImVec2 childMin = ImGui::GetWindowPos();
+    ImVec2 childMax = {
+        childMin.x + ImGui::GetWindowSize().x,
+        childMin.y + ImGui::GetWindowSize().y
+    };
 
 //        float deltaTime = clock.getElapsedTime().asMilliseconds() - lastUpdate;
 //        std::cout << "TIME: " << clock.getElapsedTime().asSeconds() << "s // " << clock.getElapsedTime().asMilliseconds() << "ms" << std::endl;
 
-        // ========= INPUT =========
-        ImVec2 dir = {0.f, 0.f};
+    // ========= INPUT =========
+    ImVec2 dir = {0.f, 0.f};
 
-        Input inputs = getInputs();
+    Input inputs = getInputs();
 
-        dir.x += 1.f * inputs.getMovementX();
-        dir.y += 1.f * inputs.getMovementY();
+    dir.x += 1.f * inputs.getMovementX();
+    dir.y += 1.f * inputs.getMovementY();
 
-        // ========= UPDATE =========
+    // ========= UPDATE =========
 //        move(dir, deltaTime);
 
 //        for (auto & [name, other] : opponents) {
@@ -33,16 +33,22 @@ void ClientUI::drawGame() { // Game space
 //            other.position.setY(p.getY());
 //        }
 
-        // ========= DRAW =========
-        ImDrawList* draw_list = ImGui::GetWindowDrawList();
-        drawPlayer(draw_list, getPosition(), getColor(), childMin, childMax);
 
-        for (auto & [name, other] : opponents) {
-            drawPlayer(draw_list, other.position, other.color, childMin, childMax);
-        }
+    // ========= DRAW =========
+    ImDrawList* draw_list = ImGui::GetWindowDrawList();
+    drawPlayer(draw_list, getPosition(), getColor(), childMin, childMax);
 
-        lastUpdate = clock.getElapsedTime().asMilliseconds();
-        ImGui::EndChild();
+    for (auto & [name, other] : opponents) {
+        drawPlayer(draw_list, other.position, other.color, childMin, childMax);
+    }
+
+    // PREDICTION
+//    if (true) {
+//        this->setPosition(smoothenDeplacement(getPosition(), dir, lastUpdate, clock.getElapsedTime().asMilliseconds()));
+//    }
+
+    lastUpdate = clock.getElapsedTime().asMilliseconds();
+    ImGui::EndChild();
 }
 
 

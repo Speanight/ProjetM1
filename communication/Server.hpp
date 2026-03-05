@@ -11,6 +11,7 @@
 #include <unordered_map>
 #include <any>
 #include <thread>
+#include <semaphore>
 
 #include "../ui/ServerUI.hpp"
 #include "../game/Position.hpp"
@@ -37,11 +38,13 @@ private:
 
     std::thread sendThread;
     std::thread receiveThread;
+    std::binary_semaphore semaphore;
 
     std::array<sf::Color, 5> colors;
     std::unordered_map<std::string, Player> clients;
 
     bool loop = true;
+    bool newGame = true;
 
 public:
     Server(sf::Clock clock);
