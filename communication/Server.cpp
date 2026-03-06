@@ -133,13 +133,14 @@ int Server::receiveLoop() {
 
 
                             semaphore.acquire();
-                            addLine(name + " >>> Server [PING:" + std::to_string(clock.getElapsedTime().asMilliseconds() - time) + "ms] | inputs: x=" + std::to_string(inputs.getMovementX()) + "; y=" + std::to_string(inputs.getMovementY()));
+//                            addLine(name + " >>> Server [PING:" + std::to_string(clock.getElapsedTime().asMilliseconds() - time) + "ms] | inputs: x=" + std::to_string(inputs.getMovementX()) + "; y=" + std::to_string(inputs.getMovementY()));
                             semaphore.release();
                             std::unordered_map<std::string, State> currentState = buffer.getCurrentState();
-                            Position position = currentState[name].getPosition();
-                            int dt = (clock.getElapsedTime().asMilliseconds() - currentState[name].getTimestamp()) % 2*Const::TICKRATE.count();
-                            position.setX(position.getX() + inputs.getMovementX() * Const::PLAYER_SPEED * dt / 1000);
-                            position.setY(position.getY() + inputs.getMovementY() * Const::PLAYER_SPEED * dt / 1000);
+                            State playerState = buffer.getLastState(player);
+                            Position position = playerState.getPosition();
+                            int dt = (time - playerState.getTimestamp()) % (2*Const::TICKRATE.count());
+                            position.setX(position.getX() + inputs.getMovementX() * Const::PLAYER_SPEED * dt);
+                            position.setY(position.getY() + inputs.getMovementY() * Const::PLAYER_SPEED * dt);
 
                             for (auto & [n, player] : clients) {
                                 if (name != n) {

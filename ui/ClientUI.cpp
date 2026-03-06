@@ -32,6 +32,17 @@ void ClientUI::drawGame() { // Game space
 //            other.position.setX(p.getX());
 //            other.position.setY(p.getY());
 //        }
+    // PREDICTION
+    if (true) {
+        Position pos;
+        int now = clock.getElapsedTime().asMilliseconds();
+        pos.setX(getPlayer().position.getX() + inputs.getMovementX() * Const::PLAYER_SPEED * (now - lastUpdate));
+        pos.setY(getPlayer().position.getY() + inputs.getMovementY() * Const::PLAYER_SPEED * (now - lastUpdate));
+        setPosition(pos);
+//        std::cout << "Displaying @" << bufferOnReceipt.getCurrentTick() << "; client is @" << clock.getElapsedTime().asMilliseconds() << std::endl;
+//        int clockSync = clock.getElapsedTime().asMilliseconds() - bufferOnReceipt.getCurrentTick();
+//        this->setPosition(smoothenDeplacement(bufferOnReceipt.getTState(-1)[getName()], bufferOnReceipt.getCurrentState()[getName()], clockSync));
+    }
 
         // ========= DRAW =========
 
@@ -43,10 +54,6 @@ void ClientUI::drawGame() { // Game space
             drawPlayer(draw_list, other, childMin, childMax);
         }
 
-    // PREDICTION
-//    if (lastDirSent) {
-//        this->setPosition(smoothenDeplacement(getPosition(), dir, lastUpdate, clock.getElapsedTime().asMilliseconds()));
-//    }
 
     lastUpdate = clock.getElapsedTime().asMilliseconds();
     ImGui::EndChild();
@@ -55,6 +62,7 @@ void ClientUI::drawGame() { // Game space
 
 void ClientUI::addOpponent(const std::string& name, sf::Color color) {
     opponents.insert(std::make_pair(name, Player(0,name, color, Position())));
+    this->bufferOnReceipt.addClient(Player(0,name,color,Position()));
 }
 
 void ClientUI::drawConfig() {

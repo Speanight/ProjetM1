@@ -17,6 +17,7 @@ Client::Client(const sf::Clock clock, std::string name, sf::Color color) : serve
     this->ping = 0;
     this->player.name = std::move(name);
     this->player.color = color;
+    this->bufferOnReceipt.addClient(player);
 }
 
 Client::~Client() {
@@ -126,10 +127,10 @@ int Client::sendLoop() {
     const sf::Time time = std::chrono::milliseconds(TICKRATE);
 
     // Init with a round start:
-
     sf::Packet packet;
     packet << Pkt::ROUND_START;
     socket.send(packet, server, COMM_PORT_SERVER);
+
     while (loop) {
         if (newGame) {
             sf::Packet packet;
@@ -146,7 +147,6 @@ int Client::sendLoop() {
         pkt.timestamp = clock.getElapsedTime();
         auto inputs = this->getInputs();
         pkt.packet << Pkt::INPUTS << pkt.timestamp.asMilliseconds() << inputs;
-        lastDirSent = inputs.getMovementX() != 0;
         packets.push_back(pkt); // Adds the packet to the array of packets.
 
         // If the packet isn't lost (editable through packet loss % slider):
@@ -160,7 +160,7 @@ int Client::sendLoop() {
         }
 
         // SLEEP UNTIL NEXT TICK
-        sf::sleep(time);
+        sf::sleep(sf::Time());
     }
 
     return Err::ERR_NONE;
@@ -194,17 +194,21 @@ int Client::receiveLoop() {
                         while (nbPlayers > 0) {
                             packet >> name >> position;
 
+                            State state(stateTick, position, getInputs());
+                            std::unordered_map<std::string, State> currentState = bufferOnReceipt.getCurrentState();
+
                             if (name == this->getName()) {
                                 // TODO: Handler of "fixing" of local position.
-                                this->player.position.setX(position.getX());
-                                this->player.position.setY(position.getY());
-                                lastServerPos = position;
-                                lastServerUpdate = stateTick;
+                                this->bufferOnReceipt.refreshBuffer(player, state, stateTick);
+                                State currState = bufferOnReceipt.getLastState(player);
+                                this->player.position.setX(currState.getPosition().getX());
+                                this->player.position.setY(currState.getPosition().getY());
                             }
                             else {
                                 // Opponent position:
-                                opponents[name].position.setX(position.getX());
-                                opponents[name].position.setY(position.getY());
+                                this->bufferOnReceipt.refreshBuffer(opponents[name], state, stateTick);
+                                opponents[name].position.setX(currentState[name].getPosition().getX());
+                                opponents[name].position.setY(currentState[name].getPosition().getY());
                             }
                             nbPlayers--;
                         }

@@ -20,7 +20,7 @@ int main() {
 
     std::cout << "Starting server on Network: " << SERVER_IP << ":" << COMM_PORT_SERVER << std::endl;
     ClientUI* clientA = new ClientUI(clock, "Client A", sf::Color::Red);
-    ClientUI* clientB = new ClientUI(clock, "Client B", sf::Color::Green);
+//    ClientUI* clientB = new ClientUI(clock, "Client B", sf::Color::Green);
 
     // Settings players keybinds...
     clientA->setKeybinds({
@@ -34,23 +34,23 @@ int main() {
         {Inputs::ATK, sf::Keyboard::Key::C}
     });
 
-    clientB->setKeybinds({
-        {Inputs::MOVEMENT_UP, sf::Keyboard::Key::Up},
-        {Inputs::MOVEMENT_DOWN, sf::Keyboard::Key::Down},
-        {Inputs::MOVEMENT_LEFT, sf::Keyboard::Key::Left},
-        {Inputs::MOVEMENT_RIGHT, sf::Keyboard::Key::Right},
-        {Inputs::WPN_RIGHT, sf::Keyboard::Key::P},
-        {Inputs::WPN_LEFT, sf::Keyboard::Key::M},
-        {Inputs::WPN_CHANGE, sf::Keyboard::Key::L},
-        {Inputs::ATK, sf::Keyboard::Key::O}
-    });
+//    clientB->setKeybinds({
+//        {Inputs::MOVEMENT_UP, sf::Keyboard::Key::Up},
+//        {Inputs::MOVEMENT_DOWN, sf::Keyboard::Key::Down},
+//        {Inputs::MOVEMENT_LEFT, sf::Keyboard::Key::Left},
+//        {Inputs::MOVEMENT_RIGHT, sf::Keyboard::Key::Right},
+//        {Inputs::WPN_RIGHT, sf::Keyboard::Key::P},
+//        {Inputs::WPN_LEFT, sf::Keyboard::Key::M},
+//        {Inputs::WPN_CHANGE, sf::Keyboard::Key::L},
+//        {Inputs::ATK, sf::Keyboard::Key::O}
+//    });
 
-    clientA->addOpponent(clientB->getName(), clientB->getColor());
-    clientB->addOpponent(clientA->getName(), clientA->getColor());
+//    clientA->addOpponent(clientB->getName(), clientB->getColor());
+//    clientB->addOpponent(clientA->getName(), clientA->getColor());
 
     std::cout << "Adding client to server..." << std::endl;
     window.addClient(clientA);
-    window.addClient(clientB);
+//    window.addClient(clientB);
 
     // Print window
     sf::ContextSettings settings;

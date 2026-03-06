@@ -22,6 +22,7 @@
 #include <map>
 #include "../communication/Input.hpp"
 #include "../game/Weapon.hpp"
+#include "../communication/Buffer.hpp"
 
 using namespace Const;
 
@@ -30,21 +31,21 @@ struct QueuedPacket {
     sf::Time timestamp;
 };
 
-struct Player {
-    // ====== SERVER ======
-    unsigned short port;        // NEVER MOOVE THIS [use to create the client on the server and must be here
-
-    // ====== BASIC ======
-    std::string name;
-    sf::Color color;
-    Position position;
-
-    // ====== WEAPON ======
-    float radius;               // must be saved as radiant so degree * ~1.111111 = radiant
-    bool is_attacking;          // indicate if the client is attacking or not
-    Weapon wpn;
-    Position attackOffset;
-};
+//struct Player {
+//    // ====== SERVER ======
+//    unsigned short port;        // NEVER MOOVE THIS [use to create the client on the server and must be here
+//
+//    // ====== BASIC ======
+//    std::string name;
+//    sf::Color color;
+//    Position position;
+//
+//    // ====== WEAPON ======
+//    float radius;               // must be saved as radiant so degree * ~1.111111 = radiant
+//    bool is_attacking;          // indicate if the client is attacking or not
+//    Weapon wpn;
+//    Position attackOffset;
+//};
 
 class Client {
 private:
@@ -52,7 +53,6 @@ private:
     std::deque<QueuedPacket> packets;
 
     sf::IpAddress server;
-    // unsigned short port;
     sf::UdpSocket socket;
     std::unordered_map<int,sf::Keyboard::Key> keybinds;
 
@@ -64,15 +64,11 @@ private:
     bool loop = true;
     bool newGame = false;
 
-//    Buffer bufferOnReceipt;
 
 protected:
     sf::Clock clock;
     std::map<std::string, Player> opponents;
-
-    Position lastServerPos;
-    int lastServerUpdate;
-    bool lastDirSent = false;
+    Buffer bufferOnReceipt;
 
 public:
     Client(sf::Clock clock, std::string name, sf::Color color = sf::Color::Red);

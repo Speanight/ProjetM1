@@ -56,3 +56,7 @@ sf::Packet& operator>>(sf::Packet &packet, Position& position) {
 
     return packet;
 }
+
+bool Position::operator==(const Position& other) const {
+    return this->getX() == other.getX() and this->getY() == other.getY();
+}

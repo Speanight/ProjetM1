@@ -2,6 +2,7 @@
 // Created by OMGiT on 06/03/2026.
 //
 
+#include <iostream>
 #include "Buffer.hpp"
 
 // Constructors
@@ -14,7 +15,7 @@ int Buffer::getCurrentTick() {
     return this->currentTick;
 }
 
-std::map<int, std::unordered_map<std::string, State>> Buffer::getPastStates() {
+std::queue<std::unordered_map<std::string, State>> Buffer::getPastStates() {
     return pastStates;
 }
 
@@ -44,6 +45,12 @@ void Buffer::refreshBuffer(const Player& player, State state, int clockState) {
             }
         }
 
+        pastStates.push(currentState);
+
+        if (pastStates.size() > amtPastStates) {
+            pastStates.pop();
+        }
+
         currentTick = clockState;
         currentState = nextState;
         nextState.clear();
@@ -58,12 +65,30 @@ std::unordered_map<std::string, State> Buffer::getTState(int t) {
     else if (t > 0) {
         return nextState;
     }
-    else if (-t <= pastStates.size()) {
-        return pastStates[-t];
-    }
     else {
-        return {};
+        std::queue<std::unordered_map<std::string, State>> copyPastStates = pastStates;
+
+        while (!copyPastStates.empty()) {
+            t++;
+            std::unordered_map<std::string, State> state = copyPastStates.front();
+            copyPastStates.pop();
+
+            if (t == 0) {
+                return state;
+            }
+        }
+        return {}; // Element not found in past states.
     }
+}
+
+State Buffer::getLastState(const Player& player) {
+    if (auto search = nextState.find(player.name); search != nextState.end()) {
+        return search->second;
+    }
+    if (auto search = currentState.find(player.name); search != currentState.end()) {
+        return search->second;
+    }
+    return {};
 }
 
 void Buffer::addClient(Player p) {

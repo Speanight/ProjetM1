@@ -22,6 +22,9 @@ public:
     // Setters
     void setX(float x);
     void setY(float y);
+
+    // Operators
+    bool operator==(const Position& other) const;
 };
 
 sf::Packet& operator<<(sf::Packet& packet, const Position& position);
