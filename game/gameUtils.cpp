@@ -102,23 +102,7 @@ Position resolveCollision(Position player, Position opponent) {
 
 Position smoothenDeplacement(State p, State s, int clockSync) {
     Position pos;
-//    std::cout << p.getPosition().getX() << " + (" << s.getPosition().getX() << " - " << p.getPosition().getX() << ") * " << clockSync << " / (" << s.getTimestamp() << " - " << p.getTimestamp() << ")" << std::endl;
-//    pos.setX(p.getPosition().getX() + (s.getPosition().getX() - p.getPosition().getX()) * clockSync / (1000 / Const::TICKRATE.count()));
-//    pos.setY(p.getPosition().getY() + (s.getPosition().getY() - p.getPosition().getY()) * clockSync / (1000 / Const::TICKRATE.count()));
     pos.setX(p.getPosition().getX() + (s.getPosition().getX() - p.getPosition().getX()) * clockSync / (s.getTimestamp() - p.getTimestamp()));
     pos.setY(p.getPosition().getY() + (s.getPosition().getY() - p.getPosition().getY()) * clockSync / (s.getTimestamp() - p.getTimestamp()));
-
-//    p.getPosition().setX(p.getPosition().getX() + s.getPosition().getX() * clockSync / (s.getTimestamp() - p.getTimestamp()));
-//    p.getPosition().setY(p.getPosition().getY() + s.getPosition().getY() * clockSync / (s.getTimestamp() - p.getTimestamp()));
-//    p.setX(p.getX() + s.getPosition().getX() * Const::PLAYER_SPEED * clockSync / 1000);
-//    p.setY(p.getY() + s.getPosition().getY() * Const::PLAYER_SPEED * clockSync / 1000);
-
     return pos;
 }
-
-//Position smoothenDeplacement(Position p, ImVec2 direction, int timestampPos, int timestampNow) {
-//    p.setX(p.getX() + direction.x * Const::PLAYER_SPEED * (timestampNow - timestampPos) / 1000);
-//    p.setY(p.getY() + direction.y * Const::PLAYER_SPEED * (timestampNow - timestampPos) / 1000);
-//
-//    return p;
-//}
