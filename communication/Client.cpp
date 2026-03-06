@@ -11,12 +11,24 @@
  * @param name Name given to the client. Can be any string, must be unique!
  * @param color Color given to the client in the Server's console.
  */
-Client::Client(const sf::Clock clock, std::string name, sf::Color color) : server(SERVER_IP_BYTE1, SERVER_IP_BYTE2, SERVER_IP_BYTE3, SERVER_IP_BYTE4) {
+// Client::Client(const sf::Clock clock, std::string name, sf::Color color) : server(SERVER_IP_BYTE1, SERVER_IP_BYTE2, SERVER_IP_BYTE3, SERVER_IP_BYTE4) {
+//     this->packetLoss = 0;
+//     this->clock = clock;
+//     this->ping = 0;
+//     this->player.name = name;
+//     this->player.color = color;
+// }
+
+Client::Client(const sf::Clock clock, std::string name, sf::Color color, float radius) : server(SERVER_IP_BYTE1, SERVER_IP_BYTE2, SERVER_IP_BYTE3, SERVER_IP_BYTE4) {
     this->packetLoss = 0;
     this->clock = clock;
     this->ping = 0;
     this->player.name = name;
     this->player.color = color;
+    this->player.radius = radius;
+
+    Weapon wpn;
+    this->player.wpn = wpn;
 }
 
 Client::~Client() {

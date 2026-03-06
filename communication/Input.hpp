@@ -15,7 +15,7 @@ public:
     // Constructors
     Input();
     Input(float x, float y, bool attack);
-    Input(float x, float y, float r, float l, bool attack)
+    Input(float x, float y, float r, float l, bool attack);
 
     // Getters
     float getMovementX();
