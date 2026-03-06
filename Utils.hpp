@@ -41,10 +41,12 @@ namespace Pkt {
     /////////////////////
     // PACKETS HEADERS //
     /////////////////////
-    static const int SHUTDOWN = 0;  // None
-    static const int GLOBAL = 1;    // tick << amtPlayers << client.name << client.position << [...]
-    static const int POSITION = 2;  // tick << client.position
-    static const int INPUTS = 3;    // tick << inputs
+    static const int SHUTDOWN = 0;      // None
+    static const int ROUND_START = 1;   // tick << amtPlayers << client.name << client.position
+    static const int GLOBAL = 2;        // tick << amtPlayers << client.name << client.position << [...]
+    static const int POSITION = 3;      // tick << client.position
+    static const int INPUTS = 4;        // tick << inputs
+    static const int ACK = 5;
 }
 
 namespace Inputs {
@@ -68,6 +70,7 @@ namespace Inputs {
 namespace Compensation {
     static constexpr int EXTRAPOLATION = 0;
     static constexpr int INTRAPOLATION = 1;
+    static constexpr int PREDICTION = 2;
 }
 
 #endif

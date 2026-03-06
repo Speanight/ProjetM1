@@ -107,5 +107,4 @@ void MainWindow::loop() {
 
     ImGui::SFML::Shutdown();
     ImGui::DestroyContext();
-
 }
