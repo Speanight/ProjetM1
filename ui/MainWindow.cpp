@@ -33,11 +33,6 @@ void MainWindow::draw() {
 
     ImGui::Columns(clients.size());
 
-//    clients[0]->drawGamePl1();
-//    ImGui::NextColumn();
-//    clients[1]->drawGamePl2();
-//    ImGui::NextColumn();
-
      for (auto & client : clients) {
          client->drawGame();
          ImGui::NextColumn();

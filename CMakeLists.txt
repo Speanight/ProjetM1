@@ -39,6 +39,7 @@ add_executable(ProjetM1
         Utils.hpp
         communication/Server.cpp
         game/Position.cpp
+        game/Weapon.cpp
         communication/Client.cpp
         communication/Client.hpp
         ui/ServerUI.cpp

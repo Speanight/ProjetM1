@@ -57,6 +57,10 @@ namespace Inputs {
     static constexpr int MOVEMENT_LEFT = 2;
     static constexpr int MOVEMENT_RIGHT = 3;
     static constexpr int MOVEMENT_UPPER = 3; // Defines last movement value
+    static constexpr int WPN_RIGHT = 3;
+    static constexpr int WPN_LEFT = 4;
+    static constexpr int WPN_CHANGE = 5;
+    static constexpr int ATK = 6;
     static constexpr int ATTACK = 4;
 
     // Actions

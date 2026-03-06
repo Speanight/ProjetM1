@@ -54,7 +54,12 @@ int Server::addClient(std::unordered_map<std::string, std::any> infos) {
         std::cout << "Error initializing client " << std::any_cast<std::string>(infos["name"]) << std::endl;
         return Err::ERR_CLIENT_INIT;
     }
-    Player player(std::any_cast<std::string>(infos["name"]), std::any_cast<sf::Color>(infos["color"]), Position(), std::any_cast<unsigned short>(infos["port"]));
+    Player player(
+        std::any_cast<unsigned short>(infos["port"]),
+        std::any_cast<std::string>(infos["name"]),
+        std::any_cast<sf::Color>(infos["color"]),
+        Position()
+    );
     clients[std::any_cast<std::string>(infos["name"])] = player;
     std::cout << "Added client " << std::any_cast<std::string>(infos["name"]) << " on port " << clients[std::any_cast<std::string>(infos["name"])].port << std::endl;
     return Err::ERR_NONE;
@@ -99,6 +104,7 @@ int Server::receiveLoop() {
             for (auto & [name, player] : clients) {
                 senderNum++;
                 if (player.port == port) { // Check if ports corresponds (AKA the expected client)
+                    // printf("port OK\n");
                     packet >> type;
 
                     switch (type) {

@@ -33,14 +33,15 @@ void ClientUI::drawGame() { // Game space
 //            other.position.setY(p.getY());
 //        }
 
+        // ========= DRAW =========
 
-    // ========= DRAW =========
-    ImDrawList* draw_list = ImGui::GetWindowDrawList();
-    drawPlayer(draw_list, getPosition(), getColor(), childMin, childMax);
 
-    for (auto & [name, other] : opponents) {
-        drawPlayer(draw_list, other.position, other.color, childMin, childMax);
-    }
+        ImDrawList* draw_list = ImGui::GetWindowDrawList();
+        drawPlayer(draw_list, getPlayer(), childMin, childMax);
+
+        for (auto & [name, other] : opponents) {
+            drawPlayer(draw_list, other, childMin, childMax);
+        }
 
     // PREDICTION
 //    if (true) {
@@ -53,12 +54,10 @@ void ClientUI::drawGame() { // Game space
 
 
 void ClientUI::addOpponent(const std::string& name, sf::Color color) {
-    opponents.insert(std::make_pair(name, Player(name, color, Position())));
+    opponents.insert(std::make_pair(name, Player(0,name, color, Position())));
 }
 
 void ClientUI::drawConfig() {
-    bool changed = false;
-
     const char* title = getName().c_str();
 
     ImGui::BeginChild(title, ImVec2(0, 100), true); // hauteur FIXE

@@ -14,9 +14,9 @@
 Client::Client(const sf::Clock clock, std::string name, sf::Color color) : server(SERVER_IP_BYTE1, SERVER_IP_BYTE2, SERVER_IP_BYTE3, SERVER_IP_BYTE4) {
     this->packetLoss = 0;
     this->clock = clock;
-    this->color = color;
     this->ping = 0;
-    this->name = std::move(name);
+    this->player.name = std::move(name);
+    this->player.color = color;
 }
 
 Client::~Client() {
@@ -38,11 +38,11 @@ Client::~Client() {
 std::unordered_map<std::string, std::any> Client::init() {
     if (socket.bind(sf::Socket::AnyPort) != sf::Socket::Status::Done) {
         std::cout << "Error: port isn't available? - ClientUI" << std::endl;
-        this->port = 0;
+        this->player.port = 0;
     }
     else {
-        port = socket.getLocalPort();
-        std::cout << "Client " << this->name << " started on port: " << port << std::endl;
+        player.port = socket.getLocalPort();
+        std::cout << "Client " << this->player.name << " started on port: " << player.port << std::endl;
 
         socket.setBlocking(true);
 
@@ -51,17 +51,21 @@ std::unordered_map<std::string, std::any> Client::init() {
     }
 
     std::unordered_map<std::string, std::any> infos = {
-            {"error", port == 0},
-            {"name", name},
-            {"port", port},
-            {"color", color}
+            {"error", player.port == 0},
+            {"name", player.name},
+            {"port", player.port},
+            {"color", player.color}
     };
 
     return infos;
 }
 
+Player Client::getPlayer() {
+    return player;
+}
+
 std::string Client::getName() {
-    return name;
+    return player.name;
 }
 
 int Client::getPacketLoss() const {
@@ -73,7 +77,7 @@ int Client::getPing() const {
 }
 
 Position Client::getPosition() {
-    return position;
+    return player.position;
 }
 
 void Client::setPosition(Position p) {
@@ -179,7 +183,6 @@ int Client::receiveLoop() {
                         std::cout << "Client " << getName() << " received ROUND_START" << std::endl;
                         newGame = true;
 
-                        // amtPlayers << player.name << player.position << [...]
                     case Pkt::GLOBAL: {
                         int nbPlayers;
                         int stateTick;
@@ -187,14 +190,15 @@ int Client::receiveLoop() {
                         Position position;
                         packet >> stateTick >> nbPlayers;
 
-
-
                         while (nbPlayers > 0) {
                             packet >> name >> position;
+
                             if (name == this->getName()) {
-                                this->position = position;
-                                lastServerUpdate = stateTick;
+                                // TODO: Handler of "fixing" of local position.
+                                this->player.position.setX(position.getX());
+                                this->player.position.setY(position.getY());
                                 lastServerPos = position;
+                                lastServerUpdate = stateTick;
                             }
                             else {
                                 // Opponent position:
@@ -208,7 +212,7 @@ int Client::receiveLoop() {
                     }
 
                     case Pkt::SHUTDOWN:
-                        std::cout << "Client " << name << " received shutdown packet!" << std::endl;
+                        std::cout << "Client " << player.name << " received shutdown packet!" << std::endl;
                         loop = false;
                         break;
 
@@ -219,7 +223,7 @@ int Client::receiveLoop() {
                     }
 
                     default:
-                        std::cout << "UNKNOWN PACKET! Type: " << type << " for client " << name << std::endl;
+                        std::cout << "UNKNOWN PACKET! Type: " << type << " for client " << player.name << std::endl;
                 }
             }
         }
@@ -231,19 +235,19 @@ int Client::receiveLoop() {
 }
 
 sf::Color Client::getColor() {
-    return this->color;
+    return this->player.color;
 }
 
 Client::Client(const Client& other) : server(other.server) {
-    this->name = other.name;
-    this->color = other.color;
-    this->position = Position(other.position.getX(), other.position.getY());
+    this->player.name = other.player.name;
+    this->player.color = other.player.color;
+    this->player.position = Position(other.player.position.getX(), other.player.position.getY());
 }
 
 Client& Client::operator=(const Client& other) {
-    this->color = other.color;
+    this->player.color = other.player.color;
     this->clock = other.clock;
-    this->name = other.name;
+    this->player.name = other.player.name;
 
     return *this;
 }

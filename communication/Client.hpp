@@ -21,6 +21,7 @@
 #include <imgui.h>
 #include <map>
 #include "../communication/Input.hpp"
+#include "../game/Weapon.hpp"
 
 using namespace Const;
 
@@ -30,24 +31,28 @@ struct QueuedPacket {
 };
 
 struct Player {
+    // ====== SERVER ======
+    unsigned short port;        // NEVER MOOVE THIS [use to create the client on the server and must be here
+
+    // ====== BASIC ======
     std::string name;
     sf::Color color;
     Position position;
-    unsigned short port = 0;
+
+    // ====== WEAPON ======
+    float radius;               // must be saved as radiant so degree * ~1.111111 = radiant
+    bool is_attacking;          // indicate if the client is attacking or not
+    Weapon wpn;
+    Position attackOffset;
 };
-
-
-
 
 class Client {
 private:
-    std::string name;
-    sf::Color color;
-    Position position;
+    Player player;
     std::deque<QueuedPacket> packets;
 
     sf::IpAddress server;
-    unsigned short port;
+    // unsigned short port;
     sf::UdpSocket socket;
     std::unordered_map<int,sf::Keyboard::Key> keybinds;
 
@@ -75,6 +80,7 @@ public:
     Client& operator=(const Client& other);
 
     // Getters / Setters
+    Player getPlayer();
     std::string getName();
     int getPacketLoss() const;
     int getPing() const;
