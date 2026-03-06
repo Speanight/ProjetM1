@@ -12,6 +12,15 @@ Input::Input(float x, float y, bool attack) {
     this->attack = attack;
 }
 
+Input::Input(float x, float y, float r, float l, bool attack) {
+    this->movementX = x;
+    this->movementY = y;
+    this->rotateRigth = r;
+    this->rotateLeft = l;
+    this->attack = attack;
+}
+
+
 // Getters
 float Input::getMovementX() {
     return movementX;
@@ -19,6 +28,14 @@ float Input::getMovementX() {
 
 float Input::getMovementY() {
     return movementY;
+}
+
+float Input::getRotateRigth() {
+    return rotateRigth;
+}
+
+float Input::getRotateLeft() {
+    return rotateLeft;
 }
 
 bool Input::getAttack() {
@@ -32,6 +49,14 @@ void Input::setMovementX(float x) {
 
 void Input::setMovementY(float y) {
     this->movementY = y;
+}
+
+void Input::setRotateRigth(float r) {
+    this->rotateRigth = r;
+}
+
+void Input::setRotateLeft(float r) {
+    this->rotateLeft = r;
 }
 
 void Input::setAttack(bool attack) {

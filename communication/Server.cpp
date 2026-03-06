@@ -125,14 +125,14 @@ int Server::receiveLoop() {
                             int time;
                             packet >> time >> inputs;
 
-
-
                             addLine(name + " >>> Server [PING:" + std::to_string(clock.getElapsedTime().asMilliseconds() - time) + "ms] | inputs: x=" + std::to_string(inputs.getMovementX()) + "; y=" + std::to_string(inputs.getMovementY()));
 //                            player.position.setX(position.getX() + inputs.getMovementX() * Const::PLAYER_SPEED * (clock.getElapsedTime().asMilliseconds() - buffer.currentState[name].getTimestamp()) / 1000);
 //                            player.position.setY(position.getY() + inputs.getMovementY() * Const::PLAYER_SPEED * (clock.getElapsedTime().asMilliseconds() - buffer.currentState[name].getTimestamp()) / 1000);
                             Position position = buffer.currentState[name].getPosition();
                             position.setX(position.getX() + inputs.getMovementX() * Const::PLAYER_SPEED * (clock.getElapsedTime().asMilliseconds() - buffer.currentState[name].getTimestamp()) / 1000);
                             position.setY(position.getY() + inputs.getMovementY() * Const::PLAYER_SPEED * (clock.getElapsedTime().asMilliseconds() - buffer.currentState[name].getTimestamp()) / 1000);
+
+
 
                             // TODO: Fix collisions
 //                            for (auto & [n, player] : clients) {
