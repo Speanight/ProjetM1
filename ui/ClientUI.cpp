@@ -44,7 +44,7 @@ void ClientUI::drawGame() { // Game space
         }
 
     // PREDICTION
-//    if (true) {
+//    if (lastDirSent) {
 //        this->setPosition(smoothenDeplacement(getPosition(), dir, lastUpdate, clock.getElapsedTime().asMilliseconds()));
 //    }
 

@@ -61,6 +61,7 @@ int Server::addClient(std::unordered_map<std::string, std::any> infos) {
         Position()
     );
     clients[std::any_cast<std::string>(infos["name"])] = player;
+    buffer.addClient(player);
     std::cout << "Added client " << std::any_cast<std::string>(infos["name"]) << " on port " << clients[std::any_cast<std::string>(infos["name"])].port << std::endl;
     return Err::ERR_NONE;
 }
@@ -134,18 +135,19 @@ int Server::receiveLoop() {
                             semaphore.acquire();
                             addLine(name + " >>> Server [PING:" + std::to_string(clock.getElapsedTime().asMilliseconds() - time) + "ms] | inputs: x=" + std::to_string(inputs.getMovementX()) + "; y=" + std::to_string(inputs.getMovementY()));
                             semaphore.release();
-                            Position position = buffer.currentState[name].getPosition();
-                            int dt = (clock.getElapsedTime().asMilliseconds() - buffer.currentState[name].getTimestamp()) % 2*Const::TICKRATE.count();
+                            std::unordered_map<std::string, State> currentState = buffer.getCurrentState();
+                            Position position = currentState[name].getPosition();
+                            int dt = (clock.getElapsedTime().asMilliseconds() - currentState[name].getTimestamp()) % 2*Const::TICKRATE.count();
                             position.setX(position.getX() + inputs.getMovementX() * Const::PLAYER_SPEED * dt / 1000);
                             position.setY(position.getY() + inputs.getMovementY() * Const::PLAYER_SPEED * dt / 1000);
 
                             for (auto & [n, player] : clients) {
                                 if (name != n) {
-                                    Position opponentPos = buffer.currentState[n].getPosition();
+                                    Position opponentPos = currentState[n].getPosition();
                                     Position pos = resolveCollision(position, opponentPos);
-                                    if (pos.getX() != buffer.currentState[n].getPosition().getX() and pos.getY() != buffer.currentState[n].getPosition().getY()) {
+                                    if (pos.getX() != currentState[n].getPosition().getX() and pos.getY() != currentState[n].getPosition().getY()) {
                                         State s = State(time, pos, inputs);
-                                        refreshBuffer(n, s, time);
+                                        buffer.refreshBuffer(player, s, time);
                                     }
                                 }
                             }
@@ -154,7 +156,7 @@ int Server::receiveLoop() {
                             State s = State(time, position, inputs);
                             // player.position.setX(buffer.currentState[player.name].getPosition().getX());
                             // player.position.setY(buffer.currentState[player.name].getPosition().getY());
-                            refreshBuffer(name, s, time);
+                            buffer.refreshBuffer(player, s, time);
                             semaphore.release();
                             break;
                         }
@@ -183,37 +185,38 @@ int Server::sendLoop() {
     sf::Packet packet;
 
     while (loop) {
+        std::unordered_map<std::string, State> currentState = buffer.getCurrentState();
         // DEFAULT BEHAVIOR - SEND SERVER-SIDE POSITIONS
         for (auto & [name, player] : clients) {
             packet.clear();
 
             if (newGame) {
-                packet << Pkt::ROUND_START << int(buffer.stateTick) << int(clients.size());
+                packet << Pkt::ROUND_START << int(buffer.getCurrentTick()) << int(clients.size());
 
                 int playerNb = 1;
                 int time = clock.getElapsedTime().asMilliseconds();
 
                 for (auto & [name, player] : clients) {
-                    Position pos = buffer.currentState[name].getPosition();
+                    Position pos = currentState[name].getPosition();
                     pos.setX((playerNb * Const::MAP_SIZE_X / (clients.size())) - (Const::MAP_SIZE_X / clients.size()) / 2);
                     pos.setY(Const::MAP_SIZE_Y / 2);
                     Input inputs(0,0,false);
                     State s = State(time, pos, inputs);
-                    refreshBuffer(name, s, time);
-                    buffer.currentState[name].setPosition(pos);
+                    buffer.refreshBuffer(player, s, time);
+                    buffer.setPlayerPosition(name, pos);
                     playerNb++;
                 }
             }
             else {
-                packet << Pkt::GLOBAL << int(buffer.stateTick) << int(buffer.currentState.size());
+                packet << Pkt::GLOBAL << int(buffer.getCurrentTick()) << int(currentState.size());
             }
 
-            for (auto & [n, state] : buffer.currentState) {
+            for (auto & [n, state] : currentState) {
                 packet << n << state.getPosition();
             }
             semaphore.acquire();
             socket.send(packet, sender.value(), player.port);
-            addLine("Server >>> " + name + " position: (" + std::to_string(player.position.getX()) + ", " + std::to_string(player.position.getY()) + ")", sf::Color::White);
+            addLine("Server >>> " + name + " position: (" + std::to_string(buffer.getCurrentState()[name].getPosition().getX()) + ", " + std::to_string(buffer.getCurrentState()[name].getPosition().getY()) + ")", sf::Color::White);
             semaphore.release();
         }
         sf::sleep(tickrate);
@@ -224,43 +227,44 @@ int Server::sendLoop() {
     return Err::ERR_NONE; // Exited without any issue.
 }
 
-void Server::refreshBuffer(const std::string& client, State state, int clockState) {
-    buffer.nextState[client] = state;
-
-    // We "push" the buffer if we're onto the next tick. (known by checking current server tick).
-    if (buffer.stateTick / Const::TICKRATE.count() < clockState / Const::TICKRATE.count()) {
-        for (auto & [name, remotePort] : clients) {
-
-            // If some values are missing, we add them with potential compensations:
-            if (auto search = buffer.nextState.find(name); search == buffer.nextState.end()) {
-                buffer.nextState[name] = buffer.currentState[name]; // Rollbacks to previously known position.
-                // Add compensations here:
-//                int toCompensate = clockState - buffer.currentState[name].getTimestamp();
-                // float toCompensate = 0.003; // TODO: find time to compensate!
-                // if (compensations[Compensation::EXTRAPOLATION]) {
-                //     // EXTRAPOLING - We guess the new position based of last known position AND inputs.
-                //     Position position = buffer.nextState[name].getPosition();
-                //     Input inputs = buffer.nextState[name].getInputs();
-                //     float x = position.getX() + inputs.getMovementX() * Const::PLAYER_SPEED * toCompensate;
-                //     float y = position.getY() + inputs.getMovementY() * Const::PLAYER_SPEED * toCompensate;
-                //
-                //     buffer.nextState[name].setPosition(Position(x, y));
-                // }
-
-//                std::cout << "COMPENSATED " << name << " - (" << buffer.nextState[name].getPosition().getX() << ", " << buffer.nextState[name].getPosition().getY() << ")" << std::endl;
-            }
-        }
-
-        // Refreshes buffer
-//        buffer.pastStates[buffer.stateTick/TICKRATE.count()] = buffer.currentState;
-//        if (buffer.pastStates.size() >= BUFFER_SIZE) {
-//            buffer.pastStates.erase(buffer.pastStates.begin());
+//void Server::refreshBuffer(const std::string& client, State state, int clockState) {
+//    buffer.nextState[client] = state;
+//    int stateTick = buffer.getCurrentTick();
+//
+//    // We "push" the buffer if we're onto the next tick. (known by checking current server tick).
+//    if (stateTick / Const::TICKRATE.count() < clockState / Const::TICKRATE.count()) {
+//        for (auto & [name, remotePort] : clients) {
+//
+//            // If some values are missing, we add them with potential compensations:
+//            if (auto search = buffer.nextState.find(name); search == buffer.nextState.end()) {
+//                buffer.nextState[name] = buffer.currentState[name]; // Rollbacks to previously known position.
+//                // Add compensations here:
+////                int toCompensate = clockState - buffer.currentState[name].getTimestamp();
+//                // float toCompensate = 0.003; // TODO: find time to compensate!
+//                // if (compensations[Compensation::EXTRAPOLATION]) {
+//                //     // EXTRAPOLING - We guess the new position based of last known position AND inputs.
+//                //     Position position = buffer.nextState[name].getPosition();
+//                //     Input inputs = buffer.nextState[name].getInputs();
+//                //     float x = position.getX() + inputs.getMovementX() * Const::PLAYER_SPEED * toCompensate;
+//                //     float y = position.getY() + inputs.getMovementY() * Const::PLAYER_SPEED * toCompensate;
+//                //
+//                //     buffer.nextState[name].setPosition(Position(x, y));
+//                // }
+//
+////                std::cout << "COMPENSATED " << name << " - (" << buffer.nextState[name].getPosition().getX() << ", " << buffer.nextState[name].getPosition().getY() << ")" << std::endl;
+//            }
 //        }
-        buffer.stateTick = clockState;
-        buffer.currentState = buffer.nextState;
-        buffer.nextState.clear();
-    }
-}
+//
+//        // Refreshes buffer
+////        buffer.pastStates[buffer.stateTick/TICKRATE.count()] = buffer.currentState;
+////        if (buffer.pastStates.size() >= BUFFER_SIZE) {
+////            buffer.pastStates.erase(buffer.pastStates.begin());
+////        }
+//        buffer.stateTick = clockState;
+//        buffer.currentState = buffer.nextState;
+//        buffer.nextState.clear();
+//    }
+//}
 
 /**
  * Sends a shutdown packet to the server as well as the clients. Useful to stop the execution of the whole script

@@ -10,8 +10,6 @@ Position::Position() {
 Position::Position(float x, float y) {
     setX(x);
     setY(y);
-//    this->x = x;
-//    this->y = y;
 }
 
 // Getters

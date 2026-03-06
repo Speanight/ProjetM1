@@ -146,6 +146,7 @@ int Client::sendLoop() {
         pkt.timestamp = clock.getElapsedTime();
         auto inputs = this->getInputs();
         pkt.packet << Pkt::INPUTS << pkt.timestamp.asMilliseconds() << inputs;
+        lastDirSent = inputs.getMovementX() != 0;
         packets.push_back(pkt); // Adds the packet to the array of packets.
 
         // If the packet isn't lost (editable through packet loss % slider):

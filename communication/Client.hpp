@@ -64,12 +64,15 @@ private:
     bool loop = true;
     bool newGame = false;
 
+//    Buffer bufferOnReceipt;
+
 protected:
     sf::Clock clock;
     std::map<std::string, Player> opponents;
 
     Position lastServerPos;
     int lastServerUpdate;
+    bool lastDirSent = false;
 
 public:
     Client(sf::Clock clock, std::string name, sf::Color color = sf::Color::Red);

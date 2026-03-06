@@ -17,16 +17,17 @@
 #include "../game/Position.hpp"
 #include "../ui/ClientUI.hpp"
 #include "State.hpp"
+#include "Buffer.hpp"
 
 using namespace Const;
 
-struct Buffer {
-    int stateTick = 0;
-    std::map<int, std::unordered_map<std::string, State>> pastStates;
-    std::unordered_map<std::string, State> currentState;
-    std::unordered_map<std::string, State> nextState;
-    std::unordered_map<std::string, State> bestGuess;
-};
+//struct Buffer {
+//    int stateTick = 0;
+//    std::map<int, std::unordered_map<std::string, State>> pastStates;
+//    std::unordered_map<std::string, State> currentState;
+//    std::unordered_map<std::string, State> nextState;
+//    std::unordered_map<std::string, State> bestGuess;
+//};
 
 class Server : public ServerUI {
 private:
