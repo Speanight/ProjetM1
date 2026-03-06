@@ -18,6 +18,7 @@ private:
     std::thread thread;
     Server server;
     std::vector<ClientUI*> clients;
+
 public:
     MainWindow(sf::Clock clock);
     ~MainWindow();

@@ -62,10 +62,14 @@ private:
     int packetLoss;
     int ping;
     bool loop = true;
+    bool newGame = false;
 
 protected:
     sf::Clock clock;
     std::map<std::string, Player> opponents;
+
+    Position lastServerPos;
+    int lastServerUpdate;
 
 public:
     // Client(sf::Clock clock, std::string name, sf::Color color = sf::Color::Red);
@@ -89,6 +93,7 @@ public:
     void setPacketLoss(int packetLoss);
     void setPing(int ping);
     void setKeybinds(std::unordered_map<int,sf::Keyboard::Key> keybinds);
+    void setPosition(Position p);
 
     // Functions
     std::unordered_map<std::string, std::any> init();

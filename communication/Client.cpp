@@ -23,7 +23,7 @@ Client::Client(const sf::Clock clock, std::string name, sf::Color color, float r
     this->packetLoss = 0;
     this->clock = clock;
     this->ping = 0;
-    this->player.name = name;
+    this->player.name = std::move(name);
     this->player.color = color;
     this->player.radius = radius;
 
@@ -92,6 +92,11 @@ Position Client::getPosition() {
     return player.position;
 }
 
+void Client::setPosition(Position p) {
+    this->player.position.setX(p.getX());
+    this->player.position.setY(p.getY());
+}
+
 void Client::setPacketLoss(int packetLoss) {
     this->packetLoss = packetLoss;
 }
@@ -131,7 +136,22 @@ void Client::setKeybinds(std::unordered_map<int, sf::Keyboard::Key> keybinds) {
  */
 int Client::sendLoop() {
     const sf::Time time = std::chrono::milliseconds(TICKRATE);
+
+    // Init with a round start:
+
+    sf::Packet packet;
+    packet << Pkt::ROUND_START;
+    socket.send(packet, server, COMM_PORT_SERVER);
     while (loop) {
+        if (newGame) {
+            sf::Packet packet;
+            packet << Pkt::ACK << Pkt::ROUND_START;
+
+            socket.send(packet, server, COMM_PORT_SERVER);
+
+            newGame = false;
+        }
+
         int packetLossChance = std::experimental::randint(1, 100);
 
         QueuedPacket pkt;
@@ -146,7 +166,6 @@ int Client::sendLoop() {
 
             // Check that packet does exist:
             if (packet.has_value()) {
-                // printf("sending imput %f from clients...\n", this->getInputs());
                 socket.send(packet.value(), server, COMM_PORT_SERVER);
             }
         }
@@ -172,22 +191,10 @@ int Client::receiveLoop() {
                 packet >> type;
 
                 switch (type) {
-                    case Pkt::SHUTDOWN:
-                        std::cout << "Client " << player.name << " received shutdown packet!" << std::endl;
-                        loop = false;
-                        break;
+                    case Pkt::ROUND_START:
+                        std::cout << "Client " << getName() << " received ROUND_START" << std::endl;
+                        newGame = true;
 
-                    case Pkt::POSITION: {
-                        Position tempPos;
-                        packet >> tempPos;
-
-//                        position.setX(tempPos.getX());
-//                        position.setY(tempPos.getY());
-                        // TODO: Handle position reception
-                        break;
-                    }
-
-                    // amtPlayers << player.name << player.position << [...]
                     case Pkt::GLOBAL: {
                         int nbPlayers;
                         int stateTick;
@@ -202,6 +209,8 @@ int Client::receiveLoop() {
                                 // TODO: Handler of "fixing" of local position.
                                 this->player.position.setX(position.getX());
                                 this->player.position.setY(position.getY());
+                                lastServerPos = position;
+                                lastServerUpdate = stateTick;
                             }
                             else {
                                 // Opponent position:
@@ -211,6 +220,17 @@ int Client::receiveLoop() {
                             nbPlayers--;
                         }
 
+                        break;
+                    }
+
+                    case Pkt::SHUTDOWN:
+                        std::cout << "Client " << player.name << " received shutdown packet!" << std::endl;
+                        loop = false;
+                        break;
+
+                    case Pkt::POSITION: {
+                        Position tempPos;
+                        packet >> tempPos;
                         break;
                     }
 

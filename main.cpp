@@ -24,14 +24,14 @@ int main() {
 
     // Settings players keybinds...
     clientA->setKeybinds({
-        {Inputs::MOVEMENT_UP, sf::Keyboard::Key::Up},
-        {Inputs::MOVEMENT_DOWN, sf::Keyboard::Key::Down},
-        {Inputs::MOVEMENT_LEFT, sf::Keyboard::Key::Left},
-        {Inputs::MOVEMENT_RIGHT, sf::Keyboard::Key::Right},
-        {Inputs::WPN_RIGHT, sf::Keyboard::Key::P},
-        {Inputs::WPN_LEFT, sf::Keyboard::Key::M},
-        {Inputs::WPN_CHANGE, sf::Keyboard::Key::L},
-        {Inputs::ATK, sf::Keyboard::Key::O}
+        {Inputs::MOVEMENT_UP, sf::Keyboard::Key::Z},
+        {Inputs::MOVEMENT_DOWN, sf::Keyboard::Key::S},
+        {Inputs::MOVEMENT_LEFT, sf::Keyboard::Key::Q},
+        {Inputs::MOVEMENT_RIGHT, sf::Keyboard::Key::D},
+        {Inputs::WPN_RIGHT, sf::Keyboard::Key::E},
+        {Inputs::WPN_LEFT, sf::Keyboard::Key::A},
+        {Inputs::WPN_CHANGE, sf::Keyboard::Key::W},
+        {Inputs::ATK, sf::Keyboard::Key::C}
     });
 
     clientB->setKeybinds({

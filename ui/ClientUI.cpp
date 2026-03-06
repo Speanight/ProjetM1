@@ -1,8 +1,7 @@
 #include "ClientUI.hpp"
 
 // ClientUI::ClientUI(const sf::Clock clock, std::string name, sf::Color color) : Client(clock, name, color) {}
-
-ClientUI::ClientUI(sf::Clock clock, std::string name, sf::Color color, float radius) : Client(clock, name, color, radius) {}
+ClientUI::ClientUI(const sf::Clock clock, std::string name, sf::Color color, float radius) : Client(clock, name, color, radius) {}
 
 void ClientUI::drawGame() { // Game space
     const char* title = getName().c_str();
