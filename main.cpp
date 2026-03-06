@@ -31,7 +31,7 @@ int main() {
         {Inputs::WPN_RIGHT, sf::Keyboard::Key::E},
         {Inputs::WPN_LEFT, sf::Keyboard::Key::A},
         {Inputs::WPN_CHANGE, sf::Keyboard::Key::W},
-        {Inputs::ATK, sf::Keyboard::Key::C}
+        {Inputs::ATTACK, sf::Keyboard::Key::C}
     });
 
     clientB->setKeybinds({
@@ -42,7 +42,7 @@ int main() {
         {Inputs::WPN_RIGHT, sf::Keyboard::Key::P},
         {Inputs::WPN_LEFT, sf::Keyboard::Key::M},
         {Inputs::WPN_CHANGE, sf::Keyboard::Key::L},
-        {Inputs::ATK, sf::Keyboard::Key::O}
+        {Inputs::ATTACK, sf::Keyboard::Key::O}
     });
 
     clientA->addOpponent(clientB->getName(), clientB->getColor());

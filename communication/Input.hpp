@@ -8,14 +8,13 @@ class Input {
 private:
     float movementX;
     float movementY;
-    float rotateRigth;
-    float rotateLeft;
+    float rotate;
     bool attack;
 public:
     // Constructors
     Input();
     Input(float x, float y, bool attack);
-    Input(float x, float y, float r, float l, bool attack);
+    Input(float x, float y, float r, bool attack);
 
     // Getters
     float getMovementX();

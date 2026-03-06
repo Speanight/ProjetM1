@@ -1,6 +1,8 @@
 #include "Client.hpp"
 
+#include <algorithm>
 #include <utility>
+#include <bits/ranges_algo.h>
 #include <SFML/Window/Keyboard.hpp>
 
 /**
@@ -11,25 +13,29 @@
  * @param name Name given to the client. Can be any string, must be unique!
  * @param color Color given to the client in the Server's console.
  */
-// Client::Client(const sf::Clock clock, std::string name, sf::Color color) : server(SERVER_IP_BYTE1, SERVER_IP_BYTE2, SERVER_IP_BYTE3, SERVER_IP_BYTE4) {
-//     this->packetLoss = 0;
-//     this->clock = clock;
-//     this->ping = 0;
-//     this->player.name = name;
-//     this->player.color = color;
-// }
-
-Client::Client(const sf::Clock clock, std::string name, sf::Color color, float radius) : server(SERVER_IP_BYTE1, SERVER_IP_BYTE2, SERVER_IP_BYTE3, SERVER_IP_BYTE4) {
+Client::Client(const sf::Clock clock, std::string name, sf::Color color) : server(SERVER_IP_BYTE1, SERVER_IP_BYTE2, SERVER_IP_BYTE3, SERVER_IP_BYTE4) {
     this->packetLoss = 0;
     this->clock = clock;
     this->ping = 0;
-    this->player.name = std::move(name);
+    this->player.name = name;
     this->player.color = color;
-    this->player.radius = radius;
+    this->player.radius = 0;
 
     Weapon wpn;
     this->player.wpn = wpn;
 }
+
+// Client::Client(const sf::Clock clock, std::string name, sf::Color color, float radius) : server(SERVER_IP_BYTE1, SERVER_IP_BYTE2, SERVER_IP_BYTE3, SERVER_IP_BYTE4) {
+//     this->packetLoss = 0;
+//     this->clock = clock;
+//     this->ping = 0;
+//     this->player.name = std::move(name);
+//     this->player.color = color;
+//     this->player.radius = radius;
+//
+//     Weapon wpn;
+//     this->player.wpn = wpn;
+// }
 
 Client::~Client() {
     socket.unbind();
@@ -200,22 +206,25 @@ int Client::receiveLoop() {
                         int stateTick;
                         std::string name;
                         Position position;
+                        float radius;
                         packet >> stateTick >> nbPlayers;
 
                         while (nbPlayers > 0) {
-                            packet >> name >> position;
+                            packet >> name >> position >> radius;
 
                             if (name == this->getName()) {
                                 // TODO: Handler of "fixing" of local position.
                                 this->player.position.setX(position.getX());
                                 this->player.position.setY(position.getY());
                                 lastServerPos = position;
+                                this->player.radius = radius;
                                 lastServerUpdate = stateTick;
                             }
                             else {
                                 // Opponent position:
                                 opponents[name].position.setX(position.getX());
                                 opponents[name].position.setY(position.getY());
+                                opponents[name].radius = radius;
                             }
                             nbPlayers--;
                         }
@@ -254,12 +263,14 @@ Client::Client(const Client& other) : server(other.server) {
     this->player.name = other.player.name;
     this->player.color = other.player.color;
     this->player.position = Position(other.player.position.getX(), other.player.position.getY());
+    this->player.radius = other.player.radius;
 }
 
 Client& Client::operator=(const Client& other) {
     this->player.color = other.player.color;
     this->clock = other.clock;
     this->player.name = other.player.name;
+    this->player.radius = other.player.radius;
 
     return *this;
 }

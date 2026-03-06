@@ -57,14 +57,13 @@ namespace Inputs {
     static constexpr int MOVEMENT_LEFT = 2;
     static constexpr int MOVEMENT_RIGHT = 3;
     static constexpr int MOVEMENT_UPPER = 3; // Defines last movement value
-    static constexpr int WPN_RIGHT = 3;
-    static constexpr int WPN_LEFT = 4;
-    static constexpr int WPN_CHANGE = 5;
-    static constexpr int ATK = 6;
-    static constexpr int ATTACK = 4;
+    static constexpr int WPN_RIGHT = 4;
+    static constexpr int WPN_LEFT = 5;
+    static constexpr int WPN_CHANGE = 6;
+    static constexpr int ATTACK = 7;
 
-    // Actions
-    static constexpr int SHOOT = 2;
+    // // Actions
+    // static constexpr int SHOOT = 2; // => will be the same as attack no ?
 }
 
 namespace Compensation {

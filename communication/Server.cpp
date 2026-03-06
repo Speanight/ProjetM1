@@ -130,19 +130,35 @@ int Server::receiveLoop() {
                             int time;
                             packet >> time >> inputs;
 
-
                             semaphore.acquire();
-                            addLine(name + " >>> Server [PING:" + std::to_string(clock.getElapsedTime().asMilliseconds() - time) + "ms] | inputs: x=" + std::to_string(inputs.getMovementX()) + "; y=" + std::to_string(inputs.getMovementY()));
+                            addLine(
+                                name + " >>> Server [PING:" + std::to_string(clock.getElapsedTime().asMilliseconds() - time) +"ms] "
+                                +" | inputs: x=" + std::to_string(inputs.getMovementX()) +
+                                "; y=" + std::to_string(inputs.getMovementY()) +
+                                "; rotate_left = "+ std::to_string(inputs.getRotateLeft()) +
+                                "; rotate_right = "+ std::to_string(inputs.getRotateRigth())
+                                );
                             semaphore.release();
                             Position position = buffer.currentState[name].getPosition();
                             int dt = (clock.getElapsedTime().asMilliseconds() - buffer.currentState[name].getTimestamp()) % 2*Const::TICKRATE.count();
                             position.setX(position.getX() + inputs.getMovementX() * Const::PLAYER_SPEED * dt / 1000);
                             position.setY(position.getY() + inputs.getMovementY() * Const::PLAYER_SPEED * dt / 1000);
 
+                            // TODO : DELETE ME IF I'M NOT GOOD SORRY o7
+                            float radius = buffer.currentState[name].getRadius();           // give the actual radius of the client (weapon position)
+                            // CONVERSION DEG -> RADIUS AT THE RECEPTION ?
+                            radius = inputs.getRotateLeft() * 1.111111 * Const::PLAYER_SPEED * dt / 1000 + inputs.getRotateRigth() * 1.111111 * Const::PLAYER_SPEED * dt / 1000;   // radius * (radiant converter) * travel he have done during while the packet was travelling
+
+
                             for (auto & [n, player] : clients) {
                                 if (name != n) {
                                     Position opponentPos = buffer.currentState[n].getPosition();
                                     Position pos = resolveCollision(position, opponentPos);
+
+                                    // TODO : DELETE ME IF I'M NOT GOOD SORRY o7
+                                    float oponentRadius = buffer.currentState[n].getRadius();
+
+                                    // TODO : check if i have to add the radius in this ( @ ~ @)
                                     if (pos.getX() != buffer.currentState[n].getPosition().getX() and pos.getY() != buffer.currentState[n].getPosition().getY()) {
                                         State s = State(time, pos, inputs);
                                         refreshBuffer(n, s, time);
@@ -151,7 +167,7 @@ int Server::receiveLoop() {
                             }
 
                             semaphore.acquire();
-                            State s = State(time, position, inputs);
+                            State s = State(time, position, radius,inputs);
                             // player.position.setX(buffer.currentState[player.name].getPosition().getX());
                             // player.position.setY(buffer.currentState[player.name].getPosition().getY());
                             refreshBuffer(name, s, time);
@@ -183,7 +199,7 @@ int Server::sendLoop() {
     sf::Packet packet;
 
     while (loop) {
-        // DEFAULT BEHAVIOR - SEND SERVER-SIDE POSITIONS
+        // DEFAULT BEHAVIOR - SEND SERVER-SIDE POSITIONS AND RADIUS
         for (auto & [name, player] : clients) {
             packet.clear();
 
@@ -197,10 +213,15 @@ int Server::sendLoop() {
                     Position pos = buffer.currentState[name].getPosition();
                     pos.setX((playerNb * Const::MAP_SIZE_X / (clients.size())) - (Const::MAP_SIZE_X / clients.size()) / 2);
                     pos.setY(Const::MAP_SIZE_Y / 2);
+
+                    // TODO : DELETE ME IF I'M NOT GOOD SORRY o7
+                    float radius = buffer.currentState[name].getRadius();           // give the actual radius of the client (weapon position)
+                    // Input inputs(0,0,false);
                     Input inputs(0,0,false);
-                    State s = State(time, pos, inputs);
+                    State s = State(time, pos, radius, inputs);
                     refreshBuffer(name, s, time);
                     buffer.currentState[name].setPosition(pos);
+                    buffer.currentState[name].getRadius();
                     playerNb++;
                 }
             }
@@ -209,11 +230,11 @@ int Server::sendLoop() {
             }
 
             for (auto & [n, state] : buffer.currentState) {
-                packet << n << state.getPosition();
+                packet << n << state.getPosition() << state.getRadius();
             }
             semaphore.acquire();
             socket.send(packet, sender.value(), player.port);
-            addLine("Server >>> " + name + " position: (" + std::to_string(player.position.getX()) + ", " + std::to_string(player.position.getY()) + ")", sf::Color::White);
+            addLine("Server >>> " + name + " position: (" + std::to_string(player.position.getX()) + ", " + std::to_string(player.position.getY()) + ") and radius : " + std::to_string(player.radius), sf::Color::White);
             semaphore.release();
         }
         sf::sleep(tickrate);
