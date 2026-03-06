@@ -81,8 +81,8 @@ Position Client::getPosition() {
 }
 
 void Client::setPosition(Position p) {
-    this->position.setX(p.getX());
-    this->position.setY(p.getY());
+    this->player.position.setX(p.getX());
+    this->player.position.setY(p.getY());
 }
 
 void Client::setPacketLoss(int packetLoss) {
