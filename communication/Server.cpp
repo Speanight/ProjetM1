@@ -131,12 +131,13 @@ int Server::receiveLoop() {
                             packet >> time >> inputs;
 
                             semaphore.acquire();
+                            printf("%f\n", inputs.getMovementX());
+                            printf("%f\n", inputs.getRotate());
                             addLine(
                                 name + " >>> Server [PING:" + std::to_string(clock.getElapsedTime().asMilliseconds() - time) +"ms] "
                                 +" | inputs: x=" + std::to_string(inputs.getMovementX()) +
                                 "; y=" + std::to_string(inputs.getMovementY()) +
-                                "; rotate_left = "+ std::to_string(inputs.getRotateLeft()) +
-                                "; rotate_right = "+ std::to_string(inputs.getRotateRigth())
+                                "; rotate = "+ std::to_string(inputs.getRotate())
                                 );
                             semaphore.release();
                             Position position = buffer.currentState[name].getPosition();
@@ -146,8 +147,12 @@ int Server::receiveLoop() {
 
                             // TODO : DELETE ME IF I'M NOT GOOD SORRY o7
                             float radius = buffer.currentState[name].getRadius();           // give the actual radius of the client (weapon position)
-                            // CONVERSION DEG -> RADIUS AT THE RECEPTION ?
-                            radius = inputs.getRotateLeft() * 1.111111 * Const::PLAYER_SPEED * dt / 1000 + inputs.getRotateRigth() * 1.111111 * Const::PLAYER_SPEED * dt / 1000;   // radius * (radiant converter) * travel he have done during while the packet was travelling
+                            //Check if the radius is not too much
+                            radius += inputs.getRotate();
+
+                            // wrap angle
+                            while (radius >= 360.f) radius -= 360.f;
+                            while (radius < 0.f)    radius += 360.f;
 
 
                             for (auto & [n, player] : clients) {
@@ -160,14 +165,14 @@ int Server::receiveLoop() {
 
                                     // TODO : check if i have to add the radius in this ( @ ~ @)
                                     if (pos.getX() != buffer.currentState[n].getPosition().getX() and pos.getY() != buffer.currentState[n].getPosition().getY()) {
-                                        State s = State(time, pos, inputs);
+                                        State s = State(time, pos, radius,  inputs);
                                         refreshBuffer(n, s, time);
                                     }
                                 }
                             }
 
                             semaphore.acquire();
-                            State s = State(time, position, radius,inputs);
+                            State s = State(time, position, radius, inputs);
                             // player.position.setX(buffer.currentState[player.name].getPosition().getX());
                             // player.position.setY(buffer.currentState[player.name].getPosition().getY());
                             refreshBuffer(name, s, time);
@@ -217,7 +222,7 @@ int Server::sendLoop() {
                     // TODO : DELETE ME IF I'M NOT GOOD SORRY o7
                     float radius = buffer.currentState[name].getRadius();           // give the actual radius of the client (weapon position)
                     // Input inputs(0,0,false);
-                    Input inputs(0,0,false);
+                    Input inputs(0,0,0, false);
                     State s = State(time, pos, radius, inputs);
                     refreshBuffer(name, s, time);
                     buffer.currentState[name].setPosition(pos);

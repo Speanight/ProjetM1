@@ -12,11 +12,10 @@ Input::Input(float x, float y, bool attack) {
     this->attack = attack;
 }
 
-Input::Input(float x, float y, float r, float l, bool attack) {
+Input::Input(float x, float y, float r, bool attack) {
     this->movementX = x;
     this->movementY = y;
-    this->rotateRigth = r;
-    this->rotateLeft = l;
+    this->rotate = r;
     this->attack = attack;
 }
 
@@ -30,12 +29,8 @@ float Input::getMovementY() {
     return movementY;
 }
 
-float Input::getRotateRigth() {
-    return rotateRigth;
-}
-
-float Input::getRotateLeft() {
-    return rotateLeft;
+float Input::getRotate() {
+    return rotate;
 }
 
 bool Input::getAttack() {
@@ -51,12 +46,8 @@ void Input::setMovementY(float y) {
     this->movementY = y;
 }
 
-void Input::setRotateRigth(float r) {
-    this->rotateRigth = r;
-}
-
-void Input::setRotateLeft(float r) {
-    this->rotateLeft = r;
+void Input::setRotate(float r) {
+    this->rotate= r;
 }
 
 void Input::setAttack(bool attack) {
@@ -78,10 +69,10 @@ void Input::handleInput(int inputCode, float value) {
             movementX += value;
             break;
         case Inputs::WPN_RIGHT:
-            rotate += value * 0.5f; // moove less fast than the player
+            rotate += value; // moove less fast than the player
             break;
         case Inputs::WPN_LEFT:
-            rotate -= value * 0.5f;
+            rotate -= value;
             break;
         case Inputs::ATTACK:
             attack = true;
@@ -92,17 +83,19 @@ void Input::handleInput(int inputCode, float value) {
 }
 
 sf::Packet& operator<<(sf::Packet &packet, Input inputs) {
-    return packet << inputs.getMovementX() << inputs.getMovementY() << inputs.getAttack();
+    return packet << inputs.getMovementX() << inputs.getMovementY() << inputs.getRotate() << inputs.getAttack();
 }
 
 sf::Packet& operator>>(sf::Packet &packet, Input& inputs) {
     float x;
     float y;
+    float r;
     bool attack;
-    packet >> x >> y >> attack;
+    packet >> x >> y >> r >>attack;
 
     inputs.setMovementX(x);
     inputs.setMovementY(y);
+    inputs.setRotate(r);
     inputs.setAttack(attack);
 
     return packet;

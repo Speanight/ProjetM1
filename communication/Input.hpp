@@ -19,15 +19,13 @@ public:
     // Getters
     float getMovementX();
     float getMovementY();
-    float getRotateRigth();
-    float getRotateLeft();
+    float getRotate();
     bool getAttack();
 
     // Setters
     void setMovementX(float x);
     void setMovementY(float y);
-    void setRotateRigth(float r);
-    void setRotateLeft(float l);
+    void setRotate(float r);
     void setAttack(bool attack);
 
     // Functions
