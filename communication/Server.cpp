@@ -110,6 +110,7 @@ int Server::receiveLoop() {
                     switch (type) {
                         case Pkt::ROUND_START: {
                             newGame = true; // Some players aren't ready for round start!
+                            break;
                         }
 
                         case Pkt::ACK: {
@@ -131,8 +132,7 @@ int Server::receiveLoop() {
                             packet >> time >> inputs;
 
                             semaphore.acquire();
-                            printf("%f\n", inputs.getMovementX());
-                            printf("%f\n", inputs.getRotate());
+                            // std::cout << "get radius " <<inputs.getRotate() <<" from client " << name << std::endl;
                             addLine(
                                 name + " >>> Server [PING:" + std::to_string(clock.getElapsedTime().asMilliseconds() - time) +"ms] "
                                 +" | inputs: x=" + std::to_string(inputs.getMovementX()) +
@@ -145,15 +145,20 @@ int Server::receiveLoop() {
                             position.setX(position.getX() + inputs.getMovementX() * Const::PLAYER_SPEED * dt / 1000);
                             position.setY(position.getY() + inputs.getMovementY() * Const::PLAYER_SPEED * dt / 1000);
 
-                            // TODO : DELETE ME IF I'M NOT GOOD SORRY o7
                             float radius = buffer.currentState[name].getRadius();           // give the actual radius of the client (weapon position)
                             //Check if the radius is not too much
-                            radius += inputs.getRotate();
+                            if(radius + inputs.getRotate() > 360.f){ //TODO : seems to bug a bit
+                                radius = radius+inputs.getRotate() - 360.f;
+                            }
+                            else {
+                                if(radius + inputs.getRotate() < 0) {
+                                    radius = 360.f + radius + inputs.getRotate();
 
-                            // wrap angle
-                            while (radius >= 360.f) radius -= 360.f;
-                            while (radius < 0.f)    radius += 360.f;
-
+                                }
+                                else {
+                                    radius += inputs.getRotate();
+                                }
+                            }
 
                             for (auto & [n, player] : clients) {
                                 if (name != n) {
@@ -222,7 +227,7 @@ int Server::sendLoop() {
                     // TODO : DELETE ME IF I'M NOT GOOD SORRY o7
                     float radius = buffer.currentState[name].getRadius();           // give the actual radius of the client (weapon position)
                     // Input inputs(0,0,false);
-                    Input inputs(0,0,0, false);
+                    Input inputs(0,0,0.f, false);
                     State s = State(time, pos, radius, inputs);
                     refreshBuffer(name, s, time);
                     buffer.currentState[name].setPosition(pos);

@@ -3,8 +3,7 @@
 #include "../communication/Client.hpp"
 
 
-void drawPlayer(ImDrawList* draw_list, Player player, ImVec2 min, ImVec2 max)
-{
+void drawPlayer(ImDrawList* draw_list, Player player, ImVec2 min, ImVec2 max) {
     float window_size = max.x - min.x;
 
     float scale = window_size / Const::MAP_SIZE_X;

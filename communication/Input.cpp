@@ -3,12 +3,14 @@
 Input::Input() {
     movementX = 0;
     movementY = 0;
+    rotate = 0;
     attack = false;
 }
 
 Input::Input(float x, float y, bool attack) {
     this->movementX = x;
     this->movementY = y;
+    this->rotate = 0;
     this->attack = attack;
 }
 

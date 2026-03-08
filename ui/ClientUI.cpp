@@ -39,14 +39,14 @@ void ClientUI::drawGame() { // Game space
     dir.x += 1.f * inputs.getMovementX();
     dir.y += 1.f * inputs.getMovementY();
 
-        // ========= DRAW =========
+    // ========= DRAW =========
 
-        ImDrawList* draw_list = ImGui::GetWindowDrawList();
-        drawPlayer(draw_list, getPlayer(), childMin, childMax);
+    ImDrawList* draw_list = ImGui::GetWindowDrawList();
+    drawPlayer(draw_list, getPlayer(), childMin, childMax);
 
-        for (auto & [name, other] : opponents) {
-            drawPlayer(draw_list, other, childMin, childMax);
-        }
+    for (auto & [name, other] : opponents) {
+        drawPlayer(draw_list, other, childMin, childMax);
+    }
 
     // PREDICTION
 //    if (true) {

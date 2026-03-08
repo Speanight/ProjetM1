@@ -200,7 +200,7 @@ int Client::receiveLoop() {
                     case Pkt::ROUND_START:
                         std::cout << "Client " << getName() << " received ROUND_START" << std::endl;
                         newGame = true;
-
+                        break;
                     case Pkt::GLOBAL: {
                         int nbPlayers;
                         int stateTick;
