@@ -147,16 +147,18 @@ int Server::receiveLoop() {
 
                             float radius = buffer.currentState[name].getRadius();           // give the actual radius of the client (weapon position)
                             //Check if the radius is not too much
+                            float frame_divid_radius = 50000.f;
+
                             if(radius + inputs.getRotate() > 360.f){ //TODO : seems to bug a bit
-                                radius = radius+inputs.getRotate() - 360.f;
+                                radius = (radius+inputs.getRotate() - 360.f)* Const::PLAYER_SPEED * dt / frame_divid_radius;
                             }
                             else {
                                 if(radius + inputs.getRotate() < 0) {
-                                    radius = 360.f + radius + inputs.getRotate();
+                                    radius = (360.f + radius + inputs.getRotate())* Const::PLAYER_SPEED * dt / frame_divid_radius;
 
                                 }
                                 else {
-                                    radius += inputs.getRotate();
+                                    radius += (inputs.getRotate())* Const::PLAYER_SPEED * dt / frame_divid_radius;
                                 }
                             }
 
