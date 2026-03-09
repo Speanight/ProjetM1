@@ -1,16 +1,18 @@
 #include "Input.hpp"
 
 Input::Input() {
-    movementX = 0;
+    movementX = 0;      // default position = (0.0)
     movementY = 0;
-    rotate = 0;
-    attack = false;
+    rotate = 0;         // default rotation = 0
+    mode = false;        // default mode SIGNAL = no change
+    attack = false;     // default state = not attacking
 }
 
 Input::Input(float x, float y, bool attack) {
     this->movementX = x;
     this->movementY = y;
     this->rotate = 0;
+    this->mode = false;
     this->attack = attack;
 }
 
@@ -18,9 +20,17 @@ Input::Input(float x, float y, float r, bool attack) {
     this->movementX = x;
     this->movementY = y;
     this->rotate = r;
+    this->mode = false;
     this->attack = attack;
 }
 
+Input::Input(float x, float y, float r, bool mode, bool attack) {
+    this->movementX = x;
+    this->movementY = y;
+    this->rotate = r;
+    this->mode = mode;
+    this->attack = attack;
+}
 
 // Getters
 float Input::getMovementX() {
@@ -39,6 +49,10 @@ bool Input::getAttack() {
     return attack;
 }
 
+bool Input::getMode() {
+    return mode;
+}
+
 // Setters
 void Input::setMovementX(float x) {
     this->movementX = x;
@@ -50,6 +64,10 @@ void Input::setMovementY(float y) {
 
 void Input::setRotate(float r) {
     this->rotate= r;
+}
+
+void Input::setMode(bool mode) {
+    this->mode = mode;
 }
 
 void Input::setAttack(bool attack) {
@@ -70,11 +88,14 @@ void Input::handleInput(int inputCode, float value) {
         case Inputs::MOVEMENT_RIGHT:
             movementX += value;
             break;
-        case Inputs::WPN_RIGHT:
-            rotate += value; // moove less fast than the player
+        case Inputs::WPN_RIGHT:             //Handle the weapon rotation
+            rotate += value;
             break;
         case Inputs::WPN_LEFT:
             rotate -= value;
+            break;
+        case Inputs::WPN_CHANGE:
+            mode = value;
             break;
         case Inputs::ATTACK:
             attack = true;
@@ -85,19 +106,37 @@ void Input::handleInput(int inputCode, float value) {
 }
 
 sf::Packet& operator<<(sf::Packet &packet, Input inputs) {
-    return packet << inputs.getMovementX() << inputs.getMovementY() << inputs.getRotate() << inputs.getAttack();
+    // return packet << inputs.getMovementX() << inputs.getMovementY() << inputs.getRotate() << inputs.getAttack();
+    return packet << inputs.getMovementX() << inputs.getMovementY() << inputs.getRotate() << inputs. getMode() << inputs.getAttack();
 }
+
+// sf::Packet& operator>>(sf::Packet &packet, Input& inputs) {
+//     float x;
+//     float y;
+//     float r;
+//     bool attack;
+//     packet >> x >> y >> r >>attack;
+//
+//     inputs.setMovementX(x);
+//     inputs.setMovementY(y);
+//     inputs.setRotate(r);
+//     inputs.setAttack(attack);
+//
+//     return packet;
+// }
 
 sf::Packet& operator>>(sf::Packet &packet, Input& inputs) {
     float x;
     float y;
     float r;
+    bool mode;
     bool attack;
-    packet >> x >> y >> r >>attack;
+    packet >> x >> y >> r >> mode >> attack;
 
     inputs.setMovementX(x);
     inputs.setMovementY(y);
     inputs.setRotate(r);
+    inputs.setMode(mode);
     inputs.setAttack(attack);
 
     return packet;

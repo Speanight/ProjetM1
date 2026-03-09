@@ -20,7 +20,8 @@ Client::Client(const sf::Clock clock, std::string name, sf::Color color) : serve
     this->player.name = name;
     this->player.color = color;
     this->player.radius = 0;
-
+    this->player.mode = true;
+    this->player.mode_e = false;
     Weapon wpn;
     this->player.wpn = wpn;
 }
@@ -125,7 +126,20 @@ void Client::move(ImVec2 direction, float deltaTime) {
 Input Client::getInputs() {
     Input input;
     for (const std::pair<const int, sf::Keyboard::Key> & i : keybinds) {
-        input.handleInput(i.first, isKeyPressed(i.second));
+        if(i.first == Inputs::WPN_CHANGE) {
+            bool pressed = isKeyPressed(i.second) > 0.f;
+
+            if(pressed && !player.mode_e) {
+                printf("CLICK\n");
+                input.setMode(true);
+            }
+
+            player.mode_e = pressed;
+        }
+        else {
+            input.handleInput(i.first, isKeyPressed(i.second));
+        }
+
     }
 
     return input;
@@ -163,6 +177,9 @@ int Client::sendLoop() {
         QueuedPacket pkt;
         pkt.timestamp = clock.getElapsedTime();
         auto inputs = this->getInputs();
+        if (inputs.getMode() == true) {
+            printf("INPUT => %d\n",  inputs.getMode());
+        }
         pkt.packet << Pkt::INPUTS << pkt.timestamp.asMilliseconds() << inputs;
         packets.push_back(pkt); // Adds the packet to the array of packets.
 
@@ -207,10 +224,11 @@ int Client::receiveLoop() {
                         std::string name;
                         Position position;
                         float radius;
+                        bool mode;
                         packet >> stateTick >> nbPlayers;
 
                         while (nbPlayers > 0) {
-                            packet >> name >> position >> radius;
+                            packet >> name >> position >> radius >> mode;
 
                             if (name == this->getName()) {
                                 // TODO: Handler of "fixing" of local position.
@@ -218,6 +236,7 @@ int Client::receiveLoop() {
                                 this->player.position.setY(position.getY());
                                 lastServerPos = position;
                                 this->player.radius = radius;
+                                this->player.mode = mode;
                                 lastServerUpdate = stateTick;
                             }
                             else {
@@ -225,6 +244,7 @@ int Client::receiveLoop() {
                                 opponents[name].position.setX(position.getX());
                                 opponents[name].position.setY(position.getY());
                                 opponents[name].radius = radius;
+                                opponents[name].mode = mode;
                             }
                             nbPlayers--;
                         }
@@ -264,6 +284,7 @@ Client::Client(const Client& other) : server(other.server) {
     this->player.color = other.player.color;
     this->player.position = Position(other.player.position.getX(), other.player.position.getY());
     this->player.radius = other.player.radius;
+    this->player.mode = other.player.mode;
 }
 
 Client& Client::operator=(const Client& other) {
@@ -271,6 +292,7 @@ Client& Client::operator=(const Client& other) {
     this->clock = other.clock;
     this->player.name = other.player.name;
     this->player.radius = other.player.radius;
+    this->player.mode = other.player.mode;
 
     return *this;
 }

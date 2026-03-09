@@ -9,23 +9,28 @@ private:
     float movementX;
     float movementY;
     float rotate;
+    bool mode;                  // Signal to change the mode
     bool attack;
 public:
     // Constructors
     Input();
     Input(float x, float y, bool attack);
     Input(float x, float y, float r, bool attack);
+    Input(float x, float y, float r, bool mode, bool attack);
 
     // Getters
     float getMovementX();
     float getMovementY();
     float getRotate();
+    bool getMode();
     bool getAttack();
+
 
     // Setters
     void setMovementX(float x);
     void setMovementY(float y);
     void setRotate(float r);
+    void setMode(bool mode);
     void setAttack(bool attack);
 
     // Functions

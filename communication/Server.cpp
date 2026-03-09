@@ -110,7 +110,7 @@ int Server::receiveLoop() {
                     switch (type) {
                         case Pkt::ROUND_START: {
                             newGame = true; // Some players aren't ready for round start!
-                            break;
+                            // break;
                         }
 
                         case Pkt::ACK: {
@@ -137,14 +137,18 @@ int Server::receiveLoop() {
                                 name + " >>> Server [PING:" + std::to_string(clock.getElapsedTime().asMilliseconds() - time) +"ms] "
                                 +" | inputs: x=" + std::to_string(inputs.getMovementX()) +
                                 "; y=" + std::to_string(inputs.getMovementY()) +
-                                "; rotate = "+ std::to_string(inputs.getRotate())
+                                "; rotate = "+ std::to_string(inputs.getRotate()) +
+                                "; mode = " + std::to_string(inputs.getMode())
                                 );
                             semaphore.release();
+
+                            // ====== POSITION ======
                             Position position = buffer.currentState[name].getPosition();
                             int dt = (clock.getElapsedTime().asMilliseconds() - buffer.currentState[name].getTimestamp()) % 2*Const::TICKRATE.count();
                             position.setX(position.getX() + inputs.getMovementX() * Const::PLAYER_SPEED * dt / 1000);
                             position.setY(position.getY() + inputs.getMovementY() * Const::PLAYER_SPEED * dt / 1000);
 
+                            // ====== WEAPON RADIUS ======
                             float radius = buffer.currentState[name].getRadius();           // give the actual radius of the client (weapon position)
                             //Check if the radius is not too much
                             float frame_divid_radius = 50000.f;
@@ -155,31 +159,40 @@ int Server::receiveLoop() {
                             else {
                                 if(radius + inputs.getRotate() < 0) {
                                     radius = (360.f + radius + inputs.getRotate())* Const::PLAYER_SPEED * dt / frame_divid_radius;
-
                                 }
                                 else {
                                     radius += (inputs.getRotate())* Const::PLAYER_SPEED * dt / frame_divid_radius;
                                 }
                             }
 
+                            // ====== WEAPON MODE ======
+                            bool mode;
+                            if(inputs.getMode()) {
+                                printf("CLICK 2 !\n");
+                                mode = !buffer.currentState[name].getMode();
+                            }
+                            else {
+                                mode = buffer.currentState[name].getMode();
+                            }
+                            buffer.currentState[name].setMode(mode);
+
                             for (auto & [n, player] : clients) {
                                 if (name != n) {
                                     Position opponentPos = buffer.currentState[n].getPosition();
                                     Position pos = resolveCollision(position, opponentPos);
 
-                                    // TODO : DELETE ME IF I'M NOT GOOD SORRY o7
                                     float oponentRadius = buffer.currentState[n].getRadius();
+                                    bool opponentMode = buffer.currentState[n].getMode();
 
-                                    // TODO : check if i have to add the radius in this ( @ ~ @)
                                     if (pos.getX() != buffer.currentState[n].getPosition().getX() and pos.getY() != buffer.currentState[n].getPosition().getY()) {
-                                        State s = State(time, pos, radius,  inputs);
+                                        State s = State(time, opponentPos, oponentRadius, opponentMode, inputs);
                                         refreshBuffer(n, s, time);
                                     }
                                 }
                             }
 
                             semaphore.acquire();
-                            State s = State(time, position, radius, inputs);
+                            State s = State(time, position, radius, mode, inputs);
                             // player.position.setX(buffer.currentState[player.name].getPosition().getX());
                             // player.position.setY(buffer.currentState[player.name].getPosition().getY());
                             refreshBuffer(name, s, time);
@@ -226,14 +239,14 @@ int Server::sendLoop() {
                     pos.setX((playerNb * Const::MAP_SIZE_X / (clients.size())) - (Const::MAP_SIZE_X / clients.size()) / 2);
                     pos.setY(Const::MAP_SIZE_Y / 2);
 
-                    // TODO : DELETE ME IF I'M NOT GOOD SORRY o7
-                    float radius = buffer.currentState[name].getRadius();           // give the actual radius of the client (weapon position)
                     // Input inputs(0,0,false);
-                    Input inputs(0,0,0.f, false);
-                    State s = State(time, pos, radius, inputs);
+                    // Input inputs(0,0,0.f, false);
+                    Input inputs(0,0,0.f, false, false);
+                    State s = State(time, pos, 0.f, true, inputs);
                     refreshBuffer(name, s, time);
                     buffer.currentState[name].setPosition(pos);
-                    buffer.currentState[name].getRadius();
+                    buffer.currentState[name].setRadius(0);
+                    buffer.currentState[name].setMode(true);
                     playerNb++;
                 }
             }
@@ -242,11 +255,18 @@ int Server::sendLoop() {
             }
 
             for (auto & [n, state] : buffer.currentState) {
-                packet << n << state.getPosition() << state.getRadius();
+                // packet << n << state.getPosition() << state.getRadius();
+                packet << n << state.getPosition() << state.getRadius() << state.getMode();
             }
             semaphore.acquire();
             socket.send(packet, sender.value(), player.port);
-            addLine("Server >>> " + name + " position: (" + std::to_string(player.position.getX()) + ", " + std::to_string(player.position.getY()) + ") and radius : " + std::to_string(player.radius), sf::Color::White);
+            addLine(
+                "Server >>> " + name
+                + " position: (" + std::to_string(player.position.getX())
+                + ", " + std::to_string(player.position.getY())
+                + ") ; radius : " + std::to_string(player.radius)
+                + " mode : " + std::to_string(player.mode)
+                , sf::Color::White);
             semaphore.release();
         }
         sf::sleep(tickrate);

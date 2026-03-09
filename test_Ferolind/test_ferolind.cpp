@@ -345,8 +345,7 @@ void Player::draw(ImDrawList* draw_list){
         bottom.y - perp.y * (triangleWidth / 2.f)
     };
 
-    if (p_transformProgress < 1.f)
-    {
+    if (p_transformProgress < 1.f){
         // TRIANGLE (wpn)
         float scale = 1.f - p_transformProgress;
 
