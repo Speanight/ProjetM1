@@ -8,14 +8,14 @@ State::State() {
 
 State::State(int timestamp, Position position, Input inputs) {
     this->timestamp = timestamp;
-    this->position = position;
+    setPosition(position);
     this->inputs = inputs;
 }
 
 State::State(int timestamp, Position position, float radius, Input inputs) {
     this->timestamp = timestamp;
-    this->position = position;
-    this->radius = radius;
+    setPosition(position);
+    setRadius(radius);
     this->inputs = inputs;
 }
 
@@ -47,5 +47,8 @@ void State::setInputs(Input inputs) {
 }
 
 void State::setRadius(float radius) {
-    this->radius = radius;
+    this->radius = std::fmod(radius, 360);
+    while (this->radius < 0) {
+        this->radius += 360;
+    }
 }

@@ -9,6 +9,7 @@
 #include "../game/Position.hpp"
 #include "../Utils.hpp"
 #include <unordered_set>
+#include <cmath>
 
 class State {
 private:

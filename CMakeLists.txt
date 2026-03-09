@@ -49,6 +49,7 @@ add_executable(ProjetM1
         communication/Input.cpp
         game/gameUtils.cpp
         communication/Buffer.cpp
+        communication/Buffer.cpp
 )
 # =========================
 # Link libraries

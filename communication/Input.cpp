@@ -70,10 +70,10 @@ void Input::handleInput(int inputCode, float value) {
         case Inputs::MOVEMENT_RIGHT:
             movementX += value;
             break;
-        case Inputs::WPN_RIGHT:
-            rotate += value; // moove less fast than the player
+        case Inputs::WPN_CCW:
+            rotate += value; // move less fast than the player
             break;
-        case Inputs::WPN_LEFT:
+        case Inputs::WPN_CW:
             rotate -= value;
             break;
         case Inputs::ATTACK:

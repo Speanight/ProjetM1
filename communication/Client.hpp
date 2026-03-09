@@ -23,6 +23,7 @@
 #include "../communication/Input.hpp"
 #include "../game/Weapon.hpp"
 #include "../communication/Buffer.hpp"
+#include <cmath>
 
 using namespace Const;
 
@@ -31,21 +32,13 @@ struct QueuedPacket {
     sf::Time timestamp;
 };
 
-//struct Player {
-//    // ====== SERVER ======
-//    unsigned short port;        // NEVER MOOVE THIS [use to create the client on the server and must be here
-//
-//    // ====== BASIC ======
-//    std::string name;
-//    sf::Color color;
-//    Position position;
-//
-//    // ====== WEAPON ======
-//    float radius;               // must be saved as radiant so degree * ~1.111111 = radiant
-//    bool is_attacking;          // indicate if the client is attacking or not
-//    Weapon wpn;
-//    Position attackOffset;
-//};
+struct NetworkState {
+    int ping;
+    int packetLoss;
+
+    std::unordered_map<int, bool> compensations;
+};
+
 
 class Client {
 private:
@@ -59,8 +52,8 @@ private:
     std::thread sendThread;
     std::thread receiveThread;
 
-    int packetLoss;
-    int ping;
+    NetworkState network;
+
     bool loop = true;
     bool newGame = false;
 
@@ -86,16 +79,20 @@ public:
     int getPing() const;
     Input getInputs();
     Position getPosition();
-
     sf::Color getColor();
+    std::unordered_map<int,bool> getCompensations() const;
 
     void setPacketLoss(int packetLoss);
     void setPing(int ping);
     void setKeybinds(std::unordered_map<int,sf::Keyboard::Key> keybinds);
     void setPosition(Position p);
+    void setRadius(float radius);
+    void setCompensations(std::unordered_map<int,bool> compensations);
 
     // Functions
     std::unordered_map<std::string, std::any> init();
+
+    void changeCompensation(int compensation, bool value);
 
     void move(ImVec2 direction, float deltaTime);
 

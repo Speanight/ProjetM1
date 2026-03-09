@@ -1,7 +1,3 @@
-//
-// Created by OMGiT on 06/03/2026.
-//
-
 #include <iostream>
 #include "Buffer.hpp"
 
