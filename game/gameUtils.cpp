@@ -4,75 +4,69 @@
 
 
 void drawPlayer(ImDrawList* draw_list, Player player, ImVec2 min, ImVec2 max) {
+    float window_size = max.x - min.x;
+
+    float scale = window_size / Const::MAP_SIZE_X;
+
+    ImVec2 pl_position = {
+        player.position.getX() * scale + min.x,
+        player.position.getY() * scale + min.y
+    };
+
+    float player_radius = Const::PLAYER_RADIUS * scale;
+
     // Cercle
-    draw_list->AddCircleFilled(ImVec2(
-        player.position.getX() * (max.x - min.x) / Const::MAP_SIZE_X + min.x,
-        player.position.getY() * (max.y - min.y) / Const::MAP_SIZE_Y + min.y),
-        Const::PLAYER_RADIUS,
-        IM_COL32(int{player.color.r}, int{player.color.g}, int{player.color.b}, int{player.color.a})
-        );
+    draw_list->AddCircleFilled(
+        pl_position,
+        player_radius,
+        IM_COL32(player.color.r, player.color.g, player.color.b, player.color.a)
+    );
 
-    // Triangle
-    /*
-    float triangleHeight = Const::PLAYER_RADIUS * 0.8f;
-    float triangleWidth  = Const::PLAYER_RADIUS * 1.2f;
+    // ========= TRIANGLE =========
 
-    ImVec2 top   = { p.getX() * (max.x - min.x) / Const::MAP_SIZE_X + min.x,
-                     p.getY() * (max.y - min.y) / Const::MAP_SIZE_Y + min.y - Const::PLAYER_RADIUS - triangleHeight };
-
-    ImVec2 left  = { p.getX() * (max.x - min.x) / Const::MAP_SIZE_X + min.x - triangleWidth/2.f,
-                     p.getY() * (max.y - min.y) / Const::MAP_SIZE_Y + min.y - Const::PLAYER_RADIUS };
-
-    ImVec2 right = { p.getX() * (max.x - min.x) / Const::MAP_SIZE_X + min.x + triangleWidth/2.f,
-                     p.getY() * (max.y - min.y) / Const::MAP_SIZE_Y + min.y - Const::PLAYER_RADIUS };
-
-    draw_list->AddTriangleFilled(top, left, right, IM_COL32(int{c.r}, int{c.g}, int{c.b}, int{c.a}));
-    */
-
-    float angle = player.radius; //must be in radiant
+    float angle = player.radius; // radians
 
     ImVec2 dir = {
         -sinf(angle),
         -cosf(angle)
     };
 
-    // We can use the trigonometry to define the position of the top point of the wpn
-    ImVec2 top = {
-        player.position.getX() + dir.x * (player.radius + player.wpn.getHeight()+2.f + player.attackOffset.getX()),
-        player.position.getY() + dir.y * (player.radius + player.wpn.getHeight()+2.f + player.attackOffset.getY())
-    };
+    float height = player.wpn.getHeight() * scale;
+    float width  = player.wpn.getWidth() * scale;
 
+    float distance = player_radius + 2.f * scale;
 
-    // then we can define the relative position of the left angle and the rigth angle, but first we need to find the center of the bottom of the triangle
-    // for that, we can use
     ImVec2 bottom = {
-        player.position.getX() + dir.x * (player.radius+2.f + player.attackOffset.getX()),
-        player.position.getY() + dir.y * (player.radius+2.f + player.attackOffset.getY())
+        pl_position.x + dir.x * distance,
+        pl_position.y + dir.y * distance
     };
 
+    ImVec2 top = {
+        pl_position.x + dir.x * (distance + height),
+        pl_position.y + dir.y * (distance + height)
+    };
 
     ImVec2 perp = {
         -dir.y,
          dir.x
     };
 
-    //And finally, we can calculate the point to the left and the rigth using this formula
     ImVec2 left = {
-        bottom.x + perp.x * (player.wpn.getWidth() / 2.f),
-        bottom.y + perp.y * (player.wpn.getWidth() / 2.f)
+        bottom.x + perp.x * (width * 0.5f),
+        bottom.y + perp.y * (width * 0.5f)
     };
 
     ImVec2 right = {
-        bottom.x - perp.x * (player.wpn.getWidth() / 2.f),
-        bottom.y - perp.y * (player.wpn.getWidth() / 2.f)
+        bottom.x - perp.x * (width * 0.5f),
+        bottom.y - perp.y * (width * 0.5f)
     };
 
     draw_list->AddTriangleFilled(
         top,
         left,
         right,
-        IM_COL32(int{player.color.r}, int{player.color.g}, int{player.color.b}, int{player.color.a})
-            );
+        IM_COL32(player.color.r, player.color.g, player.color.b, player.color.a)
+    );
 }
 
 Position resolveCollision(Position player, Position opponent) {

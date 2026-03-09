@@ -1,6 +1,8 @@
 #include "Client.hpp"
 
+#include <algorithm>
 #include <utility>
+#include <bits/ranges_algo.h>
 #include <SFML/Window/Keyboard.hpp>
 
 /**
@@ -18,6 +20,10 @@ Client::Client(const sf::Clock clock, std::string name, sf::Color color) : serve
     this->player.name = std::move(name);
     this->player.color = color;
     this->bufferOnReceipt.addClient(player);
+    this->player.radius = 0;
+
+    Weapon wpn;
+    this->player.wpn = wpn;
 }
 
 Client::~Client() {
@@ -189,10 +195,11 @@ int Client::receiveLoop() {
                         int stateTick;
                         std::string name;
                         Position position;
+                        float radius;
                         packet >> stateTick >> nbPlayers;
 
                         while (nbPlayers > 0) {
-                            packet >> name >> position;
+                            packet >> name >> position >> radius;
 
                             State state(stateTick, position, getInputs());
                             std::unordered_map<std::string, State> currentState = bufferOnReceipt.getCurrentState();
@@ -203,12 +210,14 @@ int Client::receiveLoop() {
                                 State currState = bufferOnReceipt.getLastState(player);
                                 this->player.position.setX(currState.getPosition().getX());
                                 this->player.position.setY(currState.getPosition().getY());
+                                this->player.radius = radius;
                             }
                             else {
                                 // Opponent position:
                                 this->bufferOnReceipt.refreshBuffer(opponents[name], state, stateTick);
                                 opponents[name].position.setX(currentState[name].getPosition().getX());
                                 opponents[name].position.setY(currentState[name].getPosition().getY());
+                                opponents[name].radius = radius;
                             }
                             nbPlayers--;
                         }
@@ -247,12 +256,14 @@ Client::Client(const Client& other) : server(other.server) {
     this->player.name = other.player.name;
     this->player.color = other.player.color;
     this->player.position = Position(other.player.position.getX(), other.player.position.getY());
+    this->player.radius = other.player.radius;
 }
 
 Client& Client::operator=(const Client& other) {
     this->player.color = other.player.color;
     this->clock = other.clock;
     this->player.name = other.player.name;
+    this->player.radius = other.player.radius;
 
     return *this;
 }

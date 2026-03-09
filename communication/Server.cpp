@@ -81,6 +81,10 @@ int Server::receiveLoop() {
     Input inputs;
     int senderNum;
     const sf::Time tickrate = std::chrono::milliseconds(TICKRATE);
+    int dt;
+    std::unordered_map<std::string, State> currentState;
+    State playerState;
+    float radius;
 
     while (loop) {
         sf::sleep(sf::Time());
@@ -102,7 +106,7 @@ int Server::receiveLoop() {
             }
 
             // Checks for all connected clients:
-            for (auto & [name, player] : clients) {
+            for (auto &[name, player]: clients) {
                 senderNum++;
                 if (player.port == port) { // Check if ports corresponds (AKA the expected client)
                     // printf("port OK\n");
@@ -122,7 +126,8 @@ int Server::receiveLoop() {
                                     newGame = false;
                                     break;
                                 default:
-                                    std::cout << "Received unknown ACK: " << context << " from client " << name << std::endl;
+                                    std::cout << "Received unknown ACK: " << context << " from client " << name
+                                              << std::endl;
                             }
 
                             break;
@@ -131,46 +136,72 @@ int Server::receiveLoop() {
                             int time;
                             packet >> time >> inputs;
 
-
                             semaphore.acquire();
-//                            addLine(name + " >>> Server [PING:" + std::to_string(clock.getElapsedTime().asMilliseconds() - time) + "ms] | inputs: x=" + std::to_string(inputs.getMovementX()) + "; y=" + std::to_string(inputs.getMovementY()));
+                            addLine(
+                                    name + " >>> Server [PING:" +
+                                    std::to_string(clock.getElapsedTime().asMilliseconds() - time) + "ms] "
+                                    + " | inputs: x=" + std::to_string(inputs.getMovementX()) +
+                                    "; y=" + std::to_string(inputs.getMovementY()) +
+                                    "; rotate = " + std::to_string(inputs.getRotate())
+                            );
                             semaphore.release();
-                            std::unordered_map<std::string, State> currentState = buffer.getCurrentState();
-                            State playerState = buffer.getLastState(player);
-                            Position position = playerState.getPosition();
-                            int dt = (time - playerState.getTimestamp()) % (2*Const::TICKRATE.count());
+                            currentState = buffer.getCurrentState();
+                            playerState = buffer.getLastState(player);
+                            position = playerState.getPosition();
+                            dt = (time - playerState.getTimestamp()) % (2 * Const::TICKRATE.count());
                             position.setX(position.getX() + inputs.getMovementX() * Const::PLAYER_SPEED * dt);
                             position.setY(position.getY() + inputs.getMovementY() * Const::PLAYER_SPEED * dt);
 
-                            for (auto & [n, player] : clients) {
-                                if (name != n) {
-                                    Position opponentPos = currentState[n].getPosition();
-                                    Position pos = resolveCollision(position, opponentPos);
-                                    if (pos.getX() != currentState[n].getPosition().getX() and pos.getY() != currentState[n].getPosition().getY()) {
-                                        State s = State(time, pos, inputs);
-                                        buffer.refreshBuffer(player, s, time);
-                                    }
+                            radius = buffer.getCurrentState()[name].getRadius();           // give the actual radius of the client (weapon position)
+                            //Check if the radius is not too much
+                            if (radius + inputs.getRotate() > 360.f) { //TODO : seems to bug a bit
+                                radius = radius + inputs.getRotate() - 360.f;
+                            } else {
+                                if (radius + inputs.getRotate() < 0) {
+                                    radius = 360.f + radius + inputs.getRotate();
+
+                                } else {
+                                    radius += inputs.getRotate();
                                 }
                             }
 
-                            semaphore.acquire();
-                            State s = State(time, position, inputs);
-                            // player.position.setX(buffer.currentState[player.name].getPosition().getX());
-                            // player.position.setY(buffer.currentState[player.name].getPosition().getY());
-                            buffer.refreshBuffer(player, s, time);
-                            semaphore.release();
+                            for (auto &[n, p]: clients) {
+                                if (name != n) {
+                                    Position opponentPos = currentState[n].getPosition();
+                                    Position pos = resolveCollision(position, opponentPos);
+                                    if (pos.getX() != currentState[n].getPosition().getX() and
+                                        pos.getY() != currentState[n].getPosition().getY()) {
+                                        State s = State(time, pos, inputs);
+                                        buffer.refreshBuffer(p, s, time);
+
+                                        // TODO: check how to send opponent radius
+                                        float oponentRadius = buffer.getCurrentState()[n].getRadius();
+
+                                        if (pos.getX() != buffer.getCurrentState()[n].getPosition().getX() and
+                                            pos.getY() != buffer.getCurrentState()[n].getPosition().getY()) {
+                                            State s = State(time, pos, radius, inputs);
+                                            buffer.refreshBuffer(p, s, time);
+                                        }
+                                    }
+                                }
+
+                                semaphore.acquire();
+                                State s = State(time, position, radius, inputs);
+                                buffer.refreshBuffer(player, s, time);
+                                semaphore.release();
+                            }
                             break;
                         }
 
                         default: {
-                            std::cout << " UNKNOWN CLIENT PACKET! Type: " << type << " from client " << name << std::endl;
+                            std::cout << " UNKNOWN CLIENT PACKET! Type: " << type << " from client " << name
+                                      << std::endl;
                         }
                     }
                 }
             }
         }
     }
-
     sendThread.join();
     return Err::ERR_NONE; // Exited without any issue.
 }
@@ -186,8 +217,8 @@ int Server::sendLoop() {
     sf::Packet packet;
 
     while (loop) {
+        // DEFAULT BEHAVIOR - SEND SERVER-SIDE POSITIONS AND RADIUS
         std::unordered_map<std::string, State> currentState = buffer.getCurrentState();
-        // DEFAULT BEHAVIOR - SEND SERVER-SIDE POSITIONS
         for (auto & [name, player] : clients) {
             packet.clear();
 
@@ -201,10 +232,15 @@ int Server::sendLoop() {
                     Position pos = currentState[name].getPosition();
                     pos.setX((playerNb * Const::MAP_SIZE_X / (clients.size())) - (Const::MAP_SIZE_X / clients.size()) / 2);
                     pos.setY(Const::MAP_SIZE_Y / 2);
-                    Input inputs(0,0,false);
+                    Input inputs(0,0,0.f,false);
                     State s = State(time, pos, inputs);
                     buffer.refreshBuffer(player, s, time);
                     buffer.setPlayerPosition(name, pos);
+
+                    float radius = buffer.getCurrentState()[name].getRadius();           // give the actual radius of the client (weapon position)
+                    buffer.refreshBuffer(player, s, time);
+                    buffer.getCurrentState()[name].setPosition(pos);
+                    buffer.getCurrentState()[name].getRadius();
                     playerNb++;
                 }
             }
@@ -213,11 +249,11 @@ int Server::sendLoop() {
             }
 
             for (auto & [n, state] : currentState) {
-                packet << n << state.getPosition();
+                packet << n << state.getPosition() << state.getRadius();
             }
             semaphore.acquire();
             socket.send(packet, sender.value(), player.port);
-            addLine("Server >>> " + name + " position: (" + std::to_string(buffer.getCurrentState()[name].getPosition().getX()) + ", " + std::to_string(buffer.getCurrentState()[name].getPosition().getY()) + ")", sf::Color::White);
+            addLine("Server >>> " + name + " position: (" + std::to_string(buffer.getCurrentState()[name].getPosition().getX()) + ", " + std::to_string(buffer.getCurrentState()[name].getPosition().getY()) + ") and radius : " + std::to_string(player.radius), sf::Color::White);
             semaphore.release();
         }
         sf::sleep(tickrate);
@@ -227,45 +263,6 @@ int Server::sendLoop() {
     receiveThread.join();
     return Err::ERR_NONE; // Exited without any issue.
 }
-
-//void Server::refreshBuffer(const std::string& client, State state, int clockState) {
-//    buffer.nextState[client] = state;
-//    int stateTick = buffer.getCurrentTick();
-//
-//    // We "push" the buffer if we're onto the next tick. (known by checking current server tick).
-//    if (stateTick / Const::TICKRATE.count() < clockState / Const::TICKRATE.count()) {
-//        for (auto & [name, remotePort] : clients) {
-//
-//            // If some values are missing, we add them with potential compensations:
-//            if (auto search = buffer.nextState.find(name); search == buffer.nextState.end()) {
-//                buffer.nextState[name] = buffer.currentState[name]; // Rollbacks to previously known position.
-//                // Add compensations here:
-////                int toCompensate = clockState - buffer.currentState[name].getTimestamp();
-//                // float toCompensate = 0.003; // TODO: find time to compensate!
-//                // if (compensations[Compensation::EXTRAPOLATION]) {
-//                //     // EXTRAPOLING - We guess the new position based of last known position AND inputs.
-//                //     Position position = buffer.nextState[name].getPosition();
-//                //     Input inputs = buffer.nextState[name].getInputs();
-//                //     float x = position.getX() + inputs.getMovementX() * Const::PLAYER_SPEED * toCompensate;
-//                //     float y = position.getY() + inputs.getMovementY() * Const::PLAYER_SPEED * toCompensate;
-//                //
-//                //     buffer.nextState[name].setPosition(Position(x, y));
-//                // }
-//
-////                std::cout << "COMPENSATED " << name << " - (" << buffer.nextState[name].getPosition().getX() << ", " << buffer.nextState[name].getPosition().getY() << ")" << std::endl;
-//            }
-//        }
-//
-//        // Refreshes buffer
-////        buffer.pastStates[buffer.stateTick/TICKRATE.count()] = buffer.currentState;
-////        if (buffer.pastStates.size() >= BUFFER_SIZE) {
-////            buffer.pastStates.erase(buffer.pastStates.begin());
-////        }
-//        buffer.stateTick = clockState;
-//        buffer.currentState = buffer.nextState;
-//        buffer.nextState.clear();
-//    }
-//}
 
 /**
  * Sends a shutdown packet to the server as well as the clients. Useful to stop the execution of the whole script

@@ -24,7 +24,7 @@ class Weapon {
 
 public:
     // ===== CONSTRUCTORS =====
-    Weapon(float height = 0.8f, float width = 1.2f, float type = 0.f, float atk_spd = 0.1f, float rld=0.3f, float range = 10.f, float transform = 0.2f);
+    Weapon(float height = 16.f, float width = 24.f, float type = 0.f, float atk_spd = 0.1f, float rld=0.3f, float range = 10.f, float transform = 0.2f);
     Weapon(const Weapon& other);
 
     // ===== GETTERS =====

@@ -5,16 +5,30 @@ ClientUI::ClientUI(const sf::Clock clock, std::string name, sf::Color color) : C
 void ClientUI::drawGame() { // Game space
     const char* title = getName().c_str();
 
-    ImGui::BeginChild(title, ImVec2(0, 400), true);
+    // calculating the window so it's always a square
+    // Max available size from parent window
+    ImVec2 avail = ImGui::GetContentRegionAvail();
+
+    // game size
+    float size = std::max(std::min(avail.x, avail.y - 300.f), 400.f); //TODO : replace the 500.f by a constant that is the size of the server UI
+
+    // minimal game size
+    size = std::max(size, 400.f);
+
+    // center horizontally only (top aligned)
+    float offsetX = (avail.x - size) * 0.5f;
+
+    ImGui::SetCursorPosX(ImGui::GetCursorPosX() + offsetX);
+    // no Y offset -> stays at top
+
+    // insert the game space
+    ImGui::BeginChild(title, ImVec2(size, size), true);
 
     ImVec2 childMin = ImGui::GetWindowPos();
     ImVec2 childMax = {
-        childMin.x + ImGui::GetWindowSize().x,
-        childMin.y + ImGui::GetWindowSize().y
+        childMin.x + size,
+        childMin.y + size
     };
-
-//        float deltaTime = clock.getElapsedTime().asMilliseconds() - lastUpdate;
-//        std::cout << "TIME: " << clock.getElapsedTime().asSeconds() << "s // " << clock.getElapsedTime().asMilliseconds() << "ms" << std::endl;
 
     // ========= INPUT =========
     ImVec2 dir = {0.f, 0.f};
@@ -24,14 +38,15 @@ void ClientUI::drawGame() { // Game space
     dir.x += 1.f * inputs.getMovementX();
     dir.y += 1.f * inputs.getMovementY();
 
-    // ========= UPDATE =========
-//        move(dir, deltaTime);
+    // ========= DRAW =========
 
-//        for (auto & [name, other] : opponents) {
-//            Position p = resolveCollision(getPosition(), other.position);
-//            other.position.setX(p.getX());
-//            other.position.setY(p.getY());
-//        }
+    ImDrawList* draw_list = ImGui::GetWindowDrawList();
+    drawPlayer(draw_list, getPlayer(), childMin, childMax);
+
+    for (auto & [name, other] : opponents) {
+        drawPlayer(draw_list, other, childMin, childMax);
+    }
+
     // PREDICTION
     if (true) {
         Position pos;
@@ -39,21 +54,7 @@ void ClientUI::drawGame() { // Game space
         pos.setX(getPlayer().position.getX() + inputs.getMovementX() * Const::PLAYER_SPEED * (now - lastUpdate));
         pos.setY(getPlayer().position.getY() + inputs.getMovementY() * Const::PLAYER_SPEED * (now - lastUpdate));
         setPosition(pos);
-//        std::cout << "Displaying @" << bufferOnReceipt.getCurrentTick() << "; client is @" << clock.getElapsedTime().asMilliseconds() << std::endl;
-//        int clockSync = clock.getElapsedTime().asMilliseconds() - bufferOnReceipt.getCurrentTick();
-//        this->setPosition(smoothenDeplacement(bufferOnReceipt.getTState(-1)[getName()], bufferOnReceipt.getCurrentState()[getName()], clockSync));
     }
-
-        // ========= DRAW =========
-
-
-        ImDrawList* draw_list = ImGui::GetWindowDrawList();
-        drawPlayer(draw_list, getPlayer(), childMin, childMax);
-
-        for (auto & [name, other] : opponents) {
-            drawPlayer(draw_list, other, childMin, childMax);
-        }
-
 
     lastUpdate = clock.getElapsedTime().asMilliseconds();
     ImGui::EndChild();

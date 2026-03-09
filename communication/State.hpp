@@ -14,20 +14,24 @@ class State {
 private:
     int timestamp;
     Position position;
+    float radius;
 
     Input inputs;
 
 public:
     State();
     State(int timestamp, Position position, Input inputs);
+    State(int timestamp, Position position, float radius, Input inputs);
 
     // Getters / Setters
     int getTimestamp() const;
     Position getPosition();
     Input getInputs();
+    float getRadius();
 
     void setPosition(Position position);
     void setInputs(Input inputs);
+    void setRadius(float radius);
 };
 
 

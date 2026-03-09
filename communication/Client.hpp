@@ -72,6 +72,7 @@ protected:
 
 public:
     Client(sf::Clock clock, std::string name, sf::Color color = sf::Color::Red);
+    // Client(sf::Clock clock, std::string name, sf::Color color = sf::Color::Red, float radius = 0);
     ~Client();
 
     // Copy constructors
