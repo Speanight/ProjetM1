@@ -1,5 +1,7 @@
 #include "ClientUI.hpp"
 
+#include <algorithm>
+
 ClientUI::ClientUI(const sf::Clock clock, std::string name, sf::Color color) : Client(clock, name, color) {}
 
 void ClientUI::drawGame() { // Game space
@@ -67,14 +69,21 @@ void ClientUI::drawGame() { // Game space
             Position currPos = currState[name].getPosition();
 
             // Position = old one + diff. * (0 at beginning of tick, 1 at end of tick)
-            double tickProgress = Const::TICKRATE.count() / (lastUpdate - 1000);
+            // double tickProgress = Const::TICKRATE.count() / (lastUpdate - 1000);
+            double tickProgress = (clock.getElapsedTime().asMilliseconds() - lastDisplayedTick) / (double)Const::TICKRATE.count();
+            tickProgress = std::clamp(tickProgress, 0.0, 1.0);
+            std::cout << "(" << clock.getElapsedTime().asMilliseconds() << "- " << lastDisplayedTick << ") / " << Const::TICKRATE.count() << " = " << tickProgress << std::endl;
             Position pos;
-            pos.setX(opponents[name].position.getX() + (currPos.getX() - pastPos.getX()) * tickProgress);
-            pos.setY(opponents[name].position.getY() + (currPos.getY() - pastPos.getY()) * tickProgress);
-//            opponents[name].position = pos;
-            opponents[name].position.setX(pos.getX());
-            opponents[name].position.setY(pos.getY());
-            opponents[name].radius = opponents[name].radius + (currState[name].getRadius() - pastState[name].getRadius()) * tickProgress;
+            pos.setX(pastPos.getX() + (currPos.getX() - pastPos.getX()) * tickProgress);
+            pos.setY(pastPos.getY() + (currPos.getY() - pastPos.getY()) * tickProgress);
+
+            // pos.setX(opponents[name].position.getX() + (currPos.getX() - pastPos.getX()) * tickProgress);
+            // pos.setY(opponents[name].position.getY() + (currPos.getY() - pastPos.getY()) * tickProgress);
+            opponents[name].position = pos;
+            // opponents[name].position.setX(pos.getX());
+            // opponents[name].position.setY(pos.getY());
+            opponents[name].radius = pastState[name].getRadius() + (currState[name].getRadius() - pastState[name].getRadius()) * tickProgress;
+            // opponents[name].radius = opponents[name].radius + (currState[name].getRadius() - pastState[name].getRadius()) * tickProgress;
         }
     }
 

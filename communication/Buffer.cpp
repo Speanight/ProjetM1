@@ -30,7 +30,7 @@ void Buffer::setNextState(std::unordered_map<std::string, State> state, int cloc
     this->nextState = state;
 }
 
-void Buffer::refreshBuffer(const Player& player, State state, int clockState) {
+bool Buffer::refreshBuffer(const Player& player, State state, int clockState) {
     nextState[player.name] = state;
 
     if (currentTick / Const::TICKRATE.count() < clockState / Const::TICKRATE.count()) {
@@ -50,7 +50,11 @@ void Buffer::refreshBuffer(const Player& player, State state, int clockState) {
         currentTick = clockState;
         currentState = nextState;
         nextState.clear();
+
+        return true;
     }
+
+    return false;
 }
 
 // Functions
@@ -58,23 +62,21 @@ std::unordered_map<std::string, State> Buffer::getTState(int t) {
     if (t == 0) {
         return currentState;
     }
-    else if (t > 0) {
+    if (t > 0) {
         return nextState;
     }
-    else {
-        std::queue<std::unordered_map<std::string, State>> copyPastStates = pastStates;
+    std::queue<std::unordered_map<std::string, State>> copyPastStates = pastStates;
 
-        while (!copyPastStates.empty()) {
-            t++;
-            std::unordered_map<std::string, State> state = copyPastStates.front();
-            copyPastStates.pop();
+    while (!copyPastStates.empty()) {
+        t++;
+        std::unordered_map<std::string, State> state = copyPastStates.front();
+        copyPastStates.pop();
 
-            if (t == 0) {
-                return state;
-            }
+        if (t == 0) {
+            return state;
         }
-        return {}; // Element not found in past states.
     }
+    return {}; // Element not found in past states.
 }
 
 State Buffer::getLastState(const Player& player) {

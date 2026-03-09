@@ -231,8 +231,11 @@ int Client::receiveLoop() {
                             std::unordered_map<std::string, State> currentState = bufferOnReceipt.getCurrentState();
                             std::unordered_map<std::string, State> pastState = bufferOnReceipt.getTState(-1);
 
+                            // TODO: Client must receive CURRENT server frame, and server shouldn't double-look back.
                             if (name == this->getName()) {
-                                this->bufferOnReceipt.refreshBuffer(player, state, stateTick);
+                                if (this->bufferOnReceipt.refreshBuffer(player, state, stateTick)) {
+                                    lastDisplayedTick = clock.getElapsedTime().asMilliseconds();
+                                }
                                 State currState = bufferOnReceipt.getLastState(player);
                                 this->player.position.setX(currState.getPosition().getX());
                                 this->player.position.setY(currState.getPosition().getY());
