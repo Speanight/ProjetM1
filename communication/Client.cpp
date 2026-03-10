@@ -19,7 +19,7 @@ Client::Client(const sf::Clock clock, std::string name, sf::Color color) : serve
     this->ping = 0;
     this->player.name = name;
     this->player.color = color;
-    this->player.radius = 0;
+    this->player.radius = std::numbers::pi/2;       //put the element on top in radius
     this->player.mode = true;
     Weapon wpn;
     this->player.wpn = wpn;
@@ -134,11 +134,11 @@ Input Client::getInputs() {
 Input Client::getInputs(bool mode_enable) {
     Input input;
     for (const std::pair<const int, sf::Keyboard::Key> & i : keybinds) {
-        if(i.first == Inputs::WPN_CHANGE) {
+        if(i.first == Inputs::WPN_CHANGE) { // TODO : furbal check
             bool pressed = isKeyPressed(i.second) > 0.f;
 
             if(pressed && !mode_enable) {
-                printf("CLICK\n");
+                // printf("CLICK\n");
                 input.setMode(true);
             }
 
@@ -188,7 +188,7 @@ int Client::sendLoop() {
         auto inputs = this->getInputs(mode_enable);
 
         // keeping the modeEnable for the next loop
-        mode_enable = inputs.getModeEnable();
+        mode_enable = inputs.getModeEnable();   //TODO : furball check and confirmation
 
         pkt.packet << Pkt::INPUTS << pkt.timestamp.asMilliseconds() << inputs;
         packets.push_back(pkt); // Adds the packet to the array of packets.

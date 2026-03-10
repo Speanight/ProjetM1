@@ -22,21 +22,20 @@ void drawPlayer(ImDrawList* draw_list, Player player, ImVec2 min, ImVec2 max) {
         IM_COL32(player.color.r, player.color.g, player.color.b, player.color.a)
     );
 
-    // ========= WEAPON =========
     bool mode = player.mode;
+    float angle = player.radius; // radians
+    float distance = player_radius + 2.f * scale;
+
     if (mode) {
         // ========= ATTACK MODE =========
-        float angle = player.radius; // radians
 
         ImVec2 dir = {
-            -sinf(angle),
-            -cosf(angle)
+            cosf(angle),
+            sinf(angle)
         };
 
         float height = player.wpn.getHeight() * scale;
-        float width  = player.wpn.getWidth() * scale;
-
-        float distance = player_radius + 2.f * scale;
+        float width  = player.wpn.getWidth()  * scale;
 
         ImVec2 bottom = {
             pl_position.x + dir.x * distance,
@@ -71,10 +70,26 @@ void drawPlayer(ImDrawList* draw_list, Player player, ImVec2 min, ImVec2 max) {
         );
     }
     else {
-        // ========= DEFENSE =========
-        // printf("DEFENSE MODE\n");
-    }
+        // ========= DEFENSE MODE =========
+        float arcWidth = 0.8f;
 
+        float a_min = angle - arcWidth;
+        float a_max = angle + arcWidth;
+
+        draw_list->PathArcTo(
+            pl_position,
+            distance + 1.f*scale,
+            a_min,
+            a_max,
+            24
+        );
+
+        draw_list->PathStroke(
+            IM_COL32(player.color.r, player.color.g, player.color.b, player.color.a),
+            false,
+            4.f * scale
+        );
+    }
 }
 
 Position resolveCollision(Position player, Position opponent) {

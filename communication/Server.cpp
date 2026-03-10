@@ -151,19 +151,16 @@ int Server::receiveLoop() {
                             // ====== WEAPON RADIUS ======
                             float radius = buffer.currentState[name].getRadius();           // give the actual radius of the client (weapon position)
                             //Check if the radius is not too much
-                            float frame_divid_radius = 50000.f;
+                            float frame_divid_radius = 100000.f;
 
-                            if(radius + inputs.getRotate() > 360.f){ //TODO : seems to bug a bit
-                                radius = (radius+inputs.getRotate() - 360.f)* Const::PLAYER_SPEED * dt / frame_divid_radius;
-                            }
-                            else {
-                                if(radius + inputs.getRotate() < 0) {
-                                    radius = (360.f + radius + inputs.getRotate())* Const::PLAYER_SPEED * dt / frame_divid_radius;
-                                }
-                                else {
-                                    radius += (inputs.getRotate())* Const::PLAYER_SPEED * dt / frame_divid_radius;
-                                }
-                            }
+                            radius += inputs.getRotate() * Const::PLAYER_SPEED * dt / frame_divid_radius;
+
+                            float twoPi = 2.f * std::numbers::pi;
+
+                            if (radius >= twoPi)
+                                radius -= twoPi;
+                            else if (radius < 0.f)
+                                radius += twoPi;
 
                             // ====== WEAPON MODE ======
                             bool mode;
@@ -241,11 +238,11 @@ int Server::sendLoop() {
 
                     // Input inputs(0,0,false);
                     // Input inputs(0,0,0.f, false);
-                    Input inputs(0,0,0.f, false, false);
-                    State s = State(time, pos, 0.f, true, inputs);
+                    Input inputs(0,0,std::numbers::pi/2, false, false);
+                    State s = State(time, pos, std::numbers::pi/2, true, inputs);
                     refreshBuffer(name, s, time);
                     buffer.currentState[name].setPosition(pos);
-                    buffer.currentState[name].setRadius(0);
+                    buffer.currentState[name].setRadius(std::numbers::pi/2);
                     buffer.currentState[name].setMode(true);
                     playerNb++;
                 }
