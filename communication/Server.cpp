@@ -168,7 +168,7 @@ int Server::receiveLoop() {
                             // ====== WEAPON MODE ======
                             bool mode;
                             if(inputs.getMode()) {
-                                printf("CLICK 2 !\n");
+                                // printf("CLICK 2 !\n");
                                 mode = !buffer.currentState[name].getMode();
                             }
                             else {

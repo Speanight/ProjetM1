@@ -21,7 +21,6 @@ Client::Client(const sf::Clock clock, std::string name, sf::Color color) : serve
     this->player.color = color;
     this->player.radius = 0;
     this->player.mode = true;
-    this->player.mode_e = false;
     Weapon wpn;
     this->player.wpn = wpn;
 }
@@ -126,15 +125,24 @@ void Client::move(ImVec2 direction, float deltaTime) {
 Input Client::getInputs() {
     Input input;
     for (const std::pair<const int, sf::Keyboard::Key> & i : keybinds) {
+            input.handleInput(i.first, isKeyPressed(i.second));
+    }
+
+    return input;
+}
+
+Input Client::getInputs(bool mode_enable) {
+    Input input;
+    for (const std::pair<const int, sf::Keyboard::Key> & i : keybinds) {
         if(i.first == Inputs::WPN_CHANGE) {
             bool pressed = isKeyPressed(i.second) > 0.f;
 
-            if(pressed && !player.mode_e) {
+            if(pressed && !mode_enable) {
                 printf("CLICK\n");
                 input.setMode(true);
             }
 
-            player.mode_e = pressed;
+            input.setModeEnable(pressed);
         }
         else {
             input.handleInput(i.first, isKeyPressed(i.second));
@@ -156,6 +164,7 @@ void Client::setKeybinds(std::unordered_map<int, sf::Keyboard::Key> keybinds) {
  */
 int Client::sendLoop() {
     const sf::Time time = std::chrono::milliseconds(TICKRATE);
+    bool mode_enable = true;
 
     // Init with a round start:
 
@@ -176,10 +185,11 @@ int Client::sendLoop() {
 
         QueuedPacket pkt;
         pkt.timestamp = clock.getElapsedTime();
-        auto inputs = this->getInputs();
-        if (inputs.getMode() == true) {
-            printf("INPUT => %d\n",  inputs.getMode());
-        }
+        auto inputs = this->getInputs(mode_enable);
+
+        // keeping the modeEnable for the next loop
+        mode_enable = inputs.getModeEnable();
+
         pkt.packet << Pkt::INPUTS << pkt.timestamp.asMilliseconds() << inputs;
         packets.push_back(pkt); // Adds the packet to the array of packets.
 

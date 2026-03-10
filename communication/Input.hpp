@@ -9,8 +9,9 @@ private:
     float movementX;
     float movementY;
     float rotate;
-    bool mode;                  // Signal to change the mode
-    bool attack;
+    bool mode;                  // Signal to change the mode [false = no change, true = change]
+    bool mode_enable;           // Signal to know if we can change the mode or no [false = no, true = yes]
+    bool attack;                // Signal to inform the attack
 public:
     // Constructors
     Input();
@@ -23,7 +24,9 @@ public:
     float getMovementY();
     float getRotate();
     bool getMode();
+    bool getModeEnable();
     bool getAttack();
+
 
 
     // Setters
@@ -31,6 +34,7 @@ public:
     void setMovementY(float y);
     void setRotate(float r);
     void setMode(bool mode);
+    void setModeEnable(bool mode_enable);
     void setAttack(bool attack);
 
     // Functions

@@ -43,7 +43,6 @@ struct Player {
     float radius;               // must be saved as radiant so degree * ~1.111111 = radiant
     bool is_attacking;          // indicate if the client is attacking or not
     bool mode;                  // indicate if the weapon is in attack or defense mode (# true = atk, false = defense
-    bool mode_e;                // indicate if we can switch weapon or not
     Weapon wpn;
     Position attackOffset;
 };
@@ -88,6 +87,7 @@ public:
     int getPacketLoss() const;
     int getPing() const;
     Input getInputs();
+    Input getInputs(bool mode_enable);
     Position getPosition();
 
     sf::Color getColor();

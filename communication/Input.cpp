@@ -5,6 +5,7 @@ Input::Input() {
     movementY = 0;
     rotate = 0;         // default rotation = 0
     mode = false;        // default mode SIGNAL = no change
+    mode_enable = true; // default mode to access the signal
     attack = false;     // default state = not attacking
 }
 
@@ -13,6 +14,7 @@ Input::Input(float x, float y, bool attack) {
     this->movementY = y;
     this->rotate = 0;
     this->mode = false;
+    this->mode_enable = true;
     this->attack = attack;
 }
 
@@ -21,6 +23,7 @@ Input::Input(float x, float y, float r, bool attack) {
     this->movementY = y;
     this->rotate = r;
     this->mode = false;
+    this->mode_enable = true;
     this->attack = attack;
 }
 
@@ -29,6 +32,7 @@ Input::Input(float x, float y, float r, bool mode, bool attack) {
     this->movementY = y;
     this->rotate = r;
     this->mode = mode;
+    this->mode_enable = true;
     this->attack = attack;
 }
 
@@ -53,6 +57,10 @@ bool Input::getMode() {
     return mode;
 }
 
+bool Input::getModeEnable() {
+    return mode_enable;
+}
+
 // Setters
 void Input::setMovementX(float x) {
     this->movementX = x;
@@ -68,6 +76,10 @@ void Input::setRotate(float r) {
 
 void Input::setMode(bool mode) {
     this->mode = mode;
+}
+
+void Input::setModeEnable(bool mode_enable) {
+    this->mode_enable = mode_enable;
 }
 
 void Input::setAttack(bool attack) {
