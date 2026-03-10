@@ -100,10 +100,10 @@ void Input::handleInput(int inputCode, float value) {
         case Inputs::MOVEMENT_RIGHT:
             movementX += value;
             break;
-        case Inputs::WPN_RIGHT:             //Handle the weapon rotation
-            rotate += value;
+        case Inputs::WPN_CCW: //Handle the weapon rotation
+            rotate += value; // move less fast than the player
             break;
-        case Inputs::WPN_LEFT:
+        case Inputs::WPN_CW: //Handle the weapon rotation
             rotate -= value;
             break;
         case Inputs::WPN_CHANGE:
@@ -121,21 +121,6 @@ sf::Packet& operator<<(sf::Packet &packet, Input inputs) {
     // return packet << inputs.getMovementX() << inputs.getMovementY() << inputs.getRotate() << inputs.getAttack();
     return packet << inputs.getMovementX() << inputs.getMovementY() << inputs.getRotate() << inputs. getMode() << inputs.getAttack();
 }
-
-// sf::Packet& operator>>(sf::Packet &packet, Input& inputs) {
-//     float x;
-//     float y;
-//     float r;
-//     bool attack;
-//     packet >> x >> y >> r >>attack;
-//
-//     inputs.setMovementX(x);
-//     inputs.setMovementY(y);
-//     inputs.setRotate(r);
-//     inputs.setAttack(attack);
-//
-//     return packet;
-// }
 
 sf::Packet& operator>>(sf::Packet &packet, Input& inputs) {
     float x;

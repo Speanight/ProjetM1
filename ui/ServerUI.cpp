@@ -24,12 +24,6 @@ void ServerUI::draw() {
     //////////////
     // SETTINGS //
     //////////////
-    // TODO: Re-add compensations
-    // const char* modes[] = { "COMPO 1 ", "COMPO 2", "COMPO 3", "MODE 1", "MODE 2" };
-    // int current = static_cast<int>(config.compensation);
-
-    // ImGui::Combo("Compensation", &current, modes, IM_ARRAYSIZE(modes));
-    // config.compensation = static_cast<NetConfig::CompensationMode>(current);
 
     // .count converts it to a long value. 1000/ticks gives tickrate, and convert it back to an int to avoid digits.
     ImGui::Text("Tickrate: %d", int(1000 / Const::TICKRATE.count()));

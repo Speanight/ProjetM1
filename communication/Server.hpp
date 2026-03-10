@@ -51,7 +51,6 @@ public:
     int sendLoop();
     int receiveLoop();
     int shutdown();
-    void refreshBuffer(const std::string& client, State state, int clockState);
 };
 
 

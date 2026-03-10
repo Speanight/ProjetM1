@@ -16,11 +16,12 @@ namespace Const {
 
     static const int CONSOLE_LINES = 50;
 
-    constexpr auto TICKRATE = std::chrono::milliseconds(1000 / 2); // Amount of ticks in 1s (1s / tickrate)
+    constexpr auto TICKRATE = std::chrono::milliseconds(1000 / 20); // Amount of ticks in 1s (1s / tickrate)
     static const int BUFFER_SIZE = 5;
 
     static const float PLAYER_SPEED = .3f;
-    static const float PLAYER_RADIUS = 20.f;
+    static const float PLAYER_RADIUS_SPEED = .2f;
+    static const float PLAYER_SIZE = 20.f;
 
     static const float MAP_SIZE_X = 500.f;
     static const float MAP_SIZE_Y = 500.f;
@@ -57,19 +58,17 @@ namespace Inputs {
     static constexpr int MOVEMENT_LEFT = 2;
     static constexpr int MOVEMENT_RIGHT = 3;
     static constexpr int MOVEMENT_UPPER = 3; // Defines last movement value
-    static constexpr int WPN_RIGHT = 4;
-    static constexpr int WPN_LEFT = 5;
+    static constexpr int WPN_CCW = 4;
+    static constexpr int WPN_CW = 5;
     static constexpr int WPN_CHANGE = 6;
     static constexpr int ATTACK = 7;
-
-    // // Actions
-    // static constexpr int SHOOT = 2; // => will be the same as attack no ?
 }
 
 namespace Compensation {
     static constexpr int EXTRAPOLATION = 0;
-    static constexpr int INTRAPOLATION = 1;
+    static constexpr int INTERPOLATION = 1;
     static constexpr int PREDICTION = 2;
+    static constexpr int RECONCILIATION = 3;
 }
 
 #endif

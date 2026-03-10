@@ -13,7 +13,7 @@ void drawPlayer(ImDrawList* draw_list, Player player, ImVec2 min, ImVec2 max) {
         player.position.getY() * scale + min.y
     };
 
-    float player_radius = Const::PLAYER_RADIUS * scale;
+    float player_radius = Const::PLAYER_SIZE * scale;
 
     // ========= PLAYER =========
     draw_list->AddCircleFilled(
@@ -97,7 +97,7 @@ Position resolveCollision(Position player, Position opponent) {
                     opponent.getY() - player.getY()};
 
     float distance = sqrtf(pow(diff.x, 2) + pow(diff.y, 2));
-    float minDistance = Const::PLAYER_RADIUS + Const::PLAYER_RADIUS;
+    float minDistance = Const::PLAYER_SIZE + Const::PLAYER_SIZE;
 
     if (distance < minDistance)
     {

@@ -14,16 +14,20 @@
  * @param color Color given to the client in the Server's console.
  */
 Client::Client(const sf::Clock clock, std::string name, sf::Color color) : server(SERVER_IP_BYTE1, SERVER_IP_BYTE2, SERVER_IP_BYTE3, SERVER_IP_BYTE4) {
-    this->packetLoss = 0;
+    this->network.packetLoss = 0;
     this->clock = clock;
-    this->ping = 0;
+    this->network.ping = 0;
     this->player.name = std::move(name);
     this->player.color = color;
     this->bufferOnReceipt.addClient(player);
-    this->player.radius = 0;
-
-    this->player.radius = std::numbers::pi/2;       //put the element on top in radius
+    this->player.radius = std::numbers::pi/2; //put the element on top in radius
     this->player.mode = true;
+
+    this->network.compensations.insert({Compensation::INTERPOLATION, false});
+    this->network.compensations.insert({Compensation::PREDICTION, false});
+    this->network.compensations.insert({Compensation::RECONCILIATION, false});
+
+
     Weapon wpn;
     this->player.wpn = wpn;
 }
@@ -78,15 +82,19 @@ std::string Client::getName() {
 }
 
 int Client::getPacketLoss() const {
-    return packetLoss;
+    return network.packetLoss;
 }
 
 int Client::getPing() const {
-    return ping;
+    return network.ping;
 }
 
 Position Client::getPosition() {
     return player.position;
+}
+
+std::unordered_map<int, bool> Client::getCompensations() const {
+    return network.compensations;
 }
 
 void Client::setPosition(Position p) {
@@ -94,14 +102,27 @@ void Client::setPosition(Position p) {
     this->player.position.setY(p.getY());
 }
 
+void Client::setRadius(float radius) {
+    this->player.radius = std::fmod(radius, 360);
+    while (this->player.radius < 0) {
+        this->player.radius += 360;
+    }
+}
+
 void Client::setPacketLoss(int packetLoss) {
-    this->packetLoss = packetLoss;
+    if (packetLoss >= 0 and packetLoss <= 100) {
+        this->network.packetLoss = packetLoss;
+    }
 }
 
 void Client::setPing(int ping) {
     if (ping >= 0) {
-        this->ping = ping;
+        this->network.ping = ping;
     }
+}
+
+void Client::setCompensations(std::unordered_map<int, bool> compensations) {
+    this->network.compensations = std::move(compensations);
 }
 
 ///////////////
@@ -148,6 +169,10 @@ void Client::setKeybinds(std::unordered_map<int, sf::Keyboard::Key> keybinds) {
     this->keybinds = std::move(keybinds);
 }
 
+void Client::changeCompensation(int compensation, bool value) {
+    this->network.compensations[compensation] = value;
+}
+
 /**
  * Loop that executes every tick rate: client will calculate if packet must be dropped or not, and sends packet of
  * position to the server. This function shouldn't return, except if the server stops and the client should stop
@@ -185,7 +210,7 @@ int Client::sendLoop() {
         packets.push_back(pkt); // Adds the packet to the array of packets.
 
         // If the packet isn't lost (editable through packet loss % slider):
-        if (packetLossChance > packetLoss) {
+        if (packetLossChance > network.packetLoss) {
             auto packet = getLatestPacket(); // Get latest packet that meets ping criteria.
 
             // Check that packet does exist:
@@ -218,6 +243,7 @@ int Client::receiveLoop() {
                     case Pkt::ROUND_START:
                         std::cout << "Client " << getName() << " received ROUND_START" << std::endl;
                         newGame = true;
+                        // No break because round start has position afterwards (and therefor will execute Pkt::GLOBAL case)
 
                     case Pkt::GLOBAL: {
                         int nbPlayers;
@@ -231,12 +257,13 @@ int Client::receiveLoop() {
                         while (nbPlayers > 0) {
                             packet >> name >> position >> radius >> mode;
 
-                            State state(stateTick, position, getInputs());
+                            State state(stateTick, position, radius, getInputs());
                             std::unordered_map<std::string, State> currentState = bufferOnReceipt.getCurrentState();
+                            std::unordered_map<std::string, State> pastState = bufferOnReceipt.getTState(-1);
 
                             if (name == this->getName()) {
-                                // TODO: Handler of "fixing" of local position.
-                                this->bufferOnReceipt.refreshBuffer(player, state, stateTick);
+//                                this->bufferOnReceipt.refreshBuffer(player, state, stateTick);
+                                this->bufferOnReceipt.updateNextPlayerState(player, state);
                                 State currState = bufferOnReceipt.getLastState(player);
                                 this->player.position.setX(currState.getPosition().getX());
                                 this->player.position.setY(currState.getPosition().getY());
@@ -246,14 +273,18 @@ int Client::receiveLoop() {
                             }
                             else {
                                 // Opponent position:
-                                this->bufferOnReceipt.refreshBuffer(opponents[name], state, stateTick);
+//                                this->bufferOnReceipt.refreshBuffer(opponents[name], state, stateTick);
+                                this->bufferOnReceipt.updateNextPlayerState(opponents[name], state);
                                 opponents[name].position.setX(currentState[name].getPosition().getX());
                                 opponents[name].position.setY(currentState[name].getPosition().getY());
-                                opponents[name].radius = radius;
+                                opponents[name].radius = currentState[name].getRadius();
                                 opponents[name].mode = mode;
                             }
                             nbPlayers--;
                         }
+
+                        this->bufferOnReceipt.push(stateTick);
+                        packet >> lastServerTick;
 
                         break;
                     }
@@ -318,7 +349,7 @@ std::optional<sf::Packet> Client::getLatestPacket() {
     }
 
     sf::Time now = clock.getElapsedTime();
-    sf::Time timestamp = now - sf::milliseconds(ping);
+    sf::Time timestamp = now - sf::milliseconds(network.ping);
 
     sf::Packet toSend;
     bool found = false;

@@ -8,14 +8,14 @@ State::State() {
 
 State::State(int timestamp, Position position, Input inputs) {
     this->timestamp = timestamp;
-    this->position = position;
+    setPosition(position);
     this->inputs = inputs;
 }
 
 State::State(int timestamp, Position position, float radius, Input inputs) {
     this->timestamp = timestamp;
-    this->position = position;
-    this->radius = radius;
+    setPosition(position);
+    setRadius(radius);
     this->inputs = inputs;
 }
 
