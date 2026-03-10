@@ -90,6 +90,12 @@ void drawPlayer(ImDrawList* draw_list, Player player, ImVec2 min, ImVec2 max) {
             4.f * scale
         );
     }
+
+    // ========= DEFENSE MODE =========
+    bool atk = player.is_attacking;
+    if (atk == true) {
+        printf("ATTACK MUAHAHA !\n");
+    }
 }
 
 Position resolveCollision(Position player, Position opponent) {

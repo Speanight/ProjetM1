@@ -164,6 +164,37 @@ Input Client::getInputs(bool mode_enable) {
     return input;
 }
 
+Input Client::getInputs(bool mode_enable, bool attack_enable) {
+    Input input;
+
+    for (const std::pair<const int, sf::Keyboard::Key> & i : keybinds) {
+        bool pressed = isKeyPressed(i.second) > 0.f;
+        switch (i.first) {
+            case Inputs::WPN_CHANGE:
+                if(pressed && !mode_enable) {
+                    input.setMode(true);
+                }
+
+                input.setModeEnable(pressed);
+                break;
+            case Inputs::ATTACK:
+                if(pressed && !attack_enable) {
+                    input.setAttack(true);
+                    // printf("Attack click !\n");
+                }
+
+                input.setAttackEnable(pressed);
+                break;
+            default :
+                input.handleInput(i.first, isKeyPressed(i.second));
+                break;
+        }
+
+    }
+
+    return input;
+}
+
 void Client::setKeybinds(std::unordered_map<int, sf::Keyboard::Key> keybinds) {
     this->keybinds = std::move(keybinds);
 }
@@ -179,7 +210,8 @@ void Client::changeCompensation(int compensation, bool value) {
  */
 int Client::sendLoop() {
     const sf::Time time = std::chrono::milliseconds(TICKRATE);
-    bool mode_enable = true;
+    bool mode_enable = true;        // set the hability to change the weapon to true at the begining
+    bool attack_enable = true;      // set the hability to attack at true at the begining
 
     // Init with a round start:
     sf::Packet packet;
@@ -200,10 +232,13 @@ int Client::sendLoop() {
 
         QueuedPacket pkt;
         pkt.timestamp = clock.getElapsedTime();
-        auto inputs = this->getInputs(mode_enable);
+        auto inputs = this->getInputs(mode_enable, attack_enable);
 
         // keeping the modeEnable for the next loop
         mode_enable = inputs.getModeEnable();   //TODO : furball check and confirmation
+
+        // keeping the attackEnable for the next loop
+        attack_enable = inputs.getAttackEnable();   //TODO : furball check and confirmation
 
         pkt.packet << Pkt::INPUTS << pkt.timestamp.asMilliseconds() << inputs;
         packets.push_back(pkt); // Adds the packet to the array of packets.

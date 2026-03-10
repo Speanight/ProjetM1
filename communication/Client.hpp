@@ -78,11 +78,13 @@ public:
     std::string getName();
     int getPacketLoss() const;
     int getPing() const;
-    Input getInputs();
-    Input getInputs(bool mode_enable);
     Position getPosition();
     sf::Color getColor();
     std::unordered_map<int,bool> getCompensations() const;
+
+    Input getInputs();
+    Input getInputs(bool mode_enable);
+    Input getInputs(bool mode_enable, bool attack_enable);
 
     void setPacketLoss(int packetLoss);
     void setPing(int ping);

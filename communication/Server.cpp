@@ -141,9 +141,9 @@ int Server::receiveLoop() {
                                 +" | inputs: x=" + std::to_string(inputs.getMovementX()) +
                                 "; y=" + std::to_string(inputs.getMovementY()) +
                                 "; rotate = "+ std::to_string(inputs.getRotate()) +
-                                "; mode = " + std::to_string(inputs.getMode())
+                                "; mode = " + std::to_string(inputs.getMode()) +
+                                "; attack = " + std::to_string(inputs.getAttack())
                                 );
-                            semaphore.release();
 
                             // Get time elapsed since last packet from client. Used for consistency in speed and such.
                             dt = (time - playerState.getTimestamp()) % (2 * Const::TICKRATE.count());
@@ -151,6 +151,7 @@ int Server::receiveLoop() {
                             // Get the current server state AND last player state (which might be the next server state!)
                             currentState = buffer.getCurrentState();
                             playerState = buffer.getLastState(player);
+                            semaphore.release();
                             // ====== POSITION ======
                             position = playerState.getPosition();
                             radius = buffer.getLastState(player).getRadius();
@@ -160,6 +161,7 @@ int Server::receiveLoop() {
                             position.setY(position.getY() + inputs.getMovementY() * Const::PLAYER_SPEED * dt);
                             radius += inputs.getRotate() * Const::PLAYER_RADIUS_SPEED * dt;
 
+                            // ====== RADIUS ======
                             float twoPi = 2.f * std::numbers::pi;
 
                             if (radius >= twoPi)
@@ -174,6 +176,16 @@ int Server::receiveLoop() {
                                 mode = !mode;
                             }
                             buffer.getCurrentState()[name].setMode(mode);
+
+                            // ====== ATTACK ======
+                            bool attack = playerState.getAttack();
+                            if(inputs.getAttack()) {
+                                printf("ATTACK RECEPTION !\n");
+                                // TODO : Make the signal to attack
+                                // ====== POINT GESTION ======
+
+                            }
+
 
                             // Loops over all the opponents.
                             for (auto &[n, p]: clients) {

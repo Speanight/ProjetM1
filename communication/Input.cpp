@@ -49,9 +49,6 @@ float Input::getRotate() {
     return rotate;
 }
 
-bool Input::getAttack() {
-    return attack;
-}
 
 bool Input::getMode() {
     return mode;
@@ -59,6 +56,14 @@ bool Input::getMode() {
 
 bool Input::getModeEnable() {
     return mode_enable;
+}
+
+bool Input::getAttack() {
+    return attack;
+}
+
+bool Input::getAttackEnable() {
+    return attack_enable;
 }
 
 // Setters
@@ -86,6 +91,11 @@ void Input::setAttack(bool attack) {
     this->attack = attack;
 }
 
+void Input::setAttackEnable(bool attack_enable) {
+    this->attack_enable = attack_enable;
+}
+
+
 void Input::handleInput(int inputCode, float value) {
     switch (inputCode) {
         case Inputs::MOVEMENT_UP:
@@ -100,17 +110,17 @@ void Input::handleInput(int inputCode, float value) {
         case Inputs::MOVEMENT_RIGHT:
             movementX += value;
             break;
-        case Inputs::WPN_CCW: //Handle the weapon rotation
-            rotate += value; // move less fast than the player
+        case Inputs::WPN_CCW:   // Handle the weapon rotation
+            rotate += value;    // Move less fast than the player
             break;
-        case Inputs::WPN_CW: //Handle the weapon rotation
+        case Inputs::WPN_CW:    // Handle the weapon rotation
             rotate -= value;
             break;
-        case Inputs::WPN_CHANGE:
+        case Inputs::WPN_CHANGE:    // Signal to change the weapon
             mode = value;
             break;
-        case Inputs::ATTACK:
-            attack = true;
+        case Inputs::ATTACK:    // Signal to attack
+            attack = value;
             break;
         default:
             break;

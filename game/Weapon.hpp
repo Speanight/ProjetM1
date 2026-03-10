@@ -12,6 +12,9 @@
 class Weapon {
     private :
     // ===== FORM =====
+    int w_id;
+
+    // ===== FORM =====
     float w_height;         // wpn size
     float w_width;          // wpn size
     int w_type;             // TODO : [IDEA] different type of weapon that have a different behavior and look (like square or circle that can be throwable ?)
@@ -24,10 +27,13 @@ class Weapon {
 
 public:
     // ===== CONSTRUCTORS =====
-    Weapon(float height = 16.f, float width = 24.f, float type = 0.f, float atk_spd = 0.1f, float rld=0.3f, float range = 10.f, float transform = 0.2f);
+    //Weapon(float height = 16.f, float width = 24.f, float type = 0.f, float atk_spd = 0.1f, float rld=0.3f, float range = 10.f, float transform = 0.2f);
+    Weapon(int id = 0);
+    Weapon(int id = 0, float height = 16.f, float width = 24.f, float type = 0.f, float atk_spd = 0.1f, float rld=0.3f, float range = 10.f, float transform = 0.2f);
     Weapon(const Weapon& other);
 
     // ===== GETTERS =====
+    int     getId() const;
     float  getHeight() const;
     float  getWidth() const;
     int    getType() const;
@@ -39,6 +45,7 @@ public:
     float getTransform() const;
 
     // ===== SETTERS =====
+    void setId(int id);
     void setHeight(float height);
     void setWidth(float width);
     void setType(int type);

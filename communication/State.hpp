@@ -17,6 +17,7 @@ private:
     Position position;
     float radius;
     bool mode;
+    bool attack;
 
     Input inputs;
 
@@ -25,6 +26,7 @@ public:
     State(int timestamp, Position position, bool mode, Input inputs);
     State(int timestamp, Position position, float radius, Input inputs);
     State(int timestamp, Position position, float radius, bool mode, Input inputs);
+    State(int timestamp, Position position, float radius, bool mode, bool attack, Input inputs);
 
     // Getters / Setters
     int getTimestamp() const;
@@ -32,11 +34,13 @@ public:
     Input getInputs();
     float getRadius();
     bool getMode();
+    bool getAttack();
 
     void setPosition(Position position);
     void setInputs(Input inputs);
     void setRadius(float radius);
     void setMode(bool mode);
+    void setAttack(bool attack);
 };
 
 

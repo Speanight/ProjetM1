@@ -45,6 +45,11 @@ bool State::getMode() {
     return mode;
 }
 
+bool State::getAttack() {
+    return attack;
+}
+
+
 Input State::getInputs() {
     return inputs;
 }
@@ -63,6 +68,11 @@ void State::setRadius(float radius) {
 void State::setMode(bool mode) {
     this->mode = mode;
 }
+
+void State::setAttack(bool attack) {
+    this->attack = attack;
+}
+
 
 void State::setInputs(Input inputs) {
     this->inputs = inputs;

@@ -10,8 +10,9 @@ private:
     float movementY;
     float rotate;
     bool mode;                  // Signal to change the mode [false = no change, true = change]
-    bool mode_enable;           // Signal to know if we can change the mode or no [false = no, true = yes]
+    bool mode_enable;           // Permit to know if we can change the mode or no [false = no, true = yes]
     bool attack;                // Signal to inform the attack
+    bool attack_enable;         // Permit to know if we can attack again or not
 public:
     // Constructors
     Input();
@@ -26,8 +27,7 @@ public:
     bool getMode();
     bool getModeEnable();
     bool getAttack();
-
-
+    bool getAttackEnable();
 
     // Setters
     void setMovementX(float x);
@@ -36,6 +36,7 @@ public:
     void setMode(bool mode);
     void setModeEnable(bool mode_enable);
     void setAttack(bool attack);
+    void setAttackEnable(bool mode_enable);
 
     // Functions
     void handleInput(int inputCode, float value);
