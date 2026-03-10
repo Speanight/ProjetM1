@@ -19,6 +19,14 @@ State::State(int timestamp, Position position, float radius, Input inputs) {
     this->inputs = inputs;
 }
 
+State::State(int timestamp, Position position, float radius, bool mode, Input inputs) {
+    this->timestamp = timestamp;
+    this->position = position;
+    this->radius = radius;
+    this->inputs = inputs;
+    this->mode = mode;
+}
+
 // GETTERS //
 int State::getTimestamp() const {
     return timestamp;
@@ -28,24 +36,33 @@ Position State::getPosition() {
     return position;
 }
 
-Input State::getInputs() {
-    return inputs;
-}
-
 float State::getRadius() {
      return radius;
 }
 
+bool State::getMode() {
+    return mode;
+}
+
+Input State::getInputs() {
+    return inputs;
+}
+
+// SETTERS //
 
 void State::setPosition(Position position) {
     this->position.setX(position.getX());
     this->position.setY(position.getY());
 }
 
-void State::setInputs(Input inputs) {
-    this->inputs = inputs;
-}
-
 void State::setRadius(float radius) {
     this->radius = radius;
+}
+
+void State::setMode(bool mode) {
+    this->mode = mode;
+}
+
+void State::setInputs(Input inputs) {
+    this->inputs = inputs;
 }

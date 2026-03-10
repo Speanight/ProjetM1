@@ -15,58 +15,81 @@ void drawPlayer(ImDrawList* draw_list, Player player, ImVec2 min, ImVec2 max) {
 
     float player_radius = Const::PLAYER_RADIUS * scale;
 
-    // Cercle
+    // ========= PLAYER =========
     draw_list->AddCircleFilled(
         pl_position,
         player_radius,
         IM_COL32(player.color.r, player.color.g, player.color.b, player.color.a)
     );
 
-    // ========= TRIANGLE =========
-
+    bool mode = player.mode;
     float angle = player.radius; // radians
-
-    ImVec2 dir = {
-        -sinf(angle),
-        -cosf(angle)
-    };
-
-    float height = player.wpn.getHeight() * scale;
-    float width  = player.wpn.getWidth() * scale;
-
     float distance = player_radius + 2.f * scale;
 
-    ImVec2 bottom = {
-        pl_position.x + dir.x * distance,
-        pl_position.y + dir.y * distance
-    };
+    if (mode) {
+        // ========= ATTACK MODE =========
 
-    ImVec2 top = {
-        pl_position.x + dir.x * (distance + height),
-        pl_position.y + dir.y * (distance + height)
-    };
+        ImVec2 dir = {
+            cosf(angle),
+            sinf(angle)
+        };
 
-    ImVec2 perp = {
-        -dir.y,
-         dir.x
-    };
+        float height = player.wpn.getHeight() * scale;
+        float width  = player.wpn.getWidth()  * scale;
 
-    ImVec2 left = {
-        bottom.x + perp.x * (width * 0.5f),
-        bottom.y + perp.y * (width * 0.5f)
-    };
+        ImVec2 bottom = {
+            pl_position.x + dir.x * distance,
+            pl_position.y + dir.y * distance
+        };
 
-    ImVec2 right = {
-        bottom.x - perp.x * (width * 0.5f),
-        bottom.y - perp.y * (width * 0.5f)
-    };
+        ImVec2 top = {
+            pl_position.x + dir.x * (distance + height),
+            pl_position.y + dir.y * (distance + height)
+        };
 
-    draw_list->AddTriangleFilled(
-        top,
-        left,
-        right,
-        IM_COL32(player.color.r, player.color.g, player.color.b, player.color.a)
-    );
+        ImVec2 perp = {
+            -dir.y,
+             dir.x
+        };
+
+        ImVec2 left = {
+            bottom.x + perp.x * (width * 0.5f),
+            bottom.y + perp.y * (width * 0.5f)
+        };
+
+        ImVec2 right = {
+            bottom.x - perp.x * (width * 0.5f),
+            bottom.y - perp.y * (width * 0.5f)
+        };
+
+        draw_list->AddTriangleFilled(
+            top,
+            left,
+            right,
+            IM_COL32(player.color.r, player.color.g, player.color.b, player.color.a)
+        );
+    }
+    else {
+        // ========= DEFENSE MODE =========
+        float arcWidth = 0.8f;
+
+        float a_min = angle - arcWidth;
+        float a_max = angle + arcWidth;
+
+        draw_list->PathArcTo(
+            pl_position,
+            distance + 1.f*scale,
+            a_min,
+            a_max,
+            24
+        );
+
+        draw_list->PathStroke(
+            IM_COL32(player.color.r, player.color.g, player.color.b, player.color.a),
+            false,
+            4.f * scale
+        );
+    }
 }
 
 Position resolveCollision(Position player, Position opponent) {

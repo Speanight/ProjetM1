@@ -31,21 +31,22 @@ struct QueuedPacket {
     sf::Time timestamp;
 };
 
-//struct Player {
-//    // ====== SERVER ======
-//    unsigned short port;        // NEVER MOOVE THIS [use to create the client on the server and must be here
-//
-//    // ====== BASIC ======
-//    std::string name;
-//    sf::Color color;
-//    Position position;
-//
-//    // ====== WEAPON ======
-//    float radius;               // must be saved as radiant so degree * ~1.111111 = radiant
-//    bool is_attacking;          // indicate if the client is attacking or not
-//    Weapon wpn;
-//    Position attackOffset;
-//};
+struct Player {
+    // ====== SERVER ======
+    unsigned short port;        // NEVER MOOVE THIS [use to create the client on the server and must be here
+
+    // ====== BASIC ======
+    std::string name;
+    sf::Color color;
+    Position position;
+
+    // ====== WEAPON ======
+    float radius;               // must be saved as radiant so degree * ~1.111111 = radiant
+    bool is_attacking;          // indicate if the client is attacking or not
+    bool mode;                  // indicate if the weapon is in attack or defense mode (# true = atk, false = defense
+    Weapon wpn;
+    Position attackOffset;
+};
 
 class Client {
 private:
@@ -63,7 +64,6 @@ private:
     int ping;
     bool loop = true;
     bool newGame = false;
-
 
 protected:
     sf::Clock clock;
@@ -85,6 +85,7 @@ public:
     int getPacketLoss() const;
     int getPing() const;
     Input getInputs();
+    Input getInputs(bool mode_enable);
     Position getPosition();
 
     sf::Color getColor();

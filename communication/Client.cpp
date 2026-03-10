@@ -22,6 +22,8 @@ Client::Client(const sf::Clock clock, std::string name, sf::Color color) : serve
     this->bufferOnReceipt.addClient(player);
     this->player.radius = 0;
 
+    this->player.radius = std::numbers::pi/2;       //put the element on top in radius
+    this->player.mode = true;
     Weapon wpn;
     this->player.wpn = wpn;
 }
@@ -120,6 +122,28 @@ Input Client::getInputs() {
     return input;
 }
 
+Input Client::getInputs(bool mode_enable) {
+    Input input;
+    for (const std::pair<const int, sf::Keyboard::Key> & i : keybinds) {
+        if(i.first == Inputs::WPN_CHANGE) { // TODO : furbal check
+            bool pressed = isKeyPressed(i.second) > 0.f;
+
+            if(pressed && !mode_enable) {
+                // printf("CLICK\n");
+                input.setMode(true);
+            }
+
+            input.setModeEnable(pressed);
+        }
+        else {
+            input.handleInput(i.first, isKeyPressed(i.second));
+        }
+
+    }
+
+    return input;
+}
+
 void Client::setKeybinds(std::unordered_map<int, sf::Keyboard::Key> keybinds) {
     this->keybinds = std::move(keybinds);
 }
@@ -131,6 +155,7 @@ void Client::setKeybinds(std::unordered_map<int, sf::Keyboard::Key> keybinds) {
  */
 int Client::sendLoop() {
     const sf::Time time = std::chrono::milliseconds(TICKRATE);
+    bool mode_enable = true;
 
     // Init with a round start:
     sf::Packet packet;
@@ -151,7 +176,11 @@ int Client::sendLoop() {
 
         QueuedPacket pkt;
         pkt.timestamp = clock.getElapsedTime();
-        auto inputs = this->getInputs();
+        auto inputs = this->getInputs(mode_enable);
+
+        // keeping the modeEnable for the next loop
+        mode_enable = inputs.getModeEnable();   //TODO : furball check and confirmation
+
         pkt.packet << Pkt::INPUTS << pkt.timestamp.asMilliseconds() << inputs;
         packets.push_back(pkt); // Adds the packet to the array of packets.
 
@@ -196,10 +225,11 @@ int Client::receiveLoop() {
                         std::string name;
                         Position position;
                         float radius;
+                        bool mode;
                         packet >> stateTick >> nbPlayers;
 
                         while (nbPlayers > 0) {
-                            packet >> name >> position >> radius;
+                            packet >> name >> position >> radius >> mode;
 
                             State state(stateTick, position, getInputs());
                             std::unordered_map<std::string, State> currentState = bufferOnReceipt.getCurrentState();
@@ -211,6 +241,8 @@ int Client::receiveLoop() {
                                 this->player.position.setX(currState.getPosition().getX());
                                 this->player.position.setY(currState.getPosition().getY());
                                 this->player.radius = radius;
+                                this->player.mode = mode;
+                                lastServerUpdate = stateTick;
                             }
                             else {
                                 // Opponent position:
@@ -218,6 +250,7 @@ int Client::receiveLoop() {
                                 opponents[name].position.setX(currentState[name].getPosition().getX());
                                 opponents[name].position.setY(currentState[name].getPosition().getY());
                                 opponents[name].radius = radius;
+                                opponents[name].mode = mode;
                             }
                             nbPlayers--;
                         }
@@ -257,6 +290,7 @@ Client::Client(const Client& other) : server(other.server) {
     this->player.color = other.player.color;
     this->player.position = Position(other.player.position.getX(), other.player.position.getY());
     this->player.radius = other.player.radius;
+    this->player.mode = other.player.mode;
 }
 
 Client& Client::operator=(const Client& other) {
@@ -264,6 +298,7 @@ Client& Client::operator=(const Client& other) {
     this->clock = other.clock;
     this->player.name = other.player.name;
     this->player.radius = other.player.radius;
+    this->player.mode = other.player.mode;
 
     return *this;
 }
