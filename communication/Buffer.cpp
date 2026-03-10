@@ -30,7 +30,7 @@ void Buffer::setNextState(std::unordered_map<std::string, State> state, int cloc
     this->nextState = state;
 }
 
-void Buffer::updateNextPlayerState(const Player& player, State state) {
+void Buffer::updateNextPlayerState(const Player& player, State state, bool oldMode) {
     nextState[player.name] = state;
 }
 

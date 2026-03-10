@@ -6,9 +6,10 @@ State::State() {
     this->timestamp = 0;
 }
 
-State::State(int timestamp, Position position, Input inputs) {
+State::State(int timestamp, Position position, bool mode, Input inputs) {
     this->timestamp = timestamp;
     setPosition(position);
+    setMode(mode);
     this->inputs = inputs;
 }
 

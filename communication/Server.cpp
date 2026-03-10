@@ -128,7 +128,6 @@ int Server::receiveLoop() {
                                 default:
                                     std::cout << "Received unknown ACK: " << context << " from client " << name << std::endl;
                             }
-
                             break;
                         }
                         case Pkt::INPUTS: {
@@ -169,13 +168,10 @@ int Server::receiveLoop() {
                                 radius += twoPi;
 
                             // ====== WEAPON MODE ======
-                            bool mode;
+                            bool mode = playerState.getMode();
                             if(inputs.getMode()) {
                                 // printf("CLICK 2 !\n");
-                                mode = !buffer.getCurrentState()[name].getMode();
-                            }
-                            else {
-                                mode = buffer.getCurrentState()[name].getMode();
+                                mode = !mode;
                             }
                             buffer.getCurrentState()[name].setMode(mode);
 
@@ -189,7 +185,7 @@ int Server::receiveLoop() {
                                     // If yes, we re-adjust the new position of said opponent:
                                     if (pos.getX() != currentState[n].getPosition().getX() and
                                         pos.getY() != currentState[n].getPosition().getY()) {
-                                        State s = State(time, pos, inputs);
+                                        State s = State(time, pos, radius, mode, inputs);
                                         buffer.updateNextPlayerState(p, s);
 //                                        buffer.refreshBuffer(p, s, time); // We refresh the buffer with its new pos.
                                     }
@@ -197,7 +193,7 @@ int Server::receiveLoop() {
 
                                 semaphore.acquire();
                                 State s = State(time, position, radius, mode, inputs);
-                                buffer.updateNextPlayerState(player, s);
+                                buffer.updateNextPlayerState(player, s, playerState.getMode());
                                 semaphore.release();
                             }
                             break;

@@ -22,7 +22,7 @@ private:
 
 public:
     State();
-    State(int timestamp, Position position, Input inputs);
+    State(int timestamp, Position position, bool mode, Input inputs);
     State(int timestamp, Position position, float radius, Input inputs);
     State(int timestamp, Position position, float radius, bool mode, Input inputs);
 

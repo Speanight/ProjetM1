@@ -21,6 +21,7 @@ struct Player {
     // ====== WEAPON ======
     float radius;               // must be saved as radiant so degree * ~1.111111 = radiant
     bool is_attacking;          // indicate if the client is attacking or not
+    bool mode;                  // indicate if the weapon is in attack or defense mode (# true = atk, false = defense
     Weapon wpn;
     Position attackOffset;
 };
@@ -50,7 +51,7 @@ public:
     std::unordered_map<std::string, State> getTState(int t);
     State getLastState(const Player& player);
     std::unordered_map<std::string,State> getStateOfTick(int tick);
-    void updateNextPlayerState(const Player& player, State state);
+    void updateNextPlayerState(const Player& player, State state, bool oldMode = false);
     void push(int clockState);
     bool refreshBuffer(const Player& player, State state, int clockState);
     void addClient(Player p);

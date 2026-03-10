@@ -150,7 +150,6 @@ Input Client::getInputs(bool mode_enable) {
             bool pressed = isKeyPressed(i.second) > 0.f;
 
             if(pressed && !mode_enable) {
-                // printf("CLICK\n");
                 input.setMode(true);
             }
 
@@ -257,7 +256,7 @@ int Client::receiveLoop() {
                         while (nbPlayers > 0) {
                             packet >> name >> position >> radius >> mode;
 
-                            State state(stateTick, position, radius, getInputs());
+                            State state(stateTick, position, radius, mode, getInputs());
                             std::unordered_map<std::string, State> currentState = bufferOnReceipt.getCurrentState();
                             std::unordered_map<std::string, State> pastState = bufferOnReceipt.getTState(-1);
 
@@ -269,7 +268,6 @@ int Client::receiveLoop() {
                                 this->player.position.setY(currState.getPosition().getY());
                                 this->player.radius = radius;
                                 this->player.mode = mode;
-                                lastServerUpdate = stateTick;
                             }
                             else {
                                 // Opponent position:
