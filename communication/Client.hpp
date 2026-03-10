@@ -63,7 +63,7 @@ protected:
     std::map<std::string, Player> opponents;
     Buffer bufferOnReceipt;
 
-    int lastDisplayedTick;
+    int lastServerTick;
 
 public:
     Client(sf::Clock clock, std::string name, sf::Color color = sf::Color::Red);

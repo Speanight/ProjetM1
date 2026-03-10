@@ -52,6 +52,7 @@ void ClientUI::drawGame() { // Game space
     // ======== COMPENSATIONS =========
     // Prediction
     if (this->getCompensations()[Compensation::PREDICTION]) {
+        // TODO: Prediction with clock to avoid desync issues.
         Position pos;
         int now = clock.getElapsedTime().asMilliseconds();
         pos.setX(getPlayer().position.getX() + inputs.getMovementX() * Const::PLAYER_SPEED * (now - lastUpdate));
@@ -62,28 +63,36 @@ void ClientUI::drawGame() { // Game space
 
     // Interpolation
     if (this->getCompensations()[Compensation::INTERPOLATION]) {
+//        std::cout << "NOW: @" << lastUpdate << " - CURR.: @" << bufferOnReceipt.getCurrentTick() << std::endl;
         std::unordered_map<std::string, State> pastState = bufferOnReceipt.getTState(-1);
         std::unordered_map<std::string, State> currState = bufferOnReceipt.getCurrentState();
         for (auto & [name, other] : opponents) {
-            Position pastPos = pastState[name].getPosition();
-            Position currPos = currState[name].getPosition();
+            if (name != getName() and name != "") {
+                Position pastPos = pastState[name].getPosition();
+                Position currPos = currState[name].getPosition();
+//                Position pastPos = pastState[name].getPosition();
+//                Position currPos = currState[name].getPosition();
 
-            // Position = old one + diff. * (0 at beginning of tick, 1 at end of tick)
-            // double tickProgress = Const::TICKRATE.count() / (lastUpdate - 1000);
-            double tickProgress = (clock.getElapsedTime().asMilliseconds() - lastDisplayedTick) / (double)Const::TICKRATE.count();
-            tickProgress = std::clamp(tickProgress, 0.0, 1.0);
-            std::cout << "(" << clock.getElapsedTime().asMilliseconds() << "- " << lastDisplayedTick << ") / " << Const::TICKRATE.count() << " = " << tickProgress << std::endl;
-            Position pos;
-            pos.setX(pastPos.getX() + (currPos.getX() - pastPos.getX()) * tickProgress);
-            pos.setY(pastPos.getY() + (currPos.getY() - pastPos.getY()) * tickProgress);
+                // Position = old one + diff. * (0 at beginning of tick, 1 at end of tick)
+//                std::cout << "pastPos: (" << pastPos.getX() << "; " << pastPos.getY() << ") | currPos: (" << currPos.getX() << "; " << currPos.getY() << ")" << std::endl;
+//                std::cout << "tickProgress = (" << clock.getElapsedTime().asMilliseconds() << " - " << lastServerTick << ") / " << Const::TICKRATE.count() << std::endl;
+                double tickProgress = (clock.getElapsedTime().asMilliseconds() - lastServerTick) / (double)Const::TICKRATE.count();
+//                tickProgress = std::clamp(tickProgress, 0.0, 1.0);
+//                std::cout << tickProgress << std::endl;
+                if (tickProgress == 1.0) {
+//                    std::cout << "last server tick: " << lastServerTick << std::endl;
+                }
+                Position pos;
+//                std::cout << "Past: " << pastPos.getX() << " | Now: " << currPos.getX() << std::endl;
 
-            // pos.setX(opponents[name].position.getX() + (currPos.getX() - pastPos.getX()) * tickProgress);
-            // pos.setY(opponents[name].position.getY() + (currPos.getY() - pastPos.getY()) * tickProgress);
-            opponents[name].position = pos;
-            // opponents[name].position.setX(pos.getX());
-            // opponents[name].position.setY(pos.getY());
-            opponents[name].radius = pastState[name].getRadius() + (currState[name].getRadius() - pastState[name].getRadius()) * tickProgress;
-            // opponents[name].radius = opponents[name].radius + (currState[name].getRadius() - pastState[name].getRadius()) * tickProgress;
+                pos.setX(pastPos.getX() + (currPos.getX() - pastPos.getX()) * tickProgress);
+                pos.setY(pastPos.getY() + (currPos.getY() - pastPos.getY()) * tickProgress);
+
+                // TODO: Semaphore to read old buffer (or segfault).
+                opponents[name].position = pos;
+//                std::cout << "radius = " << pastState[name].getRadius() << " + (" << currState[name].getRadius() << " - " << pastState[name].getRadius() << ") * " << tickProgress << " => " << pastState[name].getRadius() + (currState[name].getRadius() - pastState[name].getRadius()) * tickProgress << std::endl;
+                opponents[name].radius = pastState[name].getRadius() + (currState[name].getRadius() - pastState[name].getRadius()) * tickProgress;
+            }
         }
     }
 

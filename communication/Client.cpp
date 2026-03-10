@@ -215,6 +215,7 @@ int Client::receiveLoop() {
                     case Pkt::ROUND_START:
                         std::cout << "Client " << getName() << " received ROUND_START" << std::endl;
                         newGame = true;
+                        // No break because round start has position afterwards (and therefor will execute Pkt::GLOBAL case)
 
                     case Pkt::GLOBAL: {
                         int nbPlayers;
@@ -227,15 +228,14 @@ int Client::receiveLoop() {
                         while (nbPlayers > 0) {
                             packet >> name >> position >> radius;
 
-                            State state(stateTick, position, getInputs());
+                            State state(stateTick, position, radius, getInputs());
                             std::unordered_map<std::string, State> currentState = bufferOnReceipt.getCurrentState();
                             std::unordered_map<std::string, State> pastState = bufferOnReceipt.getTState(-1);
 
                             // TODO: Client must receive CURRENT server frame, and server shouldn't double-look back.
                             if (name == this->getName()) {
-                                if (this->bufferOnReceipt.refreshBuffer(player, state, stateTick)) {
-                                    lastDisplayedTick = clock.getElapsedTime().asMilliseconds();
-                                }
+//                                this->bufferOnReceipt.refreshBuffer(player, state, stateTick);
+                                this->bufferOnReceipt.updateNextPlayerState(player, state);
                                 State currState = bufferOnReceipt.getLastState(player);
                                 this->player.position.setX(currState.getPosition().getX());
                                 this->player.position.setY(currState.getPosition().getY());
@@ -243,13 +243,17 @@ int Client::receiveLoop() {
                             }
                             else {
                                 // Opponent position:
-                                this->bufferOnReceipt.refreshBuffer(opponents[name], state, stateTick);
-                                opponents[name].position.setX(pastState[name].getPosition().getX());
-                                opponents[name].position.setY(pastState[name].getPosition().getY());
-                                opponents[name].radius = radius;
+//                                this->bufferOnReceipt.refreshBuffer(opponents[name], state, stateTick);
+                                this->bufferOnReceipt.updateNextPlayerState(opponents[name], state);
+                                opponents[name].position.setX(currentState[name].getPosition().getX());
+                                opponents[name].position.setY(currentState[name].getPosition().getY());
+                                opponents[name].radius = currentState[name].getRadius();
                             }
                             nbPlayers--;
                         }
+
+                        this->bufferOnReceipt.push(stateTick);
+                        packet >> lastServerTick;
 
                         break;
                     }

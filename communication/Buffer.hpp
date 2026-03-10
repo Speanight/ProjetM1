@@ -49,6 +49,9 @@ public:
     // Functions
     std::unordered_map<std::string, State> getTState(int t);
     State getLastState(const Player& player);
+    std::unordered_map<std::string,State> getStateOfTick(int tick);
+    void updateNextPlayerState(const Player& player, State state);
+    void push(int clockState);
     bool refreshBuffer(const Player& player, State state, int clockState);
     void addClient(Player p);
     void setPlayerPosition(std::string name, Position position);

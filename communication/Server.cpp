@@ -172,14 +172,16 @@ int Server::receiveLoop() {
                                     if (pos.getX() != currentState[n].getPosition().getX() and
                                         pos.getY() != currentState[n].getPosition().getY()) {
                                         State s = State(time, pos, inputs);
-                                        buffer.refreshBuffer(p, s, time); // We refresh the buffer with its new pos.
+                                        buffer.updateNextPlayerState(p, s);
+//                                        buffer.refreshBuffer(p, s, time); // We refresh the buffer with its new pos.
                                     }
                                 }
 
                                 semaphore.acquire();
                                 State s = State(time, position, radius, inputs);
 
-                                buffer.refreshBuffer(player, s, time);
+//                                buffer.refreshBuffer(player, s, time);
+                                buffer.updateNextPlayerState(player, s);
                                 semaphore.release();
                             }
                             break;
@@ -221,15 +223,16 @@ int Server::sendLoop() {
                 int time = clock.getElapsedTime().asMilliseconds();
 
                 for (auto & [name, player] : clients) {
-                    Position pos = currentState[name].getPosition();
+                    State st = buffer.getLastState(player);
+                    Position pos = st.getPosition();
                     pos.setX((playerNb * Const::MAP_SIZE_X / (clients.size())) - (Const::MAP_SIZE_X / clients.size()) / 2);
                     pos.setY(Const::MAP_SIZE_Y / 2);
                     Input inputs(0,0,0.f,false);
                     State s = State(time, pos, inputs);
-                    buffer.refreshBuffer(player, s, time);
-                    buffer.setPlayerPosition(name, pos);
-
-                    buffer.refreshBuffer(player, s, time);
+//                    buffer.refreshBuffer(player, s, time);
+//                    buffer.setPlayerPosition(name, pos);
+                    buffer.updateNextPlayerState(player, s);
+//                    buffer.refreshBuffer(player, s, time);
                     buffer.getCurrentState()[name].setPosition(pos);
                     buffer.getCurrentState()[name].getRadius();
                     playerNb++;
@@ -243,10 +246,14 @@ int Server::sendLoop() {
                 packet << n << state.getPosition() << state.getRadius();
             }
             semaphore.acquire();
+            packet << clock.getElapsedTime().asMilliseconds(); // Sync clocks
             socket.send(packet, sender.value(), player.port);
             addLine("Server >>> " + name + " position: (" + std::to_string(buffer.getCurrentState()[name].getPosition().getX()) + ", " + std::to_string(buffer.getCurrentState()[name].getPosition().getY()) + ") and radius : " + std::to_string(player.radius), sf::Color::White);
             semaphore.release();
         }
+
+
+        buffer.push(clock.getElapsedTime().asMilliseconds());
         sf::sleep(tickrate);
     }
 
