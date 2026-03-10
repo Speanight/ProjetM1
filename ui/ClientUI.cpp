@@ -41,7 +41,6 @@ void ClientUI::drawGame() { // Game space
     dir.y += 1.f * inputs.getMovementY();
 
     // ========= DRAW =========
-
     ImDrawList* draw_list = ImGui::GetWindowDrawList();
     drawPlayer(draw_list, getPlayer(), childMin, childMax);
 
@@ -63,35 +62,30 @@ void ClientUI::drawGame() { // Game space
 
     // Interpolation
     if (this->getCompensations()[Compensation::INTERPOLATION]) {
-//        std::cout << "NOW: @" << lastUpdate << " - CURR.: @" << bufferOnReceipt.getCurrentTick() << std::endl;
         std::unordered_map<std::string, State> pastState = bufferOnReceipt.getTState(-1);
         std::unordered_map<std::string, State> currState = bufferOnReceipt.getCurrentState();
         for (auto & [name, other] : opponents) {
             if (name != getName() and name != "") {
                 Position pastPos = pastState[name].getPosition();
                 Position currPos = currState[name].getPosition();
-//                Position pastPos = pastState[name].getPosition();
-//                Position currPos = currState[name].getPosition();
 
                 // Position = old one + diff. * (0 at beginning of tick, 1 at end of tick)
-//                std::cout << "pastPos: (" << pastPos.getX() << "; " << pastPos.getY() << ") | currPos: (" << currPos.getX() << "; " << currPos.getY() << ")" << std::endl;
-//                std::cout << "tickProgress = (" << clock.getElapsedTime().asMilliseconds() << " - " << lastServerTick << ") / " << Const::TICKRATE.count() << std::endl;
                 double tickProgress = (clock.getElapsedTime().asMilliseconds() - lastServerTick) / (double)Const::TICKRATE.count();
-//                tickProgress = std::clamp(tickProgress, 0.0, 1.0);
-//                std::cout << tickProgress << std::endl;
-                if (tickProgress == 1.0) {
-//                    std::cout << "last server tick: " << lastServerTick << std::endl;
-                }
                 Position pos;
-//                std::cout << "Past: " << pastPos.getX() << " | Now: " << currPos.getX() << std::endl;
 
                 pos.setX(pastPos.getX() + (currPos.getX() - pastPos.getX()) * tickProgress);
                 pos.setY(pastPos.getY() + (currPos.getY() - pastPos.getY()) * tickProgress);
 
                 // TODO: Semaphore to read old buffer (or segfault).
                 opponents[name].position = pos;
-//                std::cout << "radius = " << pastState[name].getRadius() << " + (" << currState[name].getRadius() << " - " << pastState[name].getRadius() << ") * " << tickProgress << " => " << pastState[name].getRadius() + (currState[name].getRadius() - pastState[name].getRadius()) * tickProgress << std::endl;
-                opponents[name].radius = pastState[name].getRadius() + (currState[name].getRadius() - pastState[name].getRadius()) * tickProgress;
+
+                // If the radius goes through 0, make sure we rotate correctly.
+                if (abs(pastState[name].getRadius() - currState[name].getRadius()) > M_2_PI) {
+                    opponents[name].radius = pastState[name].getRadius() + (currState[name].getRadius() - pastState[name].getRadius()) * tickProgress;
+                }
+                else {
+                    opponents[name].radius = pastState[name].getRadius() + (currState[name].getRadius() - pastState[name].getRadius()) * tickProgress;
+                }
             }
         }
     }
@@ -110,6 +104,10 @@ void ClientUI::addOpponent(const std::string& name, sf::Color color) {
     this->bufferOnReceipt.addClient(Player(0,name,color,Position()));
 }
 
+/**
+ * Draws the configuration that shows at the top of the player's screen. It is used to
+ * change ping and packet loss values, as well as change compensation enabled/disabled.
+ */
 void ClientUI::drawConfig() {
     const char* title = getName().c_str();
 

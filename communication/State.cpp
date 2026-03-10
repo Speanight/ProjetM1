@@ -6,25 +6,11 @@ State::State() {
     this->timestamp = 0;
 }
 
-State::State(int timestamp, Position position, bool mode, Input inputs) {
-    this->timestamp = timestamp;
-    setPosition(position);
-    setMode(mode);
-    this->inputs = inputs;
-}
-
-State::State(int timestamp, Position position, float radius, Input inputs) {
-    this->timestamp = timestamp;
-    setPosition(position);
-    setRadius(radius);
-    this->inputs = inputs;
-}
-
 State::State(int timestamp, Position position, float radius, bool mode, Input inputs) {
     this->timestamp = timestamp;
     this->position = position;
     this->radius = radius;
-    this->inputs = inputs;
+    this->inputs[timestamp] = inputs;
     this->mode = mode;
 }
 
@@ -45,7 +31,7 @@ bool State::getMode() {
     return mode;
 }
 
-Input State::getInputs() {
+std::map<int,Input> State::getInputs() {
     return inputs;
 }
 
@@ -64,6 +50,22 @@ void State::setMode(bool mode) {
     this->mode = mode;
 }
 
-void State::setInputs(Input inputs) {
-    this->inputs = inputs;
+void State::addInputs(int timestamp, Input inputs) {
+    this->inputs[timestamp] = inputs;
 }
+
+// TODO: operand for packets: [PLACEHOLDERS BELOW]
+//sf::Packet& operator<<(sf::Packet &packet, const Position& position) {
+//    return packet << position.getX() << position.getY();
+//}
+//
+//sf::Packet& operator>>(sf::Packet &packet, Position& position) {
+//    float x;
+//    float y;
+//    packet >> x >> y;
+//
+//    position.setX(x);
+//    position.setY(y);
+//
+//    return packet;
+//}

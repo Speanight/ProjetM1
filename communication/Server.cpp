@@ -147,6 +147,7 @@ int Server::receiveLoop() {
 
                             // Get time elapsed since last packet from client. Used for consistency in speed and such.
                             dt = (time - playerState.getTimestamp()) % (2 * Const::TICKRATE.count());
+                            // TODO: Fix ^ Doesn't work properly with ping.
 
                             // Get the current server state AND last player state (which might be the next server state!)
                             currentState = buffer.getCurrentState();
@@ -170,7 +171,6 @@ int Server::receiveLoop() {
                             // ====== WEAPON MODE ======
                             bool mode = playerState.getMode();
                             if(inputs.getMode()) {
-                                // printf("CLICK 2 !\n");
                                 mode = !mode;
                             }
                             buffer.getCurrentState()[name].setMode(mode);
@@ -187,10 +187,10 @@ int Server::receiveLoop() {
                                         pos.getY() != currentState[n].getPosition().getY()) {
                                         State s = State(time, pos, radius, mode, inputs);
                                         buffer.updateNextPlayerState(p, s);
-//                                        buffer.refreshBuffer(p, s, time); // We refresh the buffer with its new pos.
                                     }
                                 }
 
+                                // TODO: Add the new position AND the new inputs to the state instead of creating a new one!
                                 semaphore.acquire();
                                 State s = State(time, position, radius, mode, inputs);
                                 buffer.updateNextPlayerState(player, s, playerState.getMode());
@@ -273,7 +273,10 @@ int Server::sendLoop() {
         }
 
 
+        semaphore.acquire();
         buffer.push(clock.getElapsedTime().asMilliseconds());
+        semaphore.release();
+
         sf::sleep(tickrate);
     }
 

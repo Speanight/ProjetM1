@@ -78,9 +78,8 @@ public:
     std::string getName();
     int getPacketLoss() const;
     int getPing() const;
-    Input getInputs();
-    Input getInputs(bool mode_enable);
-    Position getPosition();
+//    Input getInputs();
+    Input getInputs(bool mode_enable = false);
     sf::Color getColor();
     std::unordered_map<int,bool> getCompensations() const;
 
@@ -94,13 +93,8 @@ public:
     // Functions
     std::unordered_map<std::string, std::any> init();
 
-    void changeCompensation(int compensation, bool value);
-
-    void move(ImVec2 direction, float deltaTime);
-
     int sendLoop();
     int receiveLoop();
-    void updateLoop();
     std::optional<sf::Packet> getLatestPacket();
 };
 

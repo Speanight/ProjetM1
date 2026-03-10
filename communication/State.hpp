@@ -10,6 +10,7 @@
 #include "../Utils.hpp"
 #include <unordered_set>
 #include <cmath>
+#include <map>
 
 class State {
 private:
@@ -18,23 +19,21 @@ private:
     float radius;
     bool mode;
 
-    Input inputs;
+    std::map<int,Input> inputs;
 
 public:
     State();
-    State(int timestamp, Position position, bool mode, Input inputs);
-    State(int timestamp, Position position, float radius, Input inputs);
     State(int timestamp, Position position, float radius, bool mode, Input inputs);
 
     // Getters / Setters
     int getTimestamp() const;
     Position getPosition();
-    Input getInputs();
+    std::map<int,Input> getInputs();
     float getRadius();
     bool getMode();
 
     void setPosition(Position position);
-    void setInputs(Input inputs);
+    void addInputs(int timestamp, Input inputs);
     void setRadius(float radius);
     void setMode(bool mode);
 };

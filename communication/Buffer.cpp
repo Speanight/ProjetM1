@@ -11,29 +11,29 @@ int Buffer::getCurrentTick() {
     return this->currentTick;
 }
 
-std::queue<std::unordered_map<std::string, State>> Buffer::getPastStates() {
-    return pastStates;
-}
-
 std::unordered_map<std::string, State> Buffer::getCurrentState() {
     return currentState;
-}
-
-std::unordered_map<std::string, State> Buffer::getNextState() {
-    return nextState;
-}
-
-void Buffer::setNextState(std::unordered_map<std::string, State> state, int clockState) {
-    this->currentTick = clockState;
-    this->currentState = nextState;
-    this->nextState.clear();
-    this->nextState = state;
 }
 
 void Buffer::updateNextPlayerState(const Player& player, State state, bool oldMode) {
     nextState[player.name] = state;
 }
 
+// Functions
+/**
+ * @brief pushes down values in the buffer. next states becomes current, current becomes past, and past is updated if needed.
+ *
+ * @details
+ * "Pushes down" every values. The values in next states are completed if some are missing
+ * (according to the player list given at init.), then pushed down as current state.
+ * The old current state becomes the latest past state (which shrinks down in size if needed),
+ * and the current tick is updated according to the given value.
+ * [WARNING] - This function uses std::queue, which means if it is used in a thread, a semaphore
+ * should be used to give full priority to the function! Not doing so might cause "random" seg.
+ * fault whenever the thread gets cut in the middle of its execution.
+ *
+ * @param clockState - The new timestamp for the current state.
+ */
 void Buffer::push(int clockState) {
     for (auto & player : playerList) {
         if (auto search = nextState.find(player.name); search == nextState.end()) {
@@ -52,34 +52,21 @@ void Buffer::push(int clockState) {
     nextState.clear();
 }
 
-bool Buffer::refreshBuffer(const Player& player, State state, int clockState) {
-    nextState[player.name] = state;
-
-    if (currentTick / Const::TICKRATE.count() < clockState / Const::TICKRATE.count()) {
-        for (auto & player : playerList) {
-            if (auto search = nextState.find(player.name); search == nextState.end()) {
-                // If a player isn't find in the next "current state"...
-                nextState[player.name] = currentState[player.name]; // Roll backs to previously known pos.
-            }
-        }
-
-        pastStates.push(currentState);
-
-        if (pastStates.size() > amtPastStates) {
-            pastStates.pop();
-        }
-
-        currentTick = clockState;
-        currentState = nextState;
-        nextState.clear();
-
-        return true;
-    }
-
-    return false;
-}
-
-// Functions
+/**
+ * @brief Returns the state at moment N-t (with N being present)
+ *
+ * @details
+ * This function returns a map of the States at a moment N-t. If t is greater than 0, it will return
+ * the next state. If it's equal to 0, it will return the current state. If it's smaller than
+ * 0, if the size of the past states is greater than the given numbers absolute value, it will
+ * return the corresponding past state. ie: having a t-value of -1 will return the first past
+ * state, the one just before the current state. \n
+ * Note that if the given value is bigger than the size of the past states buffer, it will return
+ * an empty map ({}).
+ *
+ * @param t - Moment of state to get. 0 = present, >0 = future, <0 = past.
+ * @return map of States, with player names as keys.
+ */
 std::unordered_map<std::string, State> Buffer::getTState(int t) {
     if (t == 0) {
         return currentState;
@@ -101,6 +88,11 @@ std::unordered_map<std::string, State> Buffer::getTState(int t) {
     return {}; // Element not found in past states.
 }
 
+/**
+ * @brief Returns the last state of a given player.
+ * @param player - Player to look for.
+ * @return corresponding state. Empty ({}) if none correspond.
+ */
 State Buffer::getLastState(const Player& player) {
     if (auto search = nextState.find(player.name); search != nextState.end()) {
         return search->second;
@@ -111,20 +103,6 @@ State Buffer::getLastState(const Player& player) {
     return {};
 }
 
-std::unordered_map<std::string,State> Buffer::getStateOfTick(int tick) {
-    if (currentTick - tick > 0) {
-        if (currentTick - tick < Const::TICKRATE.count()) {
-            return currentState;
-        }
-        return nextState;
-    }
-    return getTState(-(currentTick - tick)/Const::TICKRATE.count());
-}
-
 void Buffer::addClient(Player p) {
     playerList.push_back(p);
-}
-
-void Buffer::setPlayerPosition(std::string name, Position position) {
-    this->currentState[name].setPosition(position);
 }

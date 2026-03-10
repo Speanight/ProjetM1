@@ -89,10 +89,6 @@ int Client::getPing() const {
     return network.ping;
 }
 
-Position Client::getPosition() {
-    return player.position;
-}
-
 std::unordered_map<int, bool> Client::getCompensations() const {
     return network.compensations;
 }
@@ -128,21 +124,15 @@ void Client::setCompensations(std::unordered_map<int, bool> compensations) {
 ///////////////
 // FUNCTIONS //
 ///////////////
-void Client::move(ImVec2 direction, float deltaTime) {
-//    position.setX(position.getX() + direction.x * Const::PLAYER_SPEED * deltaTime / 1000);
-//    position.setY(position.getY() + direction.y * Const::PLAYER_SPEED * deltaTime / 1000);
-}
-
-
-Input Client::getInputs() {
-    Input input;
-    for (const std::pair<const int, sf::Keyboard::Key> & i : keybinds) {
-        input.handleInput(i.first, isKeyPressed(i.second));
-    }
-
-    return input;
-}
-
+/**
+ * Function that recovers all the users inputs. This uses user's defined keybinds and iterates
+ * over each of them to construct an object called "Input". This function calls a function named
+ * "handleInput", from the object "Input", which will put the correct key/value into the correct
+ * variable in the object Input.
+ *
+ * @param mode_enable (optional) - Allows you to give the function last weapon mode value (attack/defense)
+ * @return - Returns an object Input with corresponding values according to keys pressed.
+ */
 Input Client::getInputs(bool mode_enable) {
     Input input;
     for (const std::pair<const int, sf::Keyboard::Key> & i : keybinds) {
@@ -166,10 +156,6 @@ Input Client::getInputs(bool mode_enable) {
 
 void Client::setKeybinds(std::unordered_map<int, sf::Keyboard::Key> keybinds) {
     this->keybinds = std::move(keybinds);
-}
-
-void Client::changeCompensation(int compensation, bool value) {
-    this->network.compensations[compensation] = value;
 }
 
 /**
@@ -261,7 +247,6 @@ int Client::receiveLoop() {
                             std::unordered_map<std::string, State> pastState = bufferOnReceipt.getTState(-1);
 
                             if (name == this->getName()) {
-//                                this->bufferOnReceipt.refreshBuffer(player, state, stateTick);
                                 this->bufferOnReceipt.updateNextPlayerState(player, state);
                                 State currState = bufferOnReceipt.getLastState(player);
                                 this->player.position.setX(currState.getPosition().getX());
@@ -271,7 +256,6 @@ int Client::receiveLoop() {
                             }
                             else {
                                 // Opponent position:
-//                                this->bufferOnReceipt.refreshBuffer(opponents[name], state, stateTick);
                                 this->bufferOnReceipt.updateNextPlayerState(opponents[name], state);
                                 opponents[name].position.setX(currentState[name].getPosition().getX());
                                 opponents[name].position.setY(currentState[name].getPosition().getY());
