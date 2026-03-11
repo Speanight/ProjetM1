@@ -27,8 +27,6 @@ private:
     sf::UdpSocket socket;
     Buffer buffer;
 
-    std::unordered_map<int, bool> compensations;
-
     std::thread sendThread;
     std::thread receiveThread;
     std::binary_semaphore semaphore;

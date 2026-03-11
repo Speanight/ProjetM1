@@ -17,9 +17,6 @@ Server::Server(const sf::Clock clock) : semaphore(1) {
         socket.setBlocking(true);
         sendThread = std::thread(&Server::sendLoop, this);
         receiveThread = std::thread(&Server::receiveLoop, this);
-
-        // Adds all compensation methods:
-        compensations[Compensation::EXTRAPOLATION] = true;
     }
 }
 
@@ -89,6 +86,7 @@ int Server::receiveLoop() {
     while (loop) {
         sf::sleep(sf::Time());
         senderNum = 0;
+        packet.clear();
 
         if (socket.receive(packet, sender, port) == sf::Socket::Status::Done) {
             if (port == COMM_PORT_SERVER) {
@@ -151,14 +149,18 @@ int Server::receiveLoop() {
 
                             // Get the current server state AND last player state (which might be the next server state!)
                             currentState = buffer.getCurrentState();
+                            semaphore.acquire();
                             playerState = buffer.getLastState(player);
+                            semaphore.release();
+                            buffer.addInputsToLastState(player, clock.getElapsedTime().asMilliseconds(), inputs);
                             // ====== POSITION ======
                             position = playerState.getPosition();
+                            semaphore.acquire();
                             radius = buffer.getLastState(player).getRadius();
+                            semaphore.release();
 
                             // Adjust client values according to last state and new inputs values.
-                            position.setX(position.getX() + inputs.getMovementX() * Const::PLAYER_SPEED * dt);
-                            position.setY(position.getY() + inputs.getMovementY() * Const::PLAYER_SPEED * dt);
+                            position.move(inputs.getMovementX(), inputs.getMovementY(), dt);
                             radius += inputs.getRotate() * Const::PLAYER_RADIUS_SPEED * dt;
 
                             float twoPi = 2.f * std::numbers::pi;
@@ -230,34 +232,29 @@ int Server::sendLoop() {
             if (newGame) {
                 packet << Pkt::ROUND_START << int(buffer.getCurrentTick()) << int(clients.size());
 
-                int playerNb = 1;
+                int playerNb = clients.size();
                 int time = clock.getElapsedTime().asMilliseconds();
 
                 for (auto & [name, player] : clients) {
-                    State st = buffer.getLastState(player);
-                    Position pos = st.getPosition();
+
+                    Position pos;
                     pos.setX((playerNb * Const::MAP_SIZE_X / (clients.size())) - (Const::MAP_SIZE_X / clients.size()) / 2);
                     pos.setY(Const::MAP_SIZE_Y / 2);
-                    Input inputs(0, 0, 0.f, false, false);
+                    Input inputs(buffer.getLastState(player).getInputs().end()->second.getId(), 0, 0, 0.f, false, false);
                     State s = State(time, pos, std::numbers::pi/2, true, inputs);
-//                    buffer.refreshBuffer(player, s, time);
-//                    buffer.setPlayerPosition(name, pos);
                     buffer.updateNextPlayerState(player, s);
 
-                    float radius = buffer.getCurrentState()[name].getRadius();           // give the actual radius of the client (weapon position)
-//                    buffer.refreshBuffer(player, s, time);
-                    buffer.getCurrentState()[name].setPosition(pos);
-                    buffer.getCurrentState()[name].getRadius();
-                    buffer.getCurrentState()[name].getRadius();
-                    playerNb++;
+                    playerNb--;
                 }
+                buffer.push(clock.getElapsedTime().asMilliseconds());
+                currentState = buffer.getCurrentState(); // Refresh current state.
             }
             else {
                 packet << Pkt::GLOBAL << int(buffer.getCurrentTick()) << int(currentState.size());
             }
 
             for (auto & [n, state] : currentState) {
-                packet << n << state.getPosition() << state.getRadius() << state.getMode();
+                packet << n << state;
             }
             semaphore.acquire();
             packet << clock.getElapsedTime().asMilliseconds(); // Sync clocks

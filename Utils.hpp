@@ -52,12 +52,10 @@ namespace Pkt {
 
 namespace Inputs {
     // Movement
-    static constexpr int MOVEMENT_LOWER = 0; // Defines 1st movement value
     static constexpr int MOVEMENT_UP = 0;
     static constexpr int MOVEMENT_DOWN = 1;
     static constexpr int MOVEMENT_LEFT = 2;
     static constexpr int MOVEMENT_RIGHT = 3;
-    static constexpr int MOVEMENT_UPPER = 3; // Defines last movement value
     static constexpr int WPN_CCW = 4;
     static constexpr int WPN_CW = 5;
     static constexpr int WPN_CHANGE = 6;
@@ -65,10 +63,9 @@ namespace Inputs {
 }
 
 namespace Compensation {
-    static constexpr int EXTRAPOLATION = 0;
-    static constexpr int INTERPOLATION = 1;
-    static constexpr int PREDICTION = 2;
-    static constexpr int RECONCILIATION = 3;
+    static constexpr int INTERPOLATION = 0;
+    static constexpr int PREDICTION = 1;
+    static constexpr int RECONCILIATION = 2;
 }
 
 #endif

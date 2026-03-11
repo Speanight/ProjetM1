@@ -25,6 +25,8 @@ public:
 
     // Operators
     bool operator==(const Position& other) const;
+
+    void move(float inputX, float inputY, int elapsedTime);
 };
 
 sf::Packet& operator<<(sf::Packet& packet, const Position& position);

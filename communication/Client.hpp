@@ -36,7 +36,7 @@ struct NetworkState {
     int ping;
     int packetLoss;
 
-    std::unordered_map<int, bool> compensations;
+    std::array<bool,3> compensations = {false, false, false};
 };
 
 
@@ -44,6 +44,8 @@ class Client {
 private:
     Player player;
     std::deque<QueuedPacket> packets;
+
+    std::binary_semaphore semaphore;
 
     sf::IpAddress server;
     sf::UdpSocket socket;
@@ -62,7 +64,12 @@ protected:
     std::map<std::string, Player> opponents;
     Buffer bufferOnReceipt;
 
+    std::map<unsigned int, State> inputsBuffer;
+
     int lastServerTick;
+    unsigned int lastInputId = 0;
+
+    int lastUpdate;
 
 public:
     Client(sf::Clock clock, std::string name, sf::Color color = sf::Color::Red);
@@ -81,21 +88,29 @@ public:
 //    Input getInputs();
     Input getInputs(bool mode_enable = false);
     sf::Color getColor();
-    std::unordered_map<int,bool> getCompensations() const;
+    std::array<bool,3> getCompensations() const;
+    bool getCompensationEnabled(int compensation);
+    float getRadius() const;
 
     void setPacketLoss(int packetLoss);
     void setPing(int ping);
     void setKeybinds(std::unordered_map<int,sf::Keyboard::Key> keybinds);
     void setPosition(Position p);
     void setRadius(float radius);
-    void setCompensations(std::unordered_map<int,bool> compensations);
+    void setCompensations(std::array<bool,3> compensations);
 
     // Functions
     std::unordered_map<std::string, std::any> init();
 
-    int sendLoop();
+    int update();
+    int sendPacket(Input inputs);
     int receiveLoop();
     std::optional<sf::Packet> getLatestPacket();
+
+    // Compensations
+    void compensationInterpolation();
+    void compensationPrediction(Input inputs);
+    void compensationReconciliation();
 };
 
 

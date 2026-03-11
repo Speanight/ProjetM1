@@ -74,6 +74,7 @@ std::unordered_map<std::string, State> Buffer::getTState(int t) {
     if (t > 0) {
         return nextState;
     }
+    // TODO: vVv This causes SIGSEGV for some reason vVv
     std::queue<std::unordered_map<std::string, State>> copyPastStates = pastStates;
 
     while (!copyPastStates.empty()) {
@@ -90,6 +91,9 @@ std::unordered_map<std::string, State> Buffer::getTState(int t) {
 
 /**
  * @brief Returns the last state of a given player.
+ *
+ * @details Need a semaphore, as interrupting a "find" mid-execution might cause a SIGSEGV!
+ *
  * @param player - Player to look for.
  * @return corresponding state. Empty ({}) if none correspond.
  */
@@ -101,6 +105,15 @@ State Buffer::getLastState(const Player& player) {
         return search->second;
     }
     return {};
+}
+
+void Buffer::addInputsToLastState(const Player& player, int timestamp, Input inputs) {
+    if (auto search = nextState.find(player.name); search != nextState.end()) {
+        nextState[player.name].addInputs(timestamp, inputs);
+    }
+    else if (auto search = currentState.find(player.name); search != currentState.end()) {
+        currentState[player.name].addInputs(timestamp, inputs);
+    }
 }
 
 void Buffer::addClient(Player p) {

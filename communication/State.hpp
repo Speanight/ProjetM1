@@ -18,6 +18,7 @@ private:
     Position position;
     float radius;
     bool mode;
+    unsigned int lastInputsId;
 
     std::map<int,Input> inputs;
 
@@ -31,12 +32,20 @@ public:
     std::map<int,Input> getInputs();
     float getRadius();
     bool getMode();
+    unsigned int getLastInputsId() const;
 
     void setPosition(Position position);
     void addInputs(int timestamp, Input inputs);
     void setRadius(float radius);
     void setMode(bool mode);
+    void setTimestamp(int timestamp);
+    void setLastInputsId(unsigned int id);
+
+    Input getPercentInput(double percent);
 };
+
+sf::Packet& operator<<(sf::Packet &packet, State state);
+sf::Packet& operator>>(sf::Packet &packet, State& state);
 
 
 #endif //PROJETM1_STATE_HPP

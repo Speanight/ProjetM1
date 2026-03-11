@@ -6,6 +6,8 @@
 
 class Input {
 private:
+    // TODO: unsigned int limit is at 4,294,967,295. This means it should be reset to 0 on round start!
+    unsigned int id;
     float movementX;
     float movementY;
     float rotate;
@@ -15,11 +17,10 @@ private:
 public:
     // Constructors
     Input();
-    Input(float x, float y, bool attack);
-    Input(float x, float y, float r, bool attack);
-    Input(float x, float y, float r, bool mode, bool attack);
+    Input(unsigned int id, float x=0, float y=0, float r=0, bool mode=false, bool attack=false);
 
     // Getters
+    unsigned int getId();
     float getMovementX();
     float getMovementY();
     float getRotate();
@@ -27,9 +28,8 @@ public:
     bool getModeEnable();
     bool getAttack();
 
-
-
     // Setters
+    void setId(unsigned int id);
     void setMovementX(float x);
     void setMovementY(float y);
     void setRotate(float r);

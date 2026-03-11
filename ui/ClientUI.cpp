@@ -31,15 +31,6 @@ void ClientUI::drawGame() { // Game space
         childMin.x + size,
         childMin.y + size
     };
-
-    // ========= INPUT =========
-    ImVec2 dir = {0.f, 0.f};
-
-    Input inputs = getInputs();
-
-    dir.x += 1.f * inputs.getMovementX();
-    dir.y += 1.f * inputs.getMovementY();
-
     // ========= DRAW =========
     ImDrawList* draw_list = ImGui::GetWindowDrawList();
     drawPlayer(draw_list, getPlayer(), childMin, childMax);
@@ -47,54 +38,6 @@ void ClientUI::drawGame() { // Game space
     for (auto & [name, other] : opponents) {
         drawPlayer(draw_list, other, childMin, childMax);
     }
-
-    // ======== COMPENSATIONS =========
-    // Prediction
-    if (this->getCompensations()[Compensation::PREDICTION]) {
-        // TODO: Prediction with clock to avoid desync issues.
-        Position pos;
-        int now = clock.getElapsedTime().asMilliseconds();
-        pos.setX(getPlayer().position.getX() + inputs.getMovementX() * Const::PLAYER_SPEED * (now - lastUpdate));
-        pos.setY(getPlayer().position.getY() + inputs.getMovementY() * Const::PLAYER_SPEED * (now - lastUpdate));
-        setPosition(pos);
-        setRadius(getPlayer().radius + inputs.getRotate() * Const::PLAYER_RADIUS_SPEED * (now - lastUpdate));
-    }
-
-    // Interpolation
-    if (this->getCompensations()[Compensation::INTERPOLATION]) {
-        std::unordered_map<std::string, State> pastState = bufferOnReceipt.getTState(-1);
-        std::unordered_map<std::string, State> currState = bufferOnReceipt.getCurrentState();
-        for (auto & [name, other] : opponents) {
-            if (name != getName() and name != "") {
-                Position pastPos = pastState[name].getPosition();
-                Position currPos = currState[name].getPosition();
-
-                // Position = old one + diff. * (0 at beginning of tick, 1 at end of tick)
-                double tickProgress = (clock.getElapsedTime().asMilliseconds() - lastServerTick) / (double)Const::TICKRATE.count();
-                Position pos;
-
-                pos.setX(pastPos.getX() + (currPos.getX() - pastPos.getX()) * tickProgress);
-                pos.setY(pastPos.getY() + (currPos.getY() - pastPos.getY()) * tickProgress);
-
-                // TODO: Semaphore to read old buffer (or segfault).
-                opponents[name].position = pos;
-
-                // If the radius goes through 0, make sure we rotate correctly.
-                if (abs(pastState[name].getRadius() - currState[name].getRadius()) > M_2_PI) {
-                    opponents[name].radius = pastState[name].getRadius() + (currState[name].getRadius() - pastState[name].getRadius()) * tickProgress;
-                }
-                else {
-                    opponents[name].radius = pastState[name].getRadius() + (currState[name].getRadius() - pastState[name].getRadius()) * tickProgress;
-                }
-            }
-        }
-    }
-
-    // TODO: Reconciliation
-    if (this->getCompensations()[Compensation::RECONCILIATION]) {
-    }
-
-    lastUpdate = clock.getElapsedTime().asMilliseconds();
     ImGui::EndChild();
 }
 
@@ -117,7 +60,7 @@ void ClientUI::drawConfig() {
 
     int packetLoss = getPacketLoss();
     int ping = getPing();
-    std::unordered_map<int,bool> compensations = getCompensations();
+    std::array<bool,3> compensations = getCompensations();
 
     ImGui::SliderInt("Packet loss", &packetLoss, 0, 100);
     ImGui::InputInt("Ping", &ping);
@@ -130,6 +73,10 @@ void ClientUI::drawConfig() {
 
     setPacketLoss(packetLoss);
     setPing(ping);
+
+    if (compensations[Compensation::RECONCILIATION]) {
+        compensations[Compensation::PREDICTION] = true;
+    }
 
     setCompensations(compensations);
 

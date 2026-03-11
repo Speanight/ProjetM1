@@ -13,11 +13,6 @@
 #include <SFML/Graphics/Color.hpp>
 
 class ClientUI : public Client {
-private:
-    float lastUpdate;
-
-
-protected:
 public:
     ClientUI(sf::Clock clock, std::string name, sf::Color color = sf::Color::Red);
     // ClientUI(sf::Clock clock, std::string name, sf::Color color = sf::Color::Red, float radius = 0);
