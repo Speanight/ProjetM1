@@ -91,6 +91,7 @@ public:
     std::array<bool,3> getCompensations() const;
     bool getCompensationEnabled(int compensation);
     float getRadius() const;
+    Position getPosition() const;
 
     void setPacketLoss(int packetLoss);
     void setPing(int ping);

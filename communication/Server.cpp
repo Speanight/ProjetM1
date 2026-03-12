@@ -139,13 +139,10 @@ int Server::receiveLoop() {
                                 +" | inputs: x=" + std::to_string(inputs.getMovementX()) +
                                 "; y=" + std::to_string(inputs.getMovementY()) +
                                 "; rotate = "+ std::to_string(inputs.getRotate()) +
-                                "; mode = " + std::to_string(inputs.getMode())
+                                "; mode = " + std::to_string(inputs.getMode()) +
+                                "; inputs #" + std::to_string(inputs.getId())
                                 );
                             semaphore.release();
-
-                            // Get time elapsed since last packet from client. Used for consistency in speed and such.
-                            dt = (time - playerState.getTimestamp()) % (2 * Const::TICKRATE.count());
-                            // TODO: Fix ^ Doesn't work properly with ping.
 
                             // Get the current server state AND last player state (which might be the next server state!)
                             currentState = buffer.getCurrentState();
@@ -158,6 +155,9 @@ int Server::receiveLoop() {
                             semaphore.acquire();
                             radius = buffer.getLastState(player).getRadius();
                             semaphore.release();
+
+                            // Get time elapsed since last packet from client. Used for consistency in speed and such.
+                            dt = (time - playerState.getTimestamp()) % (Const::TICKRATE.count());
 
                             // Adjust client values according to last state and new inputs values.
                             position.move(inputs.getMovementX(), inputs.getMovementY(), dt);
@@ -187,7 +187,8 @@ int Server::receiveLoop() {
                                     // If yes, we re-adjust the new position of said opponent:
                                     if (pos.getX() != currentState[n].getPosition().getX() and
                                         pos.getY() != currentState[n].getPosition().getY()) {
-                                        State s = State(time, pos, radius, mode, inputs);
+                                        float opponentRadius = currentState[n].getRadius();
+                                        State s = State(time, pos, opponentRadius, mode, inputs);
                                         buffer.updateNextPlayerState(p, s);
                                     }
                                 }

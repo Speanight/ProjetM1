@@ -16,6 +16,12 @@ int main() {
     sf::Clock clock;
     // auto clock = std::chrono::steady_clock::now();
 
+    for (int i = 0; i < 8; i++) {
+        if (sf::Joystick::isConnected(i)) {
+            std::cout << "Joystick " << i << " is connected!" << std::endl;
+        }
+    }
+
     MainWindow window(clock);
 
     std::cout << "Tickrate changes " << Const::TICKRATE.count() << " times per second." << std::endl;

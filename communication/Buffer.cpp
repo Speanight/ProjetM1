@@ -42,10 +42,11 @@ void Buffer::push(int clockState) {
         }
     }
 
-    pastStates.push(currentState);
+//    pastStates.push(currentState);
+    pastStates.push_front(currentState);
 
     if (pastStates.size() > amtPastStates) {
-        pastStates.pop();
+        pastStates.pop_back();
     }
     currentTick = clockState;
     currentState = nextState;
@@ -74,16 +75,12 @@ std::unordered_map<std::string, State> Buffer::getTState(int t) {
     if (t > 0) {
         return nextState;
     }
-    // TODO: vVv This causes SIGSEGV for some reason vVv
-    std::queue<std::unordered_map<std::string, State>> copyPastStates = pastStates;
 
-    while (!copyPastStates.empty()) {
+    for (auto n : pastStates) {
         t++;
-        std::unordered_map<std::string, State> state = copyPastStates.back();
-        copyPastStates.pop();
 
         if (t == 0) {
-            return state;
+            return n;
         }
     }
     return {}; // Element not found in past states.

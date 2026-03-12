@@ -30,7 +30,7 @@ class Buffer {
 private:
     int amtPastStates = Const::BUFFER_SIZE;
     int currentTick = 0;
-    std::queue<std::unordered_map<std::string, State>> pastStates;
+    std::deque<std::unordered_map<std::string,State>> pastStates;
     std::unordered_map<std::string, State> currentState;
     std::unordered_map<std::string, State> nextState;
 

@@ -88,6 +88,10 @@ float Client::getRadius() const {
     return this->player.radius;
 }
 
+Position Client::getPosition() const {
+    return this->player.position;
+}
+
 std::array<bool,3> Client::getCompensations() const {
     return network.compensations;
 }
@@ -145,6 +149,7 @@ void Client::setKeybinds(std::unordered_map<int, sf::Keyboard::Key> keybinds) {
  */
 Input Client::getInputs(bool mode_enable) {
     Input input;
+
     for (const std::pair<const int, sf::Keyboard::Key> & i : keybinds) {
         if(i.first == Inputs::WPN_CHANGE) {
             bool pressed = isKeyPressed(i.second) > 0.f;
@@ -179,10 +184,6 @@ int Client::update() {
         // ==========| INPUTS |========== //
         Input inputs = this->getInputs(mode_enable);
         mode_enable = inputs.getModeEnable();
-
-        ImVec2 dir = {0.f, 0.f};
-        dir.x += 1.f * inputs.getMovementX();
-        dir.y += 1.f * inputs.getMovementY();
 
         // Storing recent local positions to re-adjust if needed.
         State state(clock.getElapsedTime().asMilliseconds(), getPlayer().position, getRadius(), getPlayer().mode, inputs);
@@ -442,8 +443,14 @@ void Client::compensationReconciliation() {
 
     if (inputsBuffer.begin()->first < lastReceivedInputs) {
         // If 1st element of buffer < last state received by server. (AKA if need to check for reconciliation)
-        if (inputsBuffer[lastReceivedInputs].getPosition() != currentState.getPosition()) {
-            setPosition(currentState.getPosition());
+        Position p = inputsBuffer[lastReceivedInputs].getPosition();
+        Position q = currentState.getPosition();
+        ImVec2 diff = {p.getX() - q.getX(), p.getY() - q.getY()};
+        if (sqrt(pow(diff.x, 2) + pow(diff.y, 2)) > Const::PLAYER_SPEED * 20) { // If diff. of pos > eq. of 20ms of movement:
+            Position pos = getPosition();
+            pos.setX(pos.getX() - diff.x/2);
+            pos.setY(pos.getY() - diff.y/2);
+            setPosition(pos);
             setRadius(currentState.getRadius());
         }
 
