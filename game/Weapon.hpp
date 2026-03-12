@@ -29,7 +29,6 @@ public:
     // ===== CONSTRUCTORS =====
     //Weapon(float height = 16.f, float width = 24.f, float type = 0.f, float atk_spd = 0.1f, float rld=0.3f, float range = 10.f, float transform = 0.2f);
     Weapon(int id = 0);
-    Weapon(int id = 0, float height = 16.f, float width = 24.f, float type = 0.f, float atk_spd = 0.1f, float rld=0.3f, float range = 10.f, float transform = 0.2f);
     Weapon(const Weapon& other);
 
     // ===== GETTERS =====
@@ -37,22 +36,13 @@ public:
     float  getHeight() const;
     float  getWidth() const;
     int    getType() const;
-
     float  getAttackSpeed() const;
     float  getReload() const;
     float  getRange() const;
-
     float getTransform() const;
 
-    // ===== SETTERS =====
-    void setId(int id);
-    void setHeight(float height);
-    void setWidth(float width);
-    void setType(int type);
-
-    void setAttackSpeed(float atk_spd);
-    void setReload(float rld);
-    void setRange(float range);
+    // ===== INTERNAL FUNCTION =====
+    void applyID(int id);
 
 };
 #endif //WEAPON_HPP

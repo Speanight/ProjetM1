@@ -142,7 +142,8 @@ int Server::receiveLoop() {
                                 "; y=" + std::to_string(inputs.getMovementY()) +
                                 "; rotate = "+ std::to_string(inputs.getRotate()) +
                                 "; mode = " + std::to_string(inputs.getMode()) +
-                                "; attack = " + std::to_string(inputs.getAttack())
+                                "; attack = " + std::to_string(inputs.getAttack()) +
+                                "; wpn id = " + std::to_string(inputs.getWpnID())
                                 );
 
                             // Get time elapsed since last packet from client. Used for consistency in speed and such.
@@ -175,7 +176,7 @@ int Server::receiveLoop() {
                                 // printf("CLICK 2 !\n");
                                 mode = !mode;
                             }
-                            buffer.getCurrentState()[name].setMode(mode);
+                            // currentState[name].setMode(mode);
 
                             // ====== ATTACK ======
                             bool attack = playerState.getAttack();
@@ -183,9 +184,24 @@ int Server::receiveLoop() {
                                 printf("ATTACK RECEPTION !\n");
                                 // TODO : Make the signal to attack
                                 // ====== POINT GESTION ======
-
+                                /*
+                                 *si (distance(A,B) <= A + B + taille_wpn + wpn range) {    // si la distance entre les point est trop grande pour toucher on ne fait rien
+                                 *  top_wpn_range = [calcul du top en fonction du radius de A et de la position du A aucxquel on ajoute le range pour avoir le point le plus loin d'attaque
+                                 *  si(distance top_wpn_range, centre B) < radius {         // si la distance entre le point top et la bordure du joueur 2 trop grande, pas de touche
+                                 *      si(radius A € [radius B +0.8+pi, radius B -0.8 +pi] && B->mode def){    // si le bouclier est entre les deux
+                                 *          pas point;
+                                 *     sinon{
+                                 *          point;
+                                 *    }
+                                 *  }
+                                 *}
+                                 */
                             }
+                            // currentState[name].setAttack(attack);
 
+                            // ====== WEAPON DATAS CHANGE ======
+                            int wpn_id = playerState.getWpnID();
+                            currentState[name].setWpnID(wpn_id);
 
                             // Loops over all the opponents.
                             for (auto &[n, p]: clients) {
@@ -197,14 +213,14 @@ int Server::receiveLoop() {
                                     // If yes, we re-adjust the new position of said opponent:
                                     if (pos.getX() != currentState[n].getPosition().getX() and
                                         pos.getY() != currentState[n].getPosition().getY()) {
-                                        State s = State(time, pos, radius, mode, inputs);
+                                        State s = State(time, pos, radius, mode, attack, wpn_id, inputs);
                                         buffer.updateNextPlayerState(p, s);
 //                                        buffer.refreshBuffer(p, s, time); // We refresh the buffer with its new pos.
                                     }
                                 }
 
                                 semaphore.acquire();
-                                State s = State(time, position, radius, mode, inputs);
+                                State s = State(time, position, radius, mode, attack, wpn_id, inputs);
                                 buffer.updateNextPlayerState(player, s, playerState.getMode());
                                 semaphore.release();
                             }
@@ -250,7 +266,7 @@ int Server::sendLoop() {
                     Position pos = st.getPosition();
                     pos.setX((playerNb * Const::MAP_SIZE_X / (clients.size())) - (Const::MAP_SIZE_X / clients.size()) / 2);
                     pos.setY(Const::MAP_SIZE_Y / 2);
-                    Input inputs(0, 0, 0.f, false, false);
+                    Input inputs(0, 0, 0.f, false, false, 0);
                     State s = State(time, pos, std::numbers::pi/2, true, inputs);
 //                    buffer.refreshBuffer(player, s, time);
 //                    buffer.setPlayerPosition(name, pos);
@@ -258,9 +274,6 @@ int Server::sendLoop() {
 
                     float radius = buffer.getCurrentState()[name].getRadius();           // give the actual radius of the client (weapon position)
 //                    buffer.refreshBuffer(player, s, time);
-                    buffer.getCurrentState()[name].setPosition(pos);
-                    buffer.getCurrentState()[name].getRadius();
-                    buffer.getCurrentState()[name].getRadius();
                     playerNb++;
                 }
             }

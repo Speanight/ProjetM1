@@ -23,13 +23,12 @@ Client::Client(const sf::Clock clock, std::string name, sf::Color color) : serve
     this->player.radius = std::numbers::pi/2; //put the element on top in radius
     this->player.mode = true;
 
+    Weapon wpn (0);                         // ID of the default wpn
+    this->player.wpn = wpn;
+
     this->network.compensations.insert({Compensation::INTERPOLATION, false});
     this->network.compensations.insert({Compensation::PREDICTION, false});
     this->network.compensations.insert({Compensation::RECONCILIATION, false});
-
-
-    Weapon wpn;
-    this->player.wpn = wpn;
 }
 
 Client::~Client() {
@@ -239,6 +238,10 @@ int Client::sendLoop() {
 
         // keeping the attackEnable for the next loop
         attack_enable = inputs.getAttackEnable();   //TODO : furball check and confirmation
+
+        // putting the weapon id the player have
+        inputs.setWpnID(this->player.wpn.getId());
+        // printf("wpn ID : %d\n", inputs.getWpnID());
 
         pkt.packet << Pkt::INPUTS << pkt.timestamp.asMilliseconds() << inputs;
         packets.push_back(pkt); // Adds the packet to the array of packets.

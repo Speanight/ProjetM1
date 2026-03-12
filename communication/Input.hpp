@@ -13,12 +13,14 @@ private:
     bool mode_enable;           // Permit to know if we can change the mode or no [false = no, true = yes]
     bool attack;                // Signal to inform the attack
     bool attack_enable;         // Permit to know if we can attack again or not
+    int wpn_id;
 public:
     // Constructors
     Input();
     Input(float x, float y, bool attack);
     Input(float x, float y, float r, bool attack);
     Input(float x, float y, float r, bool mode, bool attack);
+    Input(float x, float y, float r, bool mode, bool attack, int wpn_id);
 
     // Getters
     float getMovementX();
@@ -28,6 +30,7 @@ public:
     bool getModeEnable();
     bool getAttack();
     bool getAttackEnable();
+    int getWpnID();
 
     // Setters
     void setMovementX(float x);
@@ -37,6 +40,7 @@ public:
     void setModeEnable(bool mode_enable);
     void setAttack(bool attack);
     void setAttackEnable(bool mode_enable);
+    void setWpnID(int wpn_id);
 
     // Functions
     void handleInput(int inputCode, float value);

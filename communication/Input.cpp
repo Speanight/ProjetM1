@@ -36,6 +36,17 @@ Input::Input(float x, float y, float r, bool mode, bool attack) {
     this->attack = attack;
 }
 
+Input::Input(float x, float y, float r, bool mode, bool attack, int wpn_id) {
+    this->movementX = x;
+    this->movementY = y;
+    this->rotate = r;
+    this->mode = mode;
+    this->mode_enable = true;
+    this->attack = attack;
+    this->wpn_id = wpn_id;
+}
+
+
 // Getters
 float Input::getMovementX() {
     return movementX;
@@ -66,6 +77,11 @@ bool Input::getAttackEnable() {
     return attack_enable;
 }
 
+int Input::getWpnID() {
+    return wpn_id;
+}
+
+
 // Setters
 void Input::setMovementX(float x) {
     this->movementX = x;
@@ -94,6 +110,11 @@ void Input::setAttack(bool attack) {
 void Input::setAttackEnable(bool attack_enable) {
     this->attack_enable = attack_enable;
 }
+
+void Input::setWpnID(int wpn_id) {
+    this->wpn_id = wpn_id;
+}
+
 
 
 void Input::handleInput(int inputCode, float value) {
@@ -129,7 +150,8 @@ void Input::handleInput(int inputCode, float value) {
 
 sf::Packet& operator<<(sf::Packet &packet, Input inputs) {
     // return packet << inputs.getMovementX() << inputs.getMovementY() << inputs.getRotate() << inputs.getAttack();
-    return packet << inputs.getMovementX() << inputs.getMovementY() << inputs.getRotate() << inputs. getMode() << inputs.getAttack();
+    // return packet << inputs.getMovementX() << inputs.getMovementY() << inputs.getRotate() << inputs. getMode() << inputs.getAttack();
+    return packet << inputs.getMovementX() << inputs.getMovementY() << inputs.getRotate() << inputs. getMode() << inputs.getAttack() << inputs.getWpnID();
 }
 
 sf::Packet& operator>>(sf::Packet &packet, Input& inputs) {
@@ -138,13 +160,15 @@ sf::Packet& operator>>(sf::Packet &packet, Input& inputs) {
     float r;
     bool mode;
     bool attack;
-    packet >> x >> y >> r >> mode >> attack;
+    int wpn_id;
+    packet >> x >> y >> r >> mode >> attack >> wpn_id;
 
     inputs.setMovementX(x);
     inputs.setMovementY(y);
     inputs.setRotate(r);
     inputs.setMode(mode);
     inputs.setAttack(attack);
+    inputs.setWpnID(wpn_id);
 
     return packet;
 }

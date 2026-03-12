@@ -7,54 +7,27 @@
 #include "Weapon.hpp"
 
 // ===== CONSTRUCTORS =====
-
-
-// Weapon::Weapon( float height, float width, float type, float atk_spd, float rld, float range, float transform ){
-//     // ===== FORM =====
-//     w_height    = height;
-//     w_width     = width;
-//     w_type      = type;             // TODO : [IDEA] different type of weapon that have a different behavior and look (like square or circle that can be throwable ?)
-//
-//     // ===== BEHAVIOR =====
-//     w_atk_speed = atk_spd;
-//     w_rld       = rld;
-//     w_range     = range;
-//     w_transform = transform;
-// }
-
-Weapon::Weapon(const int id) {
-    switch (id) {
-        case 1:
-            printf("WPN DOES NOT EXIST");
-            this->w_id = 1;
-            break;
-        default :               // Default wpn set
-            this->w_id = 0;
-            this->w_height = 16.f;
-            this->w_width = 24.f;
-            this->w_type = 0;
-            this->w_atk_speed = 0.1f;
-            this->w_rld = 0.3f;
-            this->w_range = 10.0f;
-            this->w_transform = 0.2f;
-            break;
-    }
+Weapon::Weapon(int id){
+    applyID(id);
 }
 
-Weapon::Weapon(int id, float height = 16.f, float width = 24.f, float type = 0.f, float atk_spd = 0.1f, float rld=0.3f, float range = 10.f, float transform = 0.2f);
-
 Weapon::Weapon(const Weapon& other)
-    :w_id(other.w_id),
+    : w_id(other.w_id),
     w_height(other.w_height),
     w_width(other.w_width),
     w_type(other.w_type),
     w_atk_speed(other.w_atk_speed),
     w_rld(other.w_rld),
     w_range(other.w_range),
-    w_transform(other.w_transform)
-{}
+    w_transform(other.w_transform) {
+
+}
 
 // ===== GETTERS =====
+
+int Weapon::getId() const {
+    return w_id;
+}
 
 float Weapon::getHeight() const {
     return w_height;
@@ -80,31 +53,34 @@ float Weapon::getRange() const {
     return w_range;
 }
 
-float Weapon::getTransform() const {return w_transform;}
-
-// ===== SETTERS =====
-
-void Weapon::setHeight(float height) {
-    w_height = height;
+float Weapon::getTransform() const {
+    return w_transform;
 }
 
-void Weapon::setWidth(float width) {
-    w_width = width;
-}
+// ===== INTERNAL FUNCTION =====
+void Weapon::applyID(int id) {
+    switch (id) {
+        case 1: // weapon 1
+            w_id = 1;
+            w_height = 20.f;
+            w_width = 8.f;
+            w_type = 1;
+            w_atk_speed = 0.2f;
+            w_rld = 0.4f;
+            w_range = 12.f;
+            w_transform = 0.3f;
+            break;
 
-void Weapon::setType(int type) {
-    w_type = type;
-}
-
-void Weapon::setAttackSpeed(float atk_spd) {
-    w_atk_speed = atk_spd;
-}
-
-void Weapon::setReload(float rld) {
-    w_rld = rld;
-}
-
-void Weapon::setRange(float range) {
-    w_range = range;
+        default: // Default weapon
+            w_id = 0;
+            w_height = 16.f;
+            w_width = 24.f;
+            w_type = 0;
+            w_atk_speed = 0.1f;
+            w_rld = 0.3f;
+            w_range = 10.0f;
+            w_transform = 0.2f;
+        break;
+    }
 }
 

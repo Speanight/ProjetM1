@@ -24,7 +24,7 @@ struct Player {
     bool mode;                  // indicate if the weapon is in attack or defense mode (# true = atk, false = defense
     bool isAttacking;           // indicate if the player is attacking or not
     Weapon wpn;
-    Position attackOffset;
+    Position attackOffset;      // indicate where the weapon is during it's animation
 };
 
 class Buffer {
