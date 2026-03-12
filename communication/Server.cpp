@@ -180,42 +180,104 @@ int Server::receiveLoop() {
 
                             // ====== ATTACK ======
                             bool attack = playerState.getAttack();
-                            if(inputs.getAttack()) {
-                                printf("ATTACK RECEPTION !\n");
-                                // TODO : Make the signal to attack
-                                // ====== POINT GESTION ======
-                                /*
-                                 *si (distance(A,B) <= A + B + taille_wpn + wpn range) {    // si la distance entre les point est trop grande pour toucher on ne fait rien
-                                 *  top_wpn_range = [calcul du top en fonction du radius de A et de la position du A aucxquel on ajoute le range pour avoir le point le plus loin d'attaque
-                                 *  si(distance top_wpn_range, centre B) < radius {         // si la distance entre le point top et la bordure du joueur 2 trop grande, pas de touche
-                                 *      si(radius A € [radius B +0.8+pi, radius B -0.8 +pi] && B->mode def){    // si le bouclier est entre les deux
-                                 *          pas point;
-                                 *     sinon{
-                                 *          point;
-                                 *    }
-                                 *  }
-                                 *}
-                                 */
-                            }
                             // currentState[name].setAttack(attack);
 
                             // ====== WEAPON DATAS CHANGE ======
-                            int wpn_id = playerState.getWpnID();
-                            currentState[name].setWpnID(wpn_id);
+                            int wpn_id = playerState.getWpn().getId();
+                            currentState[name].setWpn(wpn_id);
 
-                            // Loops over all the opponents.
+                            // loops of all interaction between players
                             for (auto &[n, p]: clients) {
                                 if (name != n) {
+                                    bool interaction = false;
                                     // Check if there is a collision between players (and therefor if it should be resolved)
                                     Position opponentPos = currentState[n].getPosition();
-                                    Position pos = resolveCollision(position, opponentPos);
+                                    opponentPos = resolveCollision(position, opponentPos);
 
                                     // If yes, we re-adjust the new position of said opponent:
-                                    if (pos.getX() != currentState[n].getPosition().getX() and
-                                        pos.getY() != currentState[n].getPosition().getY()) {
-                                        State s = State(time, pos, radius, mode, attack, wpn_id, inputs);
-                                        buffer.updateNextPlayerState(p, s);
+                                    if (opponentPos.getX() != currentState[n].getPosition().getX() and
+                                        opponentPos.getY() != currentState[n].getPosition().getY()) {
+                                        interaction = true;
 //                                        buffer.refreshBuffer(p, s, time); // We refresh the buffer with its new pos.
+                                    }
+
+
+                                    if(inputs.getAttack()) {
+                                        printf("ATTACK RECEPTION !\n");
+                                        interaction = true;
+                                        // ====== POINT GESTION ======
+                                        Position opponentPos = currentState[n].getPosition();
+
+                                        float dx = opponentPos.getX() - position.getX();
+                                        float dy = opponentPos.getY() - position.getY();
+
+                                        float distAB = std::sqrt(dx*dx + dy*dy);
+
+                                        // max distance for the weapon to touch the enemy
+                                        float maxReach = PLAYER_SIZE * 2.f
+                                            + currentState[name].getWpn().getHeight()
+                                            + currentState[name].getWpn().getRange();
+
+                                        if (distAB <= maxReach){    // if players close enough for the weapon to touch
+                                            // weapopn direction
+                                            float dirx = std::cos(radius);
+                                            float diry = std::sin(radius);
+
+                                            // distance between the player and the surface of the opponent
+                                            float attackReach = maxReach - PLAYER_SIZE;
+
+                                            float topx = position.getX() + dirx * attackReach;
+                                            float topy = position.getY() + diry * attackReach;
+
+                                            float dx2 = opponentPos.getX() - topx;
+                                            float dy2 = opponentPos.getY() - topy;
+
+                                            float distTop = std::sqrt(dx2*dx2 + dy2*dy2);
+
+                                            if (distTop <= PLAYER_SIZE){        // if the weapon can enter the opponent perimeters, then it's a touch
+                                                bool blocked = false;
+
+                                                bool opponentMode = currentState[n].getMode();
+                                                float opponentRadius = currentState[n].getRadius();
+
+                                                if (opponentMode) {  // if the opponent have it's defense activated
+
+                                                    // looking for the angle between the player and it's opponent
+                                                    float angleToAttacker = std::atan2(
+                                                        position.getY() - opponentPos.getY(),
+                                                        position.getX() - opponentPos.getX()
+                                                    );
+
+                                                    float twoPi = 2.f * std::numbers::pi;
+
+                                                    auto normalize = [&](float a) {
+                                                        a = std::fmod(a, twoPi);
+                                                        if (a < 0) a += twoPi;
+                                                        return a;
+                                                    };
+
+                                                    angleToAttacker = normalize(angleToAttacker);
+                                                    opponentRadius  = normalize(opponentRadius);
+
+                                                    float shieldStart = normalize(opponentRadius - 0.8f);
+                                                    float shieldEnd   = normalize(opponentRadius + 0.8f);
+
+                                                    if (shieldStart < shieldEnd)
+                                                        blocked = (angleToAttacker >= shieldStart && angleToAttacker <= shieldEnd);
+                                                    else
+                                                        blocked = (angleToAttacker >= shieldStart || angleToAttacker <= shieldEnd);
+                                                }
+
+                                                if (!blocked) {
+                                                    printf("HIT !\n");
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    if(interaction) {
+                                        State s = State(time, opponentPos, currentState[n].getRadius(), currentState[n].getMode(), currentState[n].getAttack(), currentState[n].getWpn().getId(), inputs);
+                                        buffer.updateNextPlayerState(p, s);
                                     }
                                 }
 

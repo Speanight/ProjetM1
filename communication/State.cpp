@@ -45,6 +45,8 @@ State::State(int timestamp, Position position, float radius, bool mode, bool att
     this->mode = mode;
     this->attack = attack;
     this->wpn = Weapon(wpn_id);
+
+    this->point = 0;
 }
 
 // GETTERS //
@@ -68,13 +70,19 @@ bool State::getAttack() {
     return attack;
 }
 
-int State::getWpnID() {
-    return wpn.getId();
+Weapon State::getWpn() {
+    return wpn;
+}
+
+int State::getPoint() {
+    return point;
 }
 
 Input State::getInputs() {
     return inputs;
 }
+
+
 
 // SETTERS //
 
@@ -95,11 +103,15 @@ void State::setAttack(bool attack) {
     this->attack = attack;
 }
 
-void State::setWpnID(int wpn_id) {
-    if(this->getWpnID() == wpn_id) {
+void State::setWpn(int wpn_id) {
+    if(this->wpn.getId() == wpn_id) {
         return;
     }
     this->wpn.applyID(wpn_id);
+}
+
+void State::setPoint(int point) {
+    this->point = point;
 }
 
 void State::setInputs(Input inputs) {

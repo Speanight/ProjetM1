@@ -20,6 +20,7 @@ private:
     bool mode;
     bool attack;
     Weapon wpn;
+    int point;
 
     Input inputs;
 
@@ -38,14 +39,16 @@ public:
     float getRadius();
     bool getMode();
     bool getAttack();
-    int getWpnID();
+    Weapon getWpn();
+    int getPoint();
 
     void setPosition(Position position);
     void setInputs(Input inputs);
     void setRadius(float radius);
     void setMode(bool mode);
     void setAttack(bool attack);
-    void setWpnID(int wpn_id);
+    void setWpn(int wpn_id);
+    void setPoint(int point);
 };
 
 
