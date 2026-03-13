@@ -58,7 +58,12 @@ void MainWindow::loop() {
     // check imgui OK
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
+    ImPlot::CreateContext();
     ImGui::StyleColorsDark();
+
+    static ImU32 clientColorData[] = {0xFF0000FF, 0xFF00FF00};
+    static ImU32 serverColorData[] = {0xFF0000FF, 0xFF007777};
+    server.setColorMaps(serverColorData, clientColorData);
 
     if (!ImGui::SFML::Init(window)) {
         return;
@@ -106,5 +111,6 @@ void MainWindow::loop() {
     server.shutdown();
 
     ImGui::SFML::Shutdown();
+    ImPlot::DestroyContext();
     ImGui::DestroyContext();
 }

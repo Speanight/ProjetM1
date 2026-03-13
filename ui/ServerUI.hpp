@@ -7,6 +7,8 @@
 #include <imgui.h>
 #include <ranges>
 #include <utility>
+#include "../src/implot.h"
+#include <list>
 
 #include "../Utils.hpp"
 
@@ -19,13 +21,28 @@ class ServerUI {
 private:
     std::vector<ConsoleLine> lines;
     sf::Font font;
-    int lineSpace = 5;
     sf::Vector2f position;
     int size = 32;
+    bool pauseConsole = false;
+
+    // Graphs
+    int lastTimestamp;
+    int serverColorMap;
+    int clientsColorMap;
+
+protected:
+    // Data (graphs)
+    std::unordered_map<std::string,std::unordered_map<std::string, std::vector<float>>> data;
+
 public:
     ServerUI();
     void addLine(std::string text, sf::Color color = sf::Color::White);
+    void addLine(int timestamp, std::string from, std::string to, std::string details, sf::Color color = sf::Color::White);
+    void addToGraph(int timestamp, const std::string& from, const std::string& to);
     void draw();
+
+    void addToData(const std::string& from, const std::string& to);
+    void setColorMaps(ImU32 server[], ImU32 client[]);
 };
 
 #endif //PROJETM1_SERVERUI_HPP

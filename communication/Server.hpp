@@ -31,7 +31,6 @@ private:
     std::thread receiveThread;
     std::binary_semaphore semaphore;
 
-    std::array<sf::Color, 5> colors;
     std::unordered_map<std::string, Player> clients;
 
     bool loop = true;

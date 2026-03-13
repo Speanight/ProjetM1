@@ -12,11 +12,12 @@
 struct Player {
     // ====== SERVER ======
     unsigned short port;        // NEVER MOOVE THIS [use to create the client on the server and must be here
+    unsigned short status = Status::WAITING_FOR_ROUND_START;
 
     // ====== BASIC ======
     std::string name;
     sf::Color color;
-    Position position;
+    Position position = Position();
 
     // ====== WEAPON ======
     float radius;               // must be saved as radiant so degree * ~1.111111 = radiant

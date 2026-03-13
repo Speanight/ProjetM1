@@ -18,6 +18,8 @@ namespace Const {
 
     constexpr auto TICKRATE = std::chrono::milliseconds(1000 / 10); // Amount of ticks in 1s (1s / tickrate)
     static const int BUFFER_SIZE = 5;
+    static const int GRAPH_DISPLAY_MS = 10; // Defines how long (in ms) a "graph line" will be worth for in the server's console.
+    static const int GRAPH_DISPLAY_VALUES = 200; // Defines how many values are displayed at the same time (aka "how many bars max") per display in the server's console.
 
     static const float PLAYER_SPEED = .3f;
     static const float PLAYER_RADIUS_SPEED = .003f;
@@ -66,6 +68,12 @@ namespace Compensation {
     static constexpr int INTERPOLATION = 0;
     static constexpr int PREDICTION = 1;
     static constexpr int RECONCILIATION = 2;
+}
+
+namespace Status {
+    static constexpr short WAITING_FOR_ROUND_START = 0;
+    static constexpr short READY_TO_START = 1;
+    static constexpr short DONE = 2;
 }
 
 #endif

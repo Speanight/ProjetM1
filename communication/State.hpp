@@ -36,12 +36,12 @@ public:
     int getTimestamp() const;
     Position getPosition();
     std::map<int,Input> getInputs();
-    float getRadius();
-    bool getMode();
+    float getRadius() const;
+    bool getMode() const;
     unsigned int getLastInputsId() const;
-    bool getAttack();
+    bool getAttack() const;
     Weapon getWpn();
-    int getPoint();
+    int getPoint() const;
 
     void setPosition(Position position);
     void addInputs(int timestamp, Input inputs);
