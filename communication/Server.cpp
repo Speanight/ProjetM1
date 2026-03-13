@@ -220,7 +220,7 @@ int Server::receiveLoop() {
 
                                         if (distAB <= maxReach){    // if players close enough for the weapon to touch
                                             // weapopn direction
-                                            printf("close enough !\n");
+                                            // printf("close enough !\n");
                                             float dirx = std::cos(radius);
                                             float diry = std::sin(radius);
 
@@ -236,14 +236,14 @@ int Server::receiveLoop() {
                                             float distTop = std::sqrt(dx2*dx2 + dy2*dy2);
 
                                             if (distTop <= PLAYER_SIZE){        // if the weapon can enter the opponent perimeters, then it's a touch
-                                                printf("player touch !\n");
+                                                // printf("player touch !\n");
                                                 bool blocked = false;
 
                                                 bool opponentMode = currentState[n].getMode();
                                                 float opponentRadius = currentState[n].getRadius();
 
                                                 if (!opponentMode) {  // if the opponent have it's defense activated
-                                                    printf("bouclier levé ! attention\n");
+                                                    // printf("bouclier levé ! attention\n");
 
                                                     // looking for the angle between the player and it's opponent
                                                     float angleToAttacker = std::atan2(
@@ -273,9 +273,6 @@ int Server::receiveLoop() {
 
                                                 if (!blocked) {
                                                     printf("HIT !\n");
-                                                }
-                                                else {
-                                                    printf("blocked\n");
                                                 }
                                             }
                                         }
