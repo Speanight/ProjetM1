@@ -33,6 +33,17 @@ State::State(int timestamp, Position position, float radius, bool mode, bool att
     this->point = 0;
 }
 
+State::State(int timestamp, Position position, float radius, bool mode, bool attack, int wpn_id, int point, Input inputs) {
+    this->timestamp = timestamp;
+    this->position = position;
+    this->radius = radius;
+    this->inputs[timestamp] = inputs;
+    this->mode = mode;
+    this->attack = attack;
+    this->wpn = Weapon(wpn_id);
+    this->point = point;
+}
+
 // GETTERS //
 int State::getTimestamp() const {
     return timestamp;

@@ -270,7 +270,11 @@ int Server::receiveLoop() {
                                                 }
 
                                                 if (!blocked) {
-                                                    printf("HIT !\n");
+                                                    int pts = currentState[name].getPoint() + 1;
+                                                    currentState[name].setPoint(pts);
+                                                    playerState.setPoint(pts);
+
+                                                    printf("Hit %d!\n", pts);
                                                 }
                                             }
                                         }
@@ -283,6 +287,7 @@ int Server::receiveLoop() {
                                             currentState[n].getMode(),
                                             currentState[n].getAttack(),
                                             currentState[n].getWpn().getId(),
+                                            currentState[n].getPoint(),
                                             inputs);
                                         buffer.updateNextPlayerState(p, s);
                                     }
@@ -296,8 +301,9 @@ int Server::receiveLoop() {
                                     mode,
                                     attack,
                                     wpn_id,
+                                    playerState.getPoint(),
                                     inputs
-                                    );
+                                );
                                 buffer.updateNextPlayerState(player, s, playerState.getMode());
                                 semaphore.release();
                             }
@@ -343,7 +349,7 @@ int Server::sendLoop() {
                     pos.setX((playerNb * Const::MAP_SIZE_X / (clients.size())) - (Const::MAP_SIZE_X / clients.size()) / 2);
                     pos.setY(Const::MAP_SIZE_Y / 2);
                     Input inputs(buffer.getLastState(player).getInputs().end()->second.getId(), 0, 0, 0.f, false, false, 0);
-                    State s = State(time, pos, std::numbers::pi/2, true, false, 0, inputs);
+                    State s = State(time, pos, std::numbers::pi/2, true, false, 0, 0, inputs);
                     buffer.updateNextPlayerState(player, s);
 
                     playerNb--;
