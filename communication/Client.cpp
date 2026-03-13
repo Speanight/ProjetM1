@@ -72,6 +72,10 @@ Player Client::getPlayer() {
     return player;
 }
 
+Player& Client::getTruePlayer() {
+    return player;
+}
+
 std::string Client::getName() {
     return player.name;
 }
@@ -151,19 +155,28 @@ Input Client::getInputs(bool mode_enable, bool attack_enable) {
     for (const std::pair<const int, sf::Keyboard::Key> & i : keybinds) {
         bool pressed = isKeyPressed(i.second) > 0.f;
         switch (i.first) {
+            case Inputs::WPN_CW :
+                if(this->player.end_rld_phase <= 0) {
+                    input.handleInput(i.first, isKeyPressed(i.second));
+                    break;
+                }
+            case Inputs::WPN_CCW :
+                if(this->player.end_rld_phase <= 0) {
+                    input.handleInput(i.first, isKeyPressed(i.second));
+                    break;
+                }
             case Inputs::WPN_CHANGE:
-                if(pressed && !mode_enable) {
+                if(pressed && !mode_enable && this->player.end_rld_phase <= 0) {
                     input.setMode(true);
                 }
 
                 input.setModeEnable(pressed);
                 break;
             case Inputs::ATTACK:
-                if(pressed && !attack_enable) {
+                if(pressed && !attack_enable && this->player.end_rld_phase <= 0) {
                     input.setAttack(true);
                     // printf("Attack click !\n");
                 }
-
                 input.setAttackEnable(pressed);
                 break;
             default :
@@ -197,7 +210,7 @@ int Client::update() {
         inputs.setWpnID(this->player.wpn.getId());
 
         // Storing recent local positions to re-adjust if needed.
-        State state(clock.getElapsedTime().asMilliseconds(), getPlayer().position, getRadius(), getPlayer().mode, inputs);
+        State state(clock.getElapsedTime().asMilliseconds(), getPlayer().position, getRadius(), getPlayer().mode, getPlayer().isAttacking, getPlayer().wpn.getId(), inputs);
         inputs.setId(lastInputId);
         inputsBuffer[lastInputId] = state;
         lastInputId++;
@@ -307,6 +320,8 @@ int Client::receiveLoop() {
                                     this->player.radius = state.getRadius();
                                 }
                                 this->player.mode = state.getMode();
+                                this->player.isAttacking = state.getAttack();
+                                this->player.wpn.applyID(state.getWpn().getId());
                             }
                             else {
                                 // Opponent position:
@@ -315,6 +330,8 @@ int Client::receiveLoop() {
                                 opponents[name].position.setY(currentState[name].getPosition().getY());
                                 opponents[name].radius = currentState[name].getRadius();
                                 opponents[name].mode = currentState[name].getMode();
+                                opponents[name].isAttacking = currentState[name].getAttack();
+                                opponents[name].wpn.applyID(currentState[name].getWpn().getId());
                             }
                             nbPlayers--;
                         }
@@ -444,7 +461,7 @@ void Client::compensationPrediction(Input inputs) {
 
     setRadius(getPlayer().radius + inputs.getRotate() * Const::PLAYER_RADIUS_SPEED * (now - lastUpdate));
 
-    State state(now, pos, getRadius(), getPlayer().mode, inputs);
+    State state(now, pos, getRadius(), getPlayer().mode, getPlayer().isAttacking, getPlayer().wpn.getId(), inputs);
     inputsBuffer[lastInputId] = state;
 }
 

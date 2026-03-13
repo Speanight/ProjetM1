@@ -4,22 +4,22 @@ State::State() {
     this->timestamp = 0;
 }
 
-State::State(int timestamp, Position position, float radius, bool mode, Input inputs) {
-    this->timestamp = timestamp;
-    this->position = position;
-    this->radius = radius;
-    this->inputs[timestamp] = inputs;
-    this->mode = mode;
-}
-
-State::State(int timestamp, Position position, float radius, bool mode, bool attack, Input inputs) {
-    this->timestamp = timestamp;
-    this->position = position;
-    this->radius = radius;
-    this->inputs[timestamp] = inputs;
-    this->mode = mode;
-    this->attack = attack;
-}
+// State::State(int timestamp, Position position, float radius, bool mode, Input inputs) {
+//     this->timestamp = timestamp;
+//     this->position = position;
+//     this->radius = radius;
+//     this->inputs[timestamp] = inputs;
+//     this->mode = mode;
+// }
+//
+// State::State(int timestamp, Position position, float radius, bool mode, bool attack, Input inputs) {
+//     this->timestamp = timestamp;
+//     this->position = position;
+//     this->radius = radius;
+//     this->inputs[timestamp] = inputs;
+//     this->mode = mode;
+//     this->attack = attack;
+// }
 
 State::State(int timestamp, Position position, float radius, bool mode, bool attack, int wpn_id, Input inputs) {
     this->timestamp = timestamp;
@@ -136,7 +136,15 @@ sf::Packet& operator<<(sf::Packet &packet, State state) {
     std::map<int,Input> inputs = state.getInputs();
     int size = inputs.size();
 
-    packet << state.getLastInputsId() << state.getPosition() << state.getRadius() << state.getMode() << state.getTimestamp() << size;
+    packet
+    << state.getLastInputsId()
+    << state.getPosition()
+    << state.getRadius()
+    << state.getMode()
+    << state.getAttack()
+    << state.getWpn().getId()
+    << state.getTimestamp()
+    << size;
 
     // TODO_2: Make use of it later (for compensation purposes) - Need optimization!
 //    for (auto & [timestamp, input] : inputs) {
@@ -151,17 +159,21 @@ sf::Packet& operator>>(sf::Packet &packet, State& state) {
     Position pos;
     float radius;
     bool mode;
+    bool attack;
+    int wpnId;
     int size;
     int timestamp;
     unsigned int lastInputsId;
 //    Input input;
 
-    packet >> lastInputsId >> pos >> radius >> mode >> timestamp;
+    packet >> lastInputsId >> pos >> radius >> mode >> attack >> wpnId >> timestamp;
 
     state.setLastInputsId(lastInputsId);
     state.setPosition(pos);
     state.setRadius(radius);
     state.setMode(mode);
+    state.setAttack(attack);
+    state.setWpn(wpnId);
     state.setTimestamp(timestamp);
 
     // Get inputs:

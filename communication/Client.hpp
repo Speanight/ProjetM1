@@ -82,6 +82,7 @@ public:
 
     // Getters / Setters
     Player getPlayer();
+    Player& getTruePlayer();
     std::string getName();
     int getPacketLoss() const;
     int getPing() const;

@@ -20,11 +20,13 @@ struct Player {
 
     // ====== WEAPON ======
     float radius;               // must be saved as radiant so degree * ~1.111111 = radiant
-    bool is_attacking;          // indicate if the client is attacking or not
     bool mode;                  // indicate if the weapon is in attack or defense mode (# true = atk, false = defense
-    bool isAttacking;           // indicate if the player is attacking or not
     Weapon wpn;
-    Position attackOffset;      // indicate where the weapon is during it's animation
+
+    // ====== ATTACK ======
+    bool isAttacking;           // indicate if the player is attacking or not
+    float end_atk_phase;
+    float end_rld_phase;
 };
 
 class Buffer {

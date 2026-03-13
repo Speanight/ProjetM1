@@ -152,6 +152,7 @@ int Server::receiveLoop() {
                             playerState = buffer.getLastState(player);
                             semaphore.release();
                             buffer.addInputsToLastState(player, clock.getElapsedTime().asMilliseconds(), inputs);
+
                             // ====== POSITION ======
                             position = playerState.getPosition();
                             semaphore.acquire();
@@ -180,7 +181,8 @@ int Server::receiveLoop() {
                             }
 
                             // ====== ATTACK ======
-                            bool attack = playerState.getAttack();
+                            bool attack = inputs.getAttack() or playerState.getAttack();
+                            if(attack)("input => %d, playerstate => %d\n", inputs.getAttack(), playerState.getAttack());
 
                             // ====== WEAPON DATAS CHANGE ======
                             int wpn_id = playerState.getWpn().getId();
@@ -203,7 +205,6 @@ int Server::receiveLoop() {
 
 
                                     if(inputs.getAttack()) {
-                                        printf("ATTACK RECEPTION !\n");
                                         interaction = true;
                                         // ====== POINT GESTION ======
                                         Position opponentPos = currentState[n].getPosition();
@@ -220,7 +221,6 @@ int Server::receiveLoop() {
 
                                         if (distAB <= maxReach){    // if players close enough for the weapon to touch
                                             // weapopn direction
-                                            // printf("close enough !\n");
                                             float dirx = std::cos(radius);
                                             float diry = std::sin(radius);
 
@@ -236,14 +236,12 @@ int Server::receiveLoop() {
                                             float distTop = std::sqrt(dx2*dx2 + dy2*dy2);
 
                                             if (distTop <= PLAYER_SIZE){        // if the weapon can enter the opponent perimeters, then it's a touch
-                                                // printf("player touch !\n");
                                                 bool blocked = false;
 
                                                 bool opponentMode = currentState[n].getMode();
                                                 float opponentRadius = currentState[n].getRadius();
 
                                                 if (!opponentMode) {  // if the opponent have it's defense activated
-                                                    // printf("bouclier levé ! attention\n");
 
                                                     // looking for the angle between the player and it's opponent
                                                     float angleToAttacker = std::atan2(
@@ -279,13 +277,27 @@ int Server::receiveLoop() {
                                     }
 
                                     if(interaction) {
-                                        State s = State(time, opponentPos, currentState[n].getRadius(), currentState[n].getMode(), currentState[n].getAttack(), currentState[n].getWpn().getId(), inputs);
+                                        State s = State(time,
+                                            opponentPos,
+                                            currentState[n].getRadius(),
+                                            currentState[n].getMode(),
+                                            currentState[n].getAttack(),
+                                            currentState[n].getWpn().getId(),
+                                            inputs);
                                         buffer.updateNextPlayerState(p, s);
                                     }
                                 }
 
                                 semaphore.acquire();
-                                State s = State(time, position, radius, mode, attack, wpn_id, inputs);
+                                State s = State(
+                                    time,
+                                    position,
+                                    radius,
+                                    mode,
+                                    attack,
+                                    wpn_id,
+                                    inputs
+                                    );
                                 buffer.updateNextPlayerState(player, s, playerState.getMode());
                                 semaphore.release();
                             }
@@ -331,13 +343,14 @@ int Server::sendLoop() {
                     pos.setX((playerNb * Const::MAP_SIZE_X / (clients.size())) - (Const::MAP_SIZE_X / clients.size()) / 2);
                     pos.setY(Const::MAP_SIZE_Y / 2);
                     Input inputs(buffer.getLastState(player).getInputs().end()->second.getId(), 0, 0, 0.f, false, false, 0);
-                    State s = State(time, pos, std::numbers::pi/2, true, inputs);
+                    State s = State(time, pos, std::numbers::pi/2, true, false, 0, inputs);
                     buffer.updateNextPlayerState(player, s);
 
                     playerNb--;
                 }
                 buffer.push(clock.getElapsedTime().asMilliseconds());
                 currentState = buffer.getCurrentState(); // Refresh current state.
+
             }
             else {
                 packet << Pkt::GLOBAL << int(buffer.getCurrentTick()) << int(currentState.size());
@@ -345,24 +358,39 @@ int Server::sendLoop() {
 
             for (auto & [n, state] : currentState) {
                 packet << n << state;
+
             }
+
             semaphore.acquire();
             packet << clock.getElapsedTime().asMilliseconds(); // Sync clocks
             socket.send(packet, sender.value(), player.port);
+
             addLine(
                 "Server >>> " + name
                 + " position: (" + std::to_string(player.position.getX())
                 + ", " + std::to_string(player.position.getY())
                 + ") ; radius : " + std::to_string(player.radius)
                 + " mode : " + std::to_string(player.mode)
+                + " attack : " + std::to_string(player.isAttacking)
                 , sf::Color::White);
+
             semaphore.release();
         }
-
 
         semaphore.acquire();
         buffer.push(clock.getElapsedTime().asMilliseconds());
         semaphore.release();
+
+        // POST MAJ
+        for (auto & [name, player] : clients) {
+            State last = buffer.getLastState(player);
+            if(last.getAttack()) {          // setting the attack save into false one so we don't keep the attack signal
+                // printf("putting last set into false\n");
+                last.setAttack(false);
+                buffer.updateNextPlayerState(player, last);
+            }
+        }
+
 
         sf::sleep(tickrate);
     }

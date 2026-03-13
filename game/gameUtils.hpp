@@ -11,7 +11,7 @@
 
 #include <imgui.h>
 #include "../communication/Client.hpp"
-void drawPlayer(ImDrawList* draw_list, Player player, ImVec2 min, ImVec2 max);
+void drawPlayer(ImDrawList* draw_list, Player& player, ImVec2 min, ImVec2 max, const sf::Clock& clk);
 Position resolveCollision(Position player, Position opponent);
 Position smoothenDeplacement(State p, State s, int clockSync);
 

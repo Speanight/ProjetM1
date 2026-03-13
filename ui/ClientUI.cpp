@@ -33,10 +33,13 @@ void ClientUI::drawGame() { // Game space
     };
     // ========= DRAW =========
     ImDrawList* draw_list = ImGui::GetWindowDrawList();
-    drawPlayer(draw_list, getPlayer(), childMin, childMax);
+
+
+    drawPlayer(draw_list,getTruePlayer() , childMin, childMax, clock);
+
 
     for (auto & [name, other] : opponents) {
-        drawPlayer(draw_list, other, childMin, childMax);
+        drawPlayer(draw_list, other, childMin, childMax, clock);
     }
     ImGui::EndChild();
 }
