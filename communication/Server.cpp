@@ -242,7 +242,7 @@ int Server::receiveLoop() {
                                                 bool opponentMode = currentState[n].getMode();
                                                 float opponentRadius = currentState[n].getRadius();
 
-                                                if (opponentMode) {  // if the opponent have it's defense activated
+                                                if (!opponentMode) {  // if the opponent have it's defense activated
                                                     printf("bouclier levé ! attention\n");
 
                                                     // looking for the angle between the player and it's opponent
