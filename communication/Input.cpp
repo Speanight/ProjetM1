@@ -1,42 +1,8 @@
 #include "Input.hpp"
 
-Input::Input() {
-    movementX = 0;      // default position = (0.0)
-    movementY = 0;
-    rotate = 0;         // default rotation = 0
-    mode = false;        // default mode SIGNAL = no change
-    mode_enable = true; // default mode to access the signal
-    attack = false;     // default state = not attacking
-}
 
-Input::Input(float x, float y, bool attack) {
-    this->movementX = x;
-    this->movementY = y;
-    this->rotate = 0;
-    this->mode = false;
-    this->mode_enable = true;
-    this->attack = attack;
-}
-
-Input::Input(float x, float y, float r, bool attack) {
-    this->movementX = x;
-    this->movementY = y;
-    this->rotate = r;
-    this->mode = false;
-    this->mode_enable = true;
-    this->attack = attack;
-}
-
-Input::Input(float x, float y, float r, bool mode, bool attack) {
-    this->movementX = x;
-    this->movementY = y;
-    this->rotate = r;
-    this->mode = mode;
-    this->mode_enable = true;
-    this->attack = attack;
-}
-
-Input::Input(float x, float y, float r, bool mode, bool attack, int wpn_id) {
+Input::Input(unsigned int id, float x, float y, float r, bool mode, bool attack, int wpn_id) {
+    this->id = id;
     this->movementX = x;
     this->movementY = y;
     this->rotate = r;
@@ -48,6 +14,10 @@ Input::Input(float x, float y, float r, bool mode, bool attack, int wpn_id) {
 
 
 // Getters
+unsigned int Input::getId() {
+    return id;
+}
+
 float Input::getMovementX() {
     return movementX;
 }
@@ -59,7 +29,6 @@ float Input::getMovementY() {
 float Input::getRotate() {
     return rotate;
 }
-
 
 bool Input::getMode() {
     return mode;
@@ -83,6 +52,10 @@ int Input::getWpnID() {
 
 
 // Setters
+void Input::setId(unsigned int id) {
+    this->id = id;
+}
+
 void Input::setMovementX(float x) {
     this->movementX = x;
 }
@@ -116,7 +89,6 @@ void Input::setWpnID(int wpn_id) {
 }
 
 
-
 void Input::handleInput(int inputCode, float value) {
     switch (inputCode) {
         case Inputs::MOVEMENT_UP:
@@ -131,16 +103,16 @@ void Input::handleInput(int inputCode, float value) {
         case Inputs::MOVEMENT_RIGHT:
             movementX += value;
             break;
-        case Inputs::WPN_CCW:   // Handle the weapon rotation
-            rotate += value;    // Move less fast than the player
+        case Inputs::WPN_CCW:       // Handle the weapon rotation
+            rotate += value;        // Move less fast than the player
             break;
-        case Inputs::WPN_CW:    // Handle the weapon rotation
+        case Inputs::WPN_CW:        // Handle the weapon rotation
             rotate -= value;
             break;
         case Inputs::WPN_CHANGE:    // Signal to change the weapon
             mode = value;
             break;
-        case Inputs::ATTACK:    // Signal to attack
+        case Inputs::ATTACK:        // Signal to attack
             attack = value;
             break;
         default:
@@ -149,20 +121,20 @@ void Input::handleInput(int inputCode, float value) {
 }
 
 sf::Packet& operator<<(sf::Packet &packet, Input inputs) {
-    // return packet << inputs.getMovementX() << inputs.getMovementY() << inputs.getRotate() << inputs.getAttack();
-    // return packet << inputs.getMovementX() << inputs.getMovementY() << inputs.getRotate() << inputs. getMode() << inputs.getAttack();
-    return packet << inputs.getMovementX() << inputs.getMovementY() << inputs.getRotate() << inputs. getMode() << inputs.getAttack() << inputs.getWpnID();
+    return packet << inputs.getId() << inputs.getMovementX() << inputs.getMovementY() << inputs.getRotate() << inputs.getMode() << inputs.getAttack() << inputs.getWpnID();
 }
 
 sf::Packet& operator>>(sf::Packet &packet, Input& inputs) {
+    unsigned int id;
     float x;
     float y;
     float r;
     bool mode;
     bool attack;
     int wpn_id;
-    packet >> x >> y >> r >> mode >> attack >> wpn_id;
+    packet >> id >> x >> y >> r >> mode >> attack >> wpn_id;
 
+    inputs.setId(id);
     inputs.setMovementX(x);
     inputs.setMovementY(y);
     inputs.setRotate(r);
