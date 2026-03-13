@@ -31,7 +31,7 @@ class Buffer {
 private:
     int amtPastStates = Const::BUFFER_SIZE;
     int currentTick = 0;
-    std::queue<std::unordered_map<std::string, State>> pastStates;
+    std::deque<std::unordered_map<std::string,State>> pastStates;
     std::unordered_map<std::string, State> currentState;
     std::unordered_map<std::string, State> nextState;
 
@@ -43,20 +43,15 @@ public:
 
     // Getters / Setters
     int getCurrentTick();
-    std::queue<std::unordered_map<std::string, State>> getPastStates();
     std::unordered_map<std::string, State> getCurrentState();
-    std::unordered_map<std::string, State> getNextState();
-    void setNextState(std::unordered_map<std::string, State> state, int clockState);
 
     // Functions
     std::unordered_map<std::string, State> getTState(int t);
     State getLastState(const Player& player);
-    std::unordered_map<std::string,State> getStateOfTick(int tick);
     void updateNextPlayerState(const Player& player, State state, bool oldMode = false);
     void push(int clockState);
-    bool refreshBuffer(const Player& player, State state, int clockState);
     void addClient(Player p);
-    void setPlayerPosition(std::string name, Position position);
+    void addInputsToLastState(const Player& player, int timestamp, Input inputs);
 };
 
 

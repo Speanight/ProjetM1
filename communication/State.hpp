@@ -11,6 +11,7 @@
 #include <unordered_set>
 #include <cmath>
 #include "../game/Weapon.hpp"
+#include <map>
 
 class State {
 private:
@@ -21,13 +22,12 @@ private:
     bool attack;
     Weapon wpn;
     int point;
+    unsigned int lastInputsId;
 
-    Input inputs;
+    std::map<int,Input> inputs;
 
 public:
     State();
-    State(int timestamp, Position position, bool mode, Input inputs);
-    State(int timestamp, Position position, float radius, Input inputs);
     State(int timestamp, Position position, float radius, bool mode, Input inputs);
     State(int timestamp, Position position, float radius, bool mode, bool attack, Input inputs);
     State(int timestamp, Position position, float radius, bool mode, bool attack, int wpn_id, Input inputs);
@@ -35,21 +35,29 @@ public:
     // Getters / Setters
     int getTimestamp() const;
     Position getPosition();
-    Input getInputs();
+    std::map<int,Input> getInputs();
     float getRadius();
     bool getMode();
+    unsigned int getLastInputsId() const;
     bool getAttack();
     Weapon getWpn();
     int getPoint();
 
     void setPosition(Position position);
-    void setInputs(Input inputs);
+    void addInputs(int timestamp, Input inputs);
     void setRadius(float radius);
     void setMode(bool mode);
+    void setTimestamp(int timestamp);
+    void setLastInputsId(unsigned int id);
+
+    Input getPercentInput(double percent);
     void setAttack(bool attack);
     void setWpn(int wpn_id);
     void setPoint(int point);
 };
+
+sf::Packet& operator<<(sf::Packet &packet, State state);
+sf::Packet& operator>>(sf::Packet &packet, State& state);
 
 
 #endif //PROJETM1_STATE_HPP

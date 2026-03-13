@@ -17,9 +17,6 @@ Server::Server(const sf::Clock clock) : semaphore(1) {
         socket.setBlocking(true);
         sendThread = std::thread(&Server::sendLoop, this);
         receiveThread = std::thread(&Server::receiveLoop, this);
-
-        // Adds all compensation methods:
-        compensations[Compensation::EXTRAPOLATION] = true;
     }
 }
 
@@ -89,6 +86,7 @@ int Server::receiveLoop() {
     while (loop) {
         sf::sleep(sf::Time());
         senderNum = 0;
+        packet.clear();
 
         if (socket.receive(packet, sender, port) == sf::Socket::Status::Done) {
             if (port == COMM_PORT_SERVER) {
@@ -143,23 +141,28 @@ int Server::receiveLoop() {
                                 "; rotate = "+ std::to_string(inputs.getRotate()) +
                                 "; mode = " + std::to_string(inputs.getMode()) +
                                 "; attack = " + std::to_string(inputs.getAttack()) +
-                                "; wpn id = " + std::to_string(inputs.getWpnID())
+                                "; wpn id = " + std::to_string(inputs.getWpnID()) +
+                                "; inputs #" + std::to_string(inputs.getId())
                                 );
-
-                            // Get time elapsed since last packet from client. Used for consistency in speed and such.
-                            dt = (time - playerState.getTimestamp()) % (2 * Const::TICKRATE.count());
+                            semaphore.release();
 
                             // Get the current server state AND last player state (which might be the next server state!)
                             currentState = buffer.getCurrentState();
+                            semaphore.acquire();
                             playerState = buffer.getLastState(player);
                             semaphore.release();
+                            buffer.addInputsToLastState(player, clock.getElapsedTime().asMilliseconds(), inputs);
                             // ====== POSITION ======
                             position = playerState.getPosition();
+                            semaphore.acquire();
                             radius = buffer.getLastState(player).getRadius();
+                            semaphore.release();
+
+                            // Get time elapsed since last packet from client. Used for consistency in speed and such.
+                            dt = (time - playerState.getTimestamp()) % (Const::TICKRATE.count());
 
                             // Adjust client values according to last state and new inputs values.
-                            position.setX(position.getX() + inputs.getMovementX() * Const::PLAYER_SPEED * dt);
-                            position.setY(position.getY() + inputs.getMovementY() * Const::PLAYER_SPEED * dt);
+                            position.move(inputs.getMovementX(), inputs.getMovementY(), dt);
                             radius += inputs.getRotate() * Const::PLAYER_RADIUS_SPEED * dt;
 
                             // ====== RADIUS ======
@@ -173,14 +176,11 @@ int Server::receiveLoop() {
                             // ====== WEAPON MODE ======
                             bool mode = playerState.getMode();
                             if(inputs.getMode()) {
-                                // printf("CLICK 2 !\n");
                                 mode = !mode;
                             }
-                            // currentState[name].setMode(mode);
 
                             // ====== ATTACK ======
                             bool attack = playerState.getAttack();
-                            // currentState[name].setAttack(attack);
 
                             // ====== WEAPON DATAS CHANGE ======
                             int wpn_id = playerState.getWpn().getId();
@@ -323,31 +323,28 @@ int Server::sendLoop() {
             if (newGame) {
                 packet << Pkt::ROUND_START << int(buffer.getCurrentTick()) << int(clients.size());
 
-                int playerNb = 1;
+                int playerNb = clients.size();
                 int time = clock.getElapsedTime().asMilliseconds();
 
                 for (auto & [name, player] : clients) {
-                    State st = buffer.getLastState(player);
-                    Position pos = st.getPosition();
+                    Position pos;
                     pos.setX((playerNb * Const::MAP_SIZE_X / (clients.size())) - (Const::MAP_SIZE_X / clients.size()) / 2);
                     pos.setY(Const::MAP_SIZE_Y / 2);
-                    Input inputs(0, 0, 0.f, false, false, 0);
+                    Input inputs(buffer.getLastState(player).getInputs().end()->second.getId(), 0, 0, 0.f, false, false, 0);
                     State s = State(time, pos, std::numbers::pi/2, true, inputs);
-//                    buffer.refreshBuffer(player, s, time);
-//                    buffer.setPlayerPosition(name, pos);
                     buffer.updateNextPlayerState(player, s);
 
-                    float radius = buffer.getCurrentState()[name].getRadius();           // give the actual radius of the client (weapon position)
-//                    buffer.refreshBuffer(player, s, time);
-                    playerNb++;
+                    playerNb--;
                 }
+                buffer.push(clock.getElapsedTime().asMilliseconds());
+                currentState = buffer.getCurrentState(); // Refresh current state.
             }
             else {
                 packet << Pkt::GLOBAL << int(buffer.getCurrentTick()) << int(currentState.size());
             }
 
             for (auto & [n, state] : currentState) {
-                packet << n << state.getPosition() << state.getRadius() << state.getMode();
+                packet << n << state;
             }
             semaphore.acquire();
             packet << clock.getElapsedTime().asMilliseconds(); // Sync clocks
@@ -363,7 +360,10 @@ int Server::sendLoop() {
         }
 
 
+        semaphore.acquire();
         buffer.push(clock.getElapsedTime().asMilliseconds());
+        semaphore.release();
+
         sf::sleep(tickrate);
     }
 

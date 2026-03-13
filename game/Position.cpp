@@ -42,6 +42,23 @@ void Position::setY(float y) {
     this->y = y;
 }
 
+/**
+ * @short moves player thanks to inputs and elapsed time.
+ *
+ * @details
+ * Function to centralize the player movement. This uses the input X and input Y and the elapsed
+ * time. The inputs should be in the range [-1:1]. The position will then set its X and Y values
+ * to the new ones according to the possible deplacement.
+ *
+ * @param inputX [-1:1] - inputs of the user on the X axis (usually).
+ * @param inputY [-1:1] - inputs of the user on the Y axis (usually).
+ * @param elapsedTime [in milliseconds] - time passed between last position and the new one. Used to determine distance.
+ */
+void Position::move(float inputX, float inputY, int elapsedTime) {
+    setX(getX() + inputX * Const::PLAYER_SPEED * elapsedTime);
+    setY(getY() + inputY * Const::PLAYER_SPEED * elapsedTime);
+}
+
 sf::Packet& operator<<(sf::Packet &packet, const Position& position) {
     return packet << position.getX() << position.getY();
 }
