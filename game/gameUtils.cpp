@@ -108,20 +108,27 @@ void drawPlayer(ImDrawList* draw_list, Player& player, ImVec2 min, ImVec2 max, c
     }
 
     // ========= POINT =========
-    // ========= POINT =========
     std::string points = std::to_string(player.point);
 
-    // taille du texte
-    ImVec2 text_size = ImGui::CalcTextSize(points.c_str());
+    float font_size = 16.0f * scale;
 
-    // position centrée
+    ImFont* font = ImGui::GetFont();
+
+    ImVec2 text_size = font->CalcTextSizeA(
+        font_size,
+        FLT_MAX,
+        0.0f,
+        points.c_str()
+    );
+
     ImVec2 text_pos = {
         pl_position.x - text_size.x * 0.5f,
         pl_position.y - text_size.y * 0.5f
     };
 
-    // couleur du texte (blanc pour visibilité)
     draw_list->AddText(
+        font,
+        font_size,
         text_pos,
         IM_COL32(0, 0, 0, 255),
         points.c_str()
