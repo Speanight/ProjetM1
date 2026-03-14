@@ -77,8 +77,8 @@ void Weapon::applyID(int id) {
             w_width = 24.f;
             w_type = 0;
             w_atk_speed = 0.1f;
-            w_rld = 0.5f;
-            w_range = 10.0f;
+            w_rld = 0.3f;
+            w_range = 15.0f;
             w_transform = 0.2f;
         break;
     }

@@ -270,11 +270,24 @@ int Server::receiveLoop() {
                                                 }
 
                                                 if (!blocked) {
+                                                    // HIT SECTION
                                                     int pts = currentState[name].getPoint() + 1;
                                                     currentState[name].setPoint(pts);
                                                     playerState.setPoint(pts);
 
                                                     // printf("Hit %d!\n", pts);
+                                                }
+                                                else {
+                                                    // BLOCKED SECTION
+                                                    float dirx = std::cos(radius);
+                                                    float diry = std::sin(radius);
+
+                                                    // distance de knockback = 2x la range de l'arme
+                                                    float knockbackDist = currentState[name].getWpn().getRange() * 2.f;
+
+                                                    // nouvelle position du joueur attaquant
+                                                    position.setX(position.getX() - dirx * knockbackDist);
+                                                    position.setY(position.getY() - diry * knockbackDist);
                                                 }
                                             }
                                         }
