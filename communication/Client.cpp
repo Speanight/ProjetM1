@@ -322,6 +322,7 @@ int Client::receiveLoop() {
                                 this->player.mode = state.getMode();
                                 this->player.isAttacking = state.getAttack();
                                 this->player.wpn.applyID(state.getWpn().getId());
+                                this->player.point = state.getPoint();
                             }
                             else {
                                 // Opponent position:
@@ -332,6 +333,7 @@ int Client::receiveLoop() {
                                 opponents[name].mode = currentState[name].getMode();
                                 opponents[name].isAttacking = currentState[name].getAttack();
                                 opponents[name].wpn.applyID(currentState[name].getWpn().getId());
+                                opponents[name].point = currentState[name].getPoint();
                             }
                             nbPlayers--;
                         }

@@ -154,6 +154,7 @@ sf::Packet& operator<<(sf::Packet &packet, State state) {
     << state.getMode()
     << state.getAttack()
     << state.getWpn().getId()
+    << state.getPoint()
     << state.getTimestamp()
     << size;
 
@@ -173,11 +174,20 @@ sf::Packet& operator>>(sf::Packet &packet, State& state) {
     bool attack;
     int wpnId;
     int size;
+    int point;
     int timestamp;
     unsigned int lastInputsId;
 //    Input input;
 
-    packet >> lastInputsId >> pos >> radius >> mode >> attack >> wpnId >> timestamp;
+    packet
+    >> lastInputsId
+    >> pos
+    >> radius
+    >> mode
+    >> attack
+    >> wpnId
+    >> point
+    >> timestamp;
 
     state.setLastInputsId(lastInputsId);
     state.setPosition(pos);
@@ -185,6 +195,7 @@ sf::Packet& operator>>(sf::Packet &packet, State& state) {
     state.setMode(mode);
     state.setAttack(attack);
     state.setWpn(wpnId);
+    state.setPoint(point);
     state.setTimestamp(timestamp);
 
     // Get inputs:

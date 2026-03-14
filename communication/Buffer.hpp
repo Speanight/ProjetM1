@@ -27,6 +27,7 @@ struct Player {
     bool isAttacking;           // indicate if the player is attacking or not
     float end_atk_phase;
     float end_rld_phase;
+    int point;
 };
 
 class Buffer {

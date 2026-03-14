@@ -33,6 +33,8 @@ void drawPlayer(ImDrawList* draw_list, Player& player, ImVec2 min, ImVec2 max, c
 
     if (atk) {
         if(player.end_atk_phase == 0 && player.end_rld_phase == 0) {
+
+
             player.end_atk_phase = t + player.wpn.getAttackSpeed();
             player.end_rld_phase = t + player.wpn.getAttackSpeed() + player.wpn.getReload();
         }
@@ -104,6 +106,26 @@ void drawPlayer(ImDrawList* draw_list, Player& player, ImVec2 min, ImVec2 max, c
             4.f * scale
         );
     }
+
+    // ========= POINT =========
+    // ========= POINT =========
+    std::string points = std::to_string(player.point);
+
+    // taille du texte
+    ImVec2 text_size = ImGui::CalcTextSize(points.c_str());
+
+    // position centrée
+    ImVec2 text_pos = {
+        pl_position.x - text_size.x * 0.5f,
+        pl_position.y - text_size.y * 0.5f
+    };
+
+    // couleur du texte (blanc pour visibilité)
+    draw_list->AddText(
+        text_pos,
+        IM_COL32(0, 0, 0, 255),
+        points.c_str()
+    );
 
 
 }

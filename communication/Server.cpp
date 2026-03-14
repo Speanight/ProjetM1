@@ -274,7 +274,7 @@ int Server::receiveLoop() {
                                                     currentState[name].setPoint(pts);
                                                     playerState.setPoint(pts);
 
-                                                    printf("Hit %d!\n", pts);
+                                                    // printf("Hit %d!\n", pts);
                                                 }
                                             }
                                         }
