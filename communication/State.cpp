@@ -53,15 +53,15 @@ Position State::getPosition() {
     return position;
 }
 
-float State::getRadius() {
+float State::getRadius() const {
      return radius;
 }
 
-bool State::getMode() {
+bool State::getMode() const {
     return mode;
 }
 
-bool State::getAttack() {
+bool State::getAttack() const {
     return attack;
 }
 
@@ -69,7 +69,7 @@ Weapon State::getWpn() {
     return wpn;
 }
 
-int State::getPoint() {
+int State::getPoint() const {
     return point;
 }
 

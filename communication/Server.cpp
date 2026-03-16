@@ -8,7 +8,6 @@
  * @param clock Clock, needed to synchronise clients and server together for packet transmission.
  */
 Server::Server(const sf::Clock clock) : semaphore(1) {
-    colors = {sf::Color::White, sf::Color::Red, sf::Color::Cyan, sf::Color::Green, sf::Color::Yellow};
     this->clock = clock;
     if (socket.bind(COMM_PORT_SERVER) != sf::Socket::Status::Done) {
         std::cout << "Error: port isn't available?" << std::endl;
@@ -51,15 +50,15 @@ int Server::addClient(std::unordered_map<std::string, std::any> infos) {
         std::cout << "Error initializing client " << std::any_cast<std::string>(infos["name"]) << std::endl;
         return Err::ERR_CLIENT_INIT;
     }
-    Player player(
-        std::any_cast<unsigned short>(infos["port"]),
-        std::any_cast<std::string>(infos["name"]),
-        std::any_cast<sf::Color>(infos["color"]),
-        Position()
-    );
+    Player player;
+    player.port = std::any_cast<unsigned short>(infos["port"]);
+    player.name = std::any_cast<std::string>(infos["name"]);
+    player.color = std::any_cast<sf::Color>(infos["color"]);
+
     clients[std::any_cast<std::string>(infos["name"])] = player;
     buffer.addClient(player);
     std::cout << "Added client " << std::any_cast<std::string>(infos["name"]) << " on port " << clients[std::any_cast<std::string>(infos["name"])].port << std::endl;
+    addToData("Server", std::any_cast<std::string>(infos["name"]));
     return Err::ERR_NONE;
 }
 
@@ -107,7 +106,6 @@ int Server::receiveLoop() {
             for (auto &[name, player]: clients) {
                 senderNum++;
                 if (player.port == port) { // Check if ports corresponds (AKA the expected client)
-                    // printf("port OK\n");
                     packet >> type;
 
                     switch (type) {
@@ -142,8 +140,10 @@ int Server::receiveLoop() {
                                 "; mode = " + std::to_string(inputs.getMode()) +
                                 "; attack = " + std::to_string(inputs.getAttack()) +
                                 "; wpn id = " + std::to_string(inputs.getWpnID()) +
-                                "; inputs #" + std::to_string(inputs.getId())
+                                "; inputs #" + std::to_string(inputs.getId()),
+                                player.color
                                 );
+                            addToGraph(clock.getElapsedTime().asMilliseconds(), "Server", name);
                             semaphore.release();
 
                             // Get the current server state AND last player state (which might be the next server state!)
@@ -164,15 +164,8 @@ int Server::receiveLoop() {
 
                             // Adjust client values according to last state and new inputs values.
                             position.move(inputs.getMovementX(), inputs.getMovementY(), dt);
-                            radius += inputs.getRotate() * Const::PLAYER_RADIUS_SPEED * dt;
-
-                            // ====== RADIUS ======
                             float twoPi = 2.f * std::numbers::pi;
-
-                            if (radius >= twoPi)
-                                radius -= twoPi;
-                            else if (radius < 0.f)
-                                radius += twoPi;
+                            radius += std::fmod(inputs.getRotate() * Const::PLAYER_RADIUS_SPEED * dt, twoPi);
 
                             // ====== WEAPON MODE ======
                             bool mode = playerState.getMode();
@@ -200,7 +193,6 @@ int Server::receiveLoop() {
                                     if (opponentPos.getX() != currentState[n].getPosition().getX() and
                                         opponentPos.getY() != currentState[n].getPosition().getY()) {
                                         interaction = true;
-//                                        buffer.refreshBuffer(p, s, time); // We refresh the buffer with its new pos.
                                     }
 
 
@@ -348,10 +340,43 @@ int Server::sendLoop() {
     while (loop) {
         // DEFAULT BEHAVIOR - SEND SERVER-SIDE POSITIONS AND RADIUS
         std::unordered_map<std::string, State> currentState = buffer.getCurrentState();
+        // TODO: Better handling of new game/round start, player status etc.
         for (auto & [name, player] : clients) {
+//            switch (player.status) {
+//                // If player is still waiting for round start packet:
+//                case Status::WAITING_FOR_ROUND_START: {
+//                    player.status = Status::WAITING_FOR_ROUND_START;
+//                    packet << Pkt::ROUND_START << int(buffer.getCurrentTick()) << int(clients.size());
+//
+//                    int playerNb = clients.size();
+//                    int time = clock.getElapsedTime().asMilliseconds();
+//
+//                    for (auto & [name, player] : clients) {
+//                        Position pos;
+//                        pos.setX((playerNb * Const::MAP_SIZE_X / (clients.size())) - (Const::MAP_SIZE_X / clients.size()) / 2);
+//                        pos.setY(Const::MAP_SIZE_Y / 2);
+//                        Input inputs(buffer.getLastState(player).getInputs().end()->second.getId(), 0, 0, 0.f, false, false, 0);
+//                        State s = State(time, pos, std::numbers::pi/2, true, inputs);
+//                        buffer.updateNextPlayerState(player, s);
+//
+//                        playerNb--;
+//                    }
+//                    buffer.push(clock.getElapsedTime().asMilliseconds());
+//                    currentState = buffer.getCurrentState(); // Refresh current state.
+//                    break;
+//                }
+//
+//                case Status::READY_TO_START:
+//                    packet << Pkt::ACK << Pkt::ROUND_START << int(buffer.getCurrentTick()) << int(clients.size());
+//                    break;
+//
+//                case Status::DONE:
+//
+//            }
             packet.clear();
 
             if (newGame) {
+                player.status = Status::WAITING_FOR_ROUND_START;
                 packet << Pkt::ROUND_START << int(buffer.getCurrentTick()) << int(clients.size());
 
                 int playerNb = clients.size();
@@ -369,7 +394,6 @@ int Server::sendLoop() {
                 }
                 buffer.push(clock.getElapsedTime().asMilliseconds());
                 currentState = buffer.getCurrentState(); // Refresh current state.
-
             }
             else {
                 packet << Pkt::GLOBAL << int(buffer.getCurrentTick()) << int(currentState.size());
@@ -377,7 +401,6 @@ int Server::sendLoop() {
 
             for (auto & [n, state] : currentState) {
                 packet << n << state;
-
             }
 
             semaphore.acquire();
@@ -392,7 +415,7 @@ int Server::sendLoop() {
                 + " mode : " + std::to_string(player.mode)
                 + " attack : " + std::to_string(player.isAttacking)
                 , sf::Color::White);
-
+            addToGraph(clock.getElapsedTime().asMilliseconds(), "Server", "Server");
             semaphore.release();
         }
 

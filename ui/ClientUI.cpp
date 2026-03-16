@@ -46,8 +46,11 @@ void ClientUI::drawGame() { // Game space
 
 
 void ClientUI::addOpponent(const std::string& name, sf::Color color) {
-    opponents.insert(std::make_pair(name, Player(0,name, color, Position())));
-    this->bufferOnReceipt.addClient(Player(0,name,color,Position()));
+    Player pl;
+    pl.name = name;
+    pl.color = color;
+    opponents.insert(std::make_pair(name, pl));
+    this->bufferOnReceipt.addClient(pl);
 }
 
 /**

@@ -50,6 +50,8 @@ add_executable(ProjetM1
         game/gameUtils.cpp
         communication/Buffer.cpp
         communication/Buffer.cpp
+        src/implot.cpp
+        src/implot_items.cpp
 )
 # =========================
 # Link libraries

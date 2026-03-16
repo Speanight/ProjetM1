@@ -113,10 +113,7 @@ void Client::setPosition(Position p) {
 }
 
 void Client::setRadius(float radius) {
-    this->player.radius = std::fmod(radius, 360);
-    while (this->player.radius < 0) {
-        this->player.radius += 360;
-    }
+    this->player.radius = std::fmod(radius, 2.f * std::numbers::pi);
 }
 
 void Client::setPacketLoss(int packetLoss) {
@@ -444,12 +441,7 @@ void Client::compensationInterpolation() {
             opponents[name].position = pos;
 
             // If the radius goes through 0, make sure we rotate correctly.
-            if (abs(pastState[name].getRadius() - currState[name].getRadius()) > M_2_PI) {
-                opponents[name].radius = pastState[name].getRadius() + (currState[name].getRadius() - pastState[name].getRadius()) * tickProgress;
-            }
-            else {
-                opponents[name].radius = pastState[name].getRadius() + (currState[name].getRadius() - pastState[name].getRadius()) * tickProgress;
-            }
+            opponents[name].radius = pastState[name].getRadius() + (currState[name].getRadius() - pastState[name].getRadius()) * tickProgress;
         }
     }
 }
@@ -481,6 +473,9 @@ void Client::compensationReconciliation() {
             pos.setX(pos.getX() - diff.x/2);
             pos.setY(pos.getY() - diff.y/2);
             setPosition(pos);
+        }
+
+        if (std::fmod(inputsBuffer[lastReceivedInputs].getRadius() - currentState.getRadius(), 2*std::numbers::pi) > 2*std::numbers::pi/180) { // If radius diff. > 2°
             setRadius(currentState.getRadius());
         }
 
