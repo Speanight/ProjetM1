@@ -16,6 +16,8 @@ int main() {
     sf::Clock clock;
     // auto clock = std::chrono::steady_clock::now();
 
+    sf::Joystick::update();
+
     for (int i = 0; i < 8; i++) {
         if (sf::Joystick::isConnected(i)) {
             std::cout << "Joystick " << i << " is connected!" << std::endl;

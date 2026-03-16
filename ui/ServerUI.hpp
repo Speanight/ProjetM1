@@ -33,7 +33,7 @@ private:
 
 protected:
     // Data (graphs)
-    std::unordered_map<std::string,std::unordered_map<std::string, std::vector<float>>> data;
+    std::unordered_map<std::string, std::vector<float>> data;
 
 public:
     ServerUI();
@@ -42,7 +42,7 @@ public:
     void addToGraph(int timestamp, const std::string& from, const std::string& to);
     void draw();
 
-    void addToData(const std::string& from, const std::string& to);
+    void addToData(const std::string& to);
     void setColorMaps(ImU32 server[], ImU32 client[]);
 };
 

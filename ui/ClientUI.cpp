@@ -80,7 +80,7 @@ void ClientUI::drawConfig() {
     setPacketLoss(packetLoss);
     setPing(ping);
 
-    if (compensations[Compensation::RECONCILIATION]) {
+    if (!compensations[Compensation::PREDICTION] and compensations[Compensation::RECONCILIATION]) {
         compensations[Compensation::PREDICTION] = true;
     }
 

@@ -58,7 +58,7 @@ int Server::addClient(std::unordered_map<std::string, std::any> infos) {
     clients[std::any_cast<std::string>(infos["name"])] = player;
     buffer.addClient(player);
     std::cout << "Added client " << std::any_cast<std::string>(infos["name"]) << " on port " << clients[std::any_cast<std::string>(infos["name"])].port << std::endl;
-    addToData("Server", std::any_cast<std::string>(infos["name"]));
+    addToData(std::any_cast<std::string>(infos["name"]));
     return Err::ERR_NONE;
 }
 
@@ -143,7 +143,7 @@ int Server::receiveLoop() {
                                 "; inputs #" + std::to_string(inputs.getId()),
                                 player.color
                                 );
-                            addToGraph(clock.getElapsedTime().asMilliseconds(), "Server", name);
+                            addToGraph(clock.getElapsedTime().asMilliseconds(), name, "Server");
                             semaphore.release();
 
                             // Get the current server state AND last player state (which might be the next server state!)
@@ -415,11 +415,11 @@ int Server::sendLoop() {
                 + " mode : " + std::to_string(player.mode)
                 + " attack : " + std::to_string(player.isAttacking)
                 , sf::Color::White);
-            addToGraph(clock.getElapsedTime().asMilliseconds(), "Server", "Server");
             semaphore.release();
         }
 
         semaphore.acquire();
+        addToGraph(clock.getElapsedTime().asMilliseconds(), "Server", "clients");
         buffer.push(clock.getElapsedTime().asMilliseconds());
         semaphore.release();
 

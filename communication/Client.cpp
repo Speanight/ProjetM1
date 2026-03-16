@@ -472,6 +472,13 @@ void Client::compensationReconciliation() {
             Position pos = getPosition();
             pos.setX(pos.getX() - diff.x/2);
             pos.setY(pos.getY() - diff.y/2);
+
+            // TODO: Find a better fix. This just sets it back to old pos. without taking into account latest inputs.
+            /* Should send a variable or something to tell that the position has been fixed, otherwise it gets fixed X times
+             * Until the server sends back a new packet, causing those large "round-like" fixes.
+            */
+//            pos.setX(q.getX());
+//            pos.setY(q.getY());
             setPosition(pos);
         }
 
