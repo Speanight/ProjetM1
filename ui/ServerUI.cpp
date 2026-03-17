@@ -2,8 +2,9 @@
 
 ServerUI::ServerUI() {
     std::vector<float> vec(Const::GRAPH_DISPLAY_VALUES, FLT_EPSILON);
-    data["Server"];
-    data["Server"]["Server"] = vec;
+    data["Server"] = vec;
+
+    lastTimestamp = 0;
 }
 
 /**
@@ -26,12 +27,10 @@ void ServerUI::addLine(std::string text, sf::Color color) {
     }
 }
 
-void ServerUI::addToData(const std::string& from, const std::string& to) {
+void ServerUI::addToData(const std::string& to) {
     std::vector<float> vec(Const::GRAPH_DISPLAY_VALUES, FLT_EPSILON);
-    data[from];
-    data[from][to] = vec;
-    data[to];
-    data[to][from] = vec;
+    data[to] = vec;
+    data[to] = vec;
 }
 
 void ServerUI::addLine(int timestamp, std::string from, std::string to, std::string details, sf::Color color) {
@@ -50,22 +49,26 @@ void ServerUI::addLine(int timestamp, std::string from, std::string to, std::str
 }
 
 void ServerUI::addToGraph(int timestamp, const std::string& from, const std::string& to) {
-    // TODO: Find a better way to do it (way too slow: causes cumulative delay) - seems to only work for "some values" also.
-//    if (!pauseConsole) {
-//        // If we're in to the next displayed bar:
-//        while (timestamp - Const::GRAPH_DISPLAY_MS > this->lastTimestamp) {
-//            for (auto & [f, t] : data) {
-//                for (auto &[name, values] : data[f]) {
-//                    data[f][name].pop_back();
-//                    data[f][name].insert(data[f][name].begin(), FLT_EPSILON);
-//                }
-//            }
-//            timestamp -= Const::GRAPH_DISPLAY_MS;
-//        }
-//
-//        // Finally, we insert the value in last place:
-//        data[from][to].at(0) = 1.0f;
-//    }
+    if (!pauseConsole) {
+        int toPush = (timestamp - lastTimestamp) / Const::GRAPH_DISPLAY_MS; // amt. of values to "push"
+
+        // If we're in to the next displayed bar:
+        for (auto & [f, t] : data) {
+                data[f].insert(data[f].end(), toPush, FLT_EPSILON);
+
+            if (data[f].size() > Const::GRAPH_DISPLAY_VALUES) {
+                data[f].erase(data[f].begin(), data[f].begin() + toPush);
+            }
+
+            if (t.size() > Const::GRAPH_DISPLAY_VALUES) {
+                data[f].erase(data[f].begin(), data[f].begin() + (t.size() - Const::GRAPH_DISPLAY_VALUES));
+            }
+        }
+
+        // Finally, we insert the value in last place:
+        data[from].push_back(1.0f);
+        lastTimestamp = timestamp;
+    }
 }
 
 void ServerUI::draw() {
@@ -110,53 +113,47 @@ void ServerUI::draw() {
         ImGui::Text("Server");
         ImGui::TableSetColumnIndex(1);
         ImGui::PushID("server");
-        ImPlot::PushColormap(serverColorMap);
 
-        std::vector<float> dataGraph;
-        for (auto & [name, value] : data["Server"]) {
-            dataGraph.insert(dataGraph.end(), value.begin(), value.end());
-        }
+        static int groups = Const::GRAPH_DISPLAY_VALUES; // dataTab of server should have 200 values (items*groups)
 
         if (ImPlot::BeginPlot("Bar Group##", ImVec2{ImGui::GetContentRegionAvail().x, ImGui::GetContentRegionAvail().y / (3)},
                               ImPlotFlags_NoTitle | ImPlotFlags_NoLegend |
                               ImPlotFlags_NoMouseText | ImPlotFlags_NoFrame | ImPlotFlags_NoInputs)) {
             static const char* ilabels[] = {"Packets received", "Packets sent"};
-            static int items = data["Server"].size();
-            static int groups = Const::GRAPH_DISPLAY_VALUES; // dataTab of server should have 200 values (items*groups)
 
             ImPlot::SetupAxes("Time","Packet",ImPlotAxisFlags_NoDecorations, ImPlotAxisFlags_NoDecorations);
-            ImPlot::PlotBarGroups(ilabels,dataGraph.data(),items,groups,(float)Const::GRAPH_DISPLAY_VALUES/50,0,{ImPlotProp_Flags, ImPlotBarGroupsFlags_Stacked});
+            ImPlot::PlotBarGroups(ilabels,data["Server"].data(),1,groups,1,0,{ImPlotProp_Flags, ImPlotBarGroupsFlags_Stacked});
 
             ImPlot::EndPlot(); // Server's Bar Group
 
         }
         ImGui::PopID();
 
-        for (int i = 0; i < 3; i++) {
-            ImGui::TableNextRow();
+        int i = 1;
 
-            ImGui::TableSetColumnIndex(0);
-            ImGui::Text("Testing %d", i);
-            ImGui::TableSetColumnIndex(1);
+        for (auto & [from, values] : data) {
+            if (from != "Server") {
+                ImGui::TableNextRow();
 
-            // Prints data:
-            ImGui::PushID(i);
-            ImPlot::PushColormap(clientsColorMap);
-            if (ImPlot::BeginPlot("Bar Group##", ImVec2{ImGui::GetContentRegionAvail().x, ImGui::GetContentRegionAvail().y / (3-i)},
-                                  ImPlotFlags_NoTitle | ImPlotFlags_NoLegend |
-                                  ImPlotFlags_NoMouseText | ImPlotFlags_NoFrame | ImPlotFlags_NoInputs)) {
-                static const char* ilabels[] = {"Packet Loss", "Packet Delivered"};
-                static float dataTab[100] = {1, FLT_EPSILON, FLT_EPSILON, FLT_EPSILON, FLT_EPSILON, FLT_EPSILON, FLT_EPSILON, FLT_EPSILON, 1, FLT_EPSILON,1, FLT_EPSILON, FLT_EPSILON, FLT_EPSILON, FLT_EPSILON, FLT_EPSILON, FLT_EPSILON, FLT_EPSILON, 1, FLT_EPSILON,1, FLT_EPSILON, FLT_EPSILON, FLT_EPSILON, FLT_EPSILON, FLT_EPSILON, FLT_EPSILON, FLT_EPSILON, 1, FLT_EPSILON,1, FLT_EPSILON, FLT_EPSILON, FLT_EPSILON, FLT_EPSILON, FLT_EPSILON, FLT_EPSILON, FLT_EPSILON, 1, FLT_EPSILON,1, FLT_EPSILON, FLT_EPSILON, FLT_EPSILON, FLT_EPSILON, FLT_EPSILON, FLT_EPSILON, FLT_EPSILON, 1, FLT_EPSILON,  // Packet Loss
-                                             FLT_EPSILON, FLT_EPSILON, FLT_EPSILON, 1, FLT_EPSILON, FLT_EPSILON, 1, FLT_EPSILON, FLT_EPSILON, FLT_EPSILON,FLT_EPSILON, FLT_EPSILON, FLT_EPSILON, 1, FLT_EPSILON, FLT_EPSILON, 1, FLT_EPSILON, FLT_EPSILON, FLT_EPSILON,FLT_EPSILON, FLT_EPSILON, FLT_EPSILON, 1, FLT_EPSILON, FLT_EPSILON, 1, FLT_EPSILON, FLT_EPSILON, FLT_EPSILON,FLT_EPSILON, FLT_EPSILON, FLT_EPSILON, 1, FLT_EPSILON, FLT_EPSILON, 1, FLT_EPSILON, FLT_EPSILON, FLT_EPSILON,FLT_EPSILON, FLT_EPSILON, FLT_EPSILON, 1, FLT_EPSILON, FLT_EPSILON, 1, FLT_EPSILON, FLT_EPSILON, FLT_EPSILON,}; // Packet Delivered
-                static int items = 2;
-                static int groups = 50;
+                ImGui::TableSetColumnIndex(0);
+                ImGui::Text("%s", from.c_str());
+                ImGui::TableSetColumnIndex(1);
 
-                ImPlot::SetupAxes("Time","Packet",ImPlotAxisFlags_NoDecorations, ImPlotAxisFlags_NoDecorations);
-                ImPlot::PlotBarGroups(ilabels,dataTab,items,groups,1,0,{ImPlotProp_Flags, ImPlotBarGroupsFlags_Stacked});
+                // Prints data:
+                ImGui::PushID(i);
+                if (ImPlot::BeginPlot("Bar Group##", ImVec2{ImGui::GetContentRegionAvail().x, ImGui::GetContentRegionAvail().y / (data.size()-i)},
+                                      ImPlotFlags_NoTitle | ImPlotFlags_NoLegend |
+                                      ImPlotFlags_NoMouseText | ImPlotFlags_NoFrame | ImPlotFlags_NoInputs)) {
+                    static const char* ilabels[] = {"Packet Loss", "Packet Delivered"};
 
-                ImPlot::EndPlot(); // Bar Group
+                    ImPlot::SetupAxes("Time","Packet",ImPlotAxisFlags_NoDecorations, ImPlotAxisFlags_NoDecorations);
+                    ImPlot::PlotBarGroups(ilabels,values.data(),1,groups,1,0,{ImPlotProp_Flags, ImPlotBarGroupsFlags_Stacked});
+
+                    ImPlot::EndPlot(); // Bar Group
+                }
+                ImGui::PopID();
+                i++;
             }
-            ImGui::PopID();
         }
         ImGui::EndTable();
     }

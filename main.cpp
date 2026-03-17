@@ -14,7 +14,8 @@ int main() {
     XInitThreads(); // Needed for multi-threading.
     // Initializing objects
     sf::Clock clock;
-    // auto clock = std::chrono::steady_clock::now();
+
+    sf::Joystick::update();
 
     for (int i = 0; i < 8; i++) {
         if (sf::Joystick::isConnected(i)) {
@@ -27,20 +28,34 @@ int main() {
     std::cout << "Tickrate changes " << Const::TICKRATE.count() << " times per second." << std::endl;
 
     std::cout << "Starting server on Network: " << SERVER_IP << ":" << COMM_PORT_SERVER << std::endl;
-    ClientUI* clientA = new ClientUI(clock, "Client A", sf::Color::Red);
-    ClientUI* clientB = new ClientUI(clock, "Client B", sf::Color::Green);
+    ClientUI* clientA = new ClientUI(clock, "Client A", 0, sf::Color::Red);
+    ClientUI* clientB = new ClientUI(clock, "Client B", -1, sf::Color::Green);
 
     // Settings players keybinds...
+//    clientA->setKeybinds({
+//        {Inputs::MOVEMENT_UP, sf::Keyboard::Key::Z},
+//        {Inputs::MOVEMENT_DOWN, sf::Keyboard::Key::S},
+//        {Inputs::MOVEMENT_LEFT, sf::Keyboard::Key::Q},
+//        {Inputs::MOVEMENT_RIGHT, sf::Keyboard::Key::D},
+//        {Inputs::WPN_CCW, sf::Keyboard::Key::A},
+//        {Inputs::WPN_CW, sf::Keyboard::Key::E},
+//        {Inputs::WPN_CHANGE, sf::Keyboard::Key::W},
+//        {Inputs::ATTACK, sf::Keyboard::Key::C}
+//    });
+
+// Axis U = R stick L <-> R
+// Axis V = R stick U <-> D
+// Axis Z = LT button
+
+    // Controller keybind for client A:
     clientA->setKeybinds({
-        {Inputs::MOVEMENT_UP, sf::Keyboard::Key::Z},
-        {Inputs::MOVEMENT_DOWN, sf::Keyboard::Key::S},
-        {Inputs::MOVEMENT_LEFT, sf::Keyboard::Key::Q},
-        {Inputs::MOVEMENT_RIGHT, sf::Keyboard::Key::D},
-        {Inputs::WPN_CCW, sf::Keyboard::Key::A},
-        {Inputs::WPN_CW, sf::Keyboard::Key::E},
-        {Inputs::WPN_CHANGE, sf::Keyboard::Key::W},
-        {Inputs::ATTACK, sf::Keyboard::Key::C}
-    });
+         {Inputs::MOVEMENT_DOWN, sf::Joystick::Axis::Y},
+         {Inputs::MOVEMENT_RIGHT, sf::Joystick::Axis::X},
+         {Inputs::WPN_CCW, 4}, // LB button
+         {Inputs::WPN_CW, 5}, // RB button
+         {Inputs::WPN_CHANGE, 2},
+         {Inputs::ATTACK, sf::Joystick::Axis::R} // RT button
+     });
 
     clientB->setKeybinds({
         {Inputs::MOVEMENT_UP, sf::Keyboard::Key::Up},

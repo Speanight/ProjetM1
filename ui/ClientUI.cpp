@@ -2,7 +2,7 @@
 
 #include <algorithm>
 
-ClientUI::ClientUI(const sf::Clock clock, std::string name, sf::Color color) : Client(clock, name, color) {}
+ClientUI::ClientUI(const sf::Clock clock, std::string name, short controller, sf::Color color) : Client(clock, name, controller, color) {}
 
 void ClientUI::drawGame() { // Game space
     const char* title = getName().c_str();
@@ -79,7 +79,7 @@ void ClientUI::drawConfig() {
     setPacketLoss(packetLoss);
     setPing(ping);
 
-    if (compensations[Compensation::RECONCILIATION]) {
+    if (!compensations[Compensation::PREDICTION] and compensations[Compensation::RECONCILIATION]) {
         compensations[Compensation::PREDICTION] = true;
     }
 
