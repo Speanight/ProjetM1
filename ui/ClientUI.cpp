@@ -2,7 +2,7 @@
 
 #include <algorithm>
 
-ClientUI::ClientUI(const sf::Clock clock, std::string name, sf::Color color) : Client(clock, name, color) {}
+ClientUI::ClientUI(const sf::Clock clock, std::string name, short controller, sf::Color color) : Client(clock, name, controller, color) {}
 
 void ClientUI::drawGame() { // Game space
     const char* title = getName().c_str();

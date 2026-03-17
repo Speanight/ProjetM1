@@ -49,7 +49,9 @@ private:
 
     sf::IpAddress server;
     sf::UdpSocket socket;
-    std::unordered_map<int,sf::Keyboard::Key> keybinds;
+//    std::unordered_map<int,sf::Keyboard::Key> keybinds;
+    std::unordered_map<int, std::variant<sf::Keyboard::Key, sf::Joystick::Axis, int>> keybinds; // int = button ID.
+    short controllerNumber = -1;
 
     std::thread sendThread;
     std::thread receiveThread;
@@ -72,7 +74,7 @@ protected:
     int lastUpdate;
 
 public:
-    Client(sf::Clock clock, std::string name, sf::Color color = sf::Color::Red);
+    Client(sf::Clock clock, std::string name, short controller = -1, sf::Color color = sf::Color::Red);
     // Client(sf::Clock clock, std::string name, sf::Color color = sf::Color::Red, float radius = 0);
     ~Client();
 
@@ -96,7 +98,7 @@ public:
 
     void setPacketLoss(int packetLoss);
     void setPing(int ping);
-    void setKeybinds(std::unordered_map<int,sf::Keyboard::Key> keybinds);
+    void setKeybinds(std::unordered_map<int, std::variant<sf::Keyboard::Key, sf::Joystick::Axis, int>> keybinds);
     void setPosition(Position p);
     void setRadius(float radius);
     void setCompensations(std::array<bool,3> compensations);

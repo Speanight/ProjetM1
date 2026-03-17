@@ -13,7 +13,7 @@
  * @param name Name given to the client. Can be any string, must be unique!
  * @param color Color given to the client in the Server's console.
  */
-Client::Client(const sf::Clock clock, std::string name, sf::Color color) : server(SERVER_IP_BYTE1, SERVER_IP_BYTE2, SERVER_IP_BYTE3, SERVER_IP_BYTE4), semaphore(1) {
+Client::Client(const sf::Clock clock, std::string name, short controller, sf::Color color) : server(SERVER_IP_BYTE1, SERVER_IP_BYTE2, SERVER_IP_BYTE3, SERVER_IP_BYTE4), semaphore(1) {
     this->network.packetLoss = 0;
     this->clock = clock;
     this->network.ping = 0;
@@ -22,6 +22,7 @@ Client::Client(const sf::Clock clock, std::string name, sf::Color color) : serve
     this->bufferOnReceipt.addClient(player);
     this->player.radius = std::numbers::pi/2; //put the element on top in radius
     this->player.mode = true;
+    this->controllerNumber = controller;
 
     Weapon wpn (0);                         // ID of the default wpn
     this->player.wpn = wpn;
@@ -132,7 +133,7 @@ void Client::setCompensations(std::array<bool,3> compensations) {
     this->network.compensations = compensations;
 }
 
-void Client::setKeybinds(std::unordered_map<int, sf::Keyboard::Key> keybinds) {
+void Client::setKeybinds(std::unordered_map<int, std::variant<sf::Keyboard::Key, sf::Joystick::Axis, int>> keybinds) {
     this->keybinds = std::move(keybinds);
 }
 
@@ -148,41 +149,50 @@ void Client::setKeybinds(std::unordered_map<int, sf::Keyboard::Key> keybinds) {
  */
 Input Client::getInputs(bool mode_enable, bool attack_enable) {
     Input input;
+    float value;
 
-    for (const std::pair<const int, sf::Keyboard::Key> & i : keybinds) {
-        bool pressed = isKeyPressed(i.second) > 0.f;
+    for (const std::pair<const int, std::variant<sf::Keyboard::Key, sf::Joystick::Axis, int>> & i : keybinds) {
+        // If keybind is on keyboard:
+        if (std::holds_alternative<sf::Keyboard::Key>(i.second)) {
+            value = isKeyPressed(std::get<sf::Keyboard::Key>(i.second));
+        }
+        // Else, if it's a joystick:
+        else if (std::holds_alternative<sf::Joystick::Axis>(i.second)) {
+            value = sf::Joystick::getAxisPosition(controllerNumber, std::get<sf::Joystick::Axis>(i.second)) / 100; // Axis values are between -100 and 100.
+        }
+        // Else, if it's a controller button:
+        else if (std::holds_alternative<int>(i.second)) {
+            value = sf::Joystick::isButtonPressed(controllerNumber, std::get<int>(i.second));
+        }
+
         switch (i.first) {
             case Inputs::WPN_CW :
                 if(this->player.end_rld_phase <= 0) {
-                    input.handleInput(i.first, isKeyPressed(i.second));
+                    input.handleInput(i.first, value);
                     break;
                 }
             case Inputs::WPN_CCW :
                 if(this->player.end_rld_phase <= 0) {
-                    input.handleInput(i.first, isKeyPressed(i.second));
+                    input.handleInput(i.first, value);
                     break;
                 }
             case Inputs::WPN_CHANGE:
-                if(pressed && !mode_enable && this->player.end_rld_phase <= 0) {
+                if(value > 0.f && !mode_enable && this->player.end_rld_phase <= 0) {
                     input.setMode(true);
                 }
-
-                input.setModeEnable(pressed);
+                input.setModeEnable(value > 0.f);
                 break;
             case Inputs::ATTACK:
-                if(pressed && !attack_enable && this->player.end_rld_phase <= 0) {
+                if(value > 0.f && !attack_enable && this->player.end_rld_phase <= 0) {
                     input.setAttack(true);
-                    // printf("Attack click !\n");
                 }
-                input.setAttackEnable(pressed);
+                input.setAttackEnable(value > 0.f);
                 break;
-            default :
-                input.handleInput(i.first, isKeyPressed(i.second));
+            default:
+                input.handleInput(i.first, value);
                 break;
         }
-
     }
-
     return input;
 }
 
