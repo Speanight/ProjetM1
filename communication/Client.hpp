@@ -82,7 +82,6 @@ public:
 
     // Getters / Setters
     Player getPlayer();
-    Player& getTruePlayer();
     std::string getName();
     int getPacketLoss() const;
     int getPing() const;
@@ -114,7 +113,5 @@ public:
     void compensationPrediction(Input inputs);
     void compensationReconciliation();
 };
-
-
 
 #endif //PROJETM1_CLIENT_H

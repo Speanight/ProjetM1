@@ -3,7 +3,7 @@
 #include "../communication/Client.hpp"
 
 
-void drawPlayer(ImDrawList* draw_list, Player& player, ImVec2 min, ImVec2 max, const sf::Clock& clk) {
+void drawPlayer(ImDrawList* draw_list, Player player, ImVec2 min, ImVec2 max) {
     float window_size = max.x - min.x;
 
     float scale = window_size / Const::MAP_SIZE_X;
@@ -27,37 +27,7 @@ void drawPlayer(ImDrawList* draw_list, Player& player, ImVec2 min, ImVec2 max, c
     float distance = player_radius + 2.f * scale;
 
     // ========= ATTACK =========
-    bool atk = player.isAttacking;
 
-    float t = clk.getElapsedTime().asSeconds();
-
-    if (atk) {
-        if(player.end_atk_phase == 0 && player.end_rld_phase == 0) {
-
-
-            player.end_atk_phase = t + player.wpn.getAttackSpeed();
-            player.end_rld_phase = t + player.wpn.getAttackSpeed() + player.wpn.getReload();
-        }
-    }
-
-    // Calcul de l'offset pour l'animation
-    float offset = 0.f;
-    if (player.end_atk_phase > t) {
-        float attackDuration = player.wpn.getAttackSpeed();
-        float elapsed = attackDuration - (player.end_atk_phase - t); // temps écoulé dans l'attaque
-        offset = (elapsed / attackDuration) * player.wpn.getRange(); // 0 -> maxRange
-    }
-    else {
-        player.end_atk_phase = 0;
-        if (player.end_rld_phase > t) {
-            float reloadDuration = player.wpn.getReload();
-            float elapsed = reloadDuration - (player.end_rld_phase - t); // temps écoulé dans le reload
-            offset = ((reloadDuration - elapsed) / reloadDuration) * player.wpn.getRange(); // maxRange -> 0
-        }
-        else {
-            player.end_rld_phase = 0;
-        }
-    }
 
     // ========= DRAW WEAPON =========
     if (mode) {
@@ -65,14 +35,24 @@ void drawPlayer(ImDrawList* draw_list, Player& player, ImVec2 min, ImVec2 max, c
         float height = player.wpn.getHeight() * scale;
         float width  = player.wpn.getWidth()  * scale;
 
-        // On applique l'offset pour l'animation
+        float offset = 0;
+        if(player.timer_atk != -1) {
+            if(player.timer_atk <= player.wpn.getAttackSpeed()) {
+                offset = player.timer_atk / player.wpn.getAttackSpeed();
+            }
+            else if(player.timer_atk <= player.wpn.getAttackSpeed() + player.wpn.getReload()) {
+                offset = 1 - player.timer_atk / (player.wpn.getAttackSpeed()+ player.wpn.getReload());
+            }
+        }
+
+
         ImVec2 bottom = {
-            pl_position.x + dir.x * (distance + offset * scale),
-            pl_position.y + dir.y * (distance + offset * scale)
+            pl_position.x + dir.x * (distance + (offset * player.wpn.getRange()) * scale),
+            pl_position.y + dir.y * (distance + (offset * player.wpn.getRange()) * scale)
         };
         ImVec2 top = {
-            pl_position.x + dir.x * (distance + offset * scale + height),
-            pl_position.y + dir.y * (distance + offset * scale + height)
+            pl_position.x + dir.x * (distance + (offset * player.wpn.getRange()) * scale + height),
+            pl_position.y + dir.y * (distance + (offset * player.wpn.getRange()) * scale + height)
         };
 
         ImVec2 perp = { -dir.y, dir.x };

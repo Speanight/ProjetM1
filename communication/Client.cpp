@@ -22,6 +22,8 @@ Client::Client(const sf::Clock clock, std::string name, sf::Color color) : serve
     this->bufferOnReceipt.addClient(player);
     this->player.radius = std::numbers::pi/2; //put the element on top in radius
     this->player.mode = true;
+    this->player.isAttacking = false;
+    this->player.timer_atk = -1;
 
     Weapon wpn (0);                         // ID of the default wpn
     this->player.wpn = wpn;
@@ -69,10 +71,6 @@ std::unordered_map<std::string, std::any> Client::init() {
 }
 
 Player Client::getPlayer() {
-    return player;
-}
-
-Player& Client::getTruePlayer() {
     return player;
 }
 
@@ -153,24 +151,24 @@ Input Client::getInputs(bool mode_enable, bool attack_enable) {
         bool pressed = isKeyPressed(i.second) > 0.f;
         switch (i.first) {
             case Inputs::WPN_CW :
-                if(this->player.end_rld_phase <= 0) {
+                if(this->player.timer_atk == -1) {
                     input.handleInput(i.first, isKeyPressed(i.second));
                     break;
                 }
             case Inputs::WPN_CCW :
-                if(this->player.end_rld_phase <= 0) {
+                if(this->player.timer_atk == -1) {
                     input.handleInput(i.first, isKeyPressed(i.second));
                     break;
                 }
             case Inputs::WPN_CHANGE:
-                if(pressed && !mode_enable && this->player.end_rld_phase <= 0) {
+                if(pressed && !mode_enable && this->player.timer_atk == -1) {
                     input.setMode(true);
                 }
 
                 input.setModeEnable(pressed);
                 break;
             case Inputs::ATTACK:
-                if(pressed && !attack_enable && this->player.end_rld_phase <= 0) {
+                if(pressed && !attack_enable && this->player.timer_atk == -1) {
                     input.setAttack(true);
                     // printf("Attack click !\n");
                 }
@@ -198,6 +196,8 @@ int Client::update() {
 
     bool mode_enable = true;    // set the ability to change the weapon to true at the beginning
     bool attack_enable = true;  // set the ability to attack at true at the beginning
+
+    int before = 0;
 
     while (loop) {
         // ==========| INPUTS |========== //
@@ -233,8 +233,37 @@ int Client::update() {
         }
         semaphore.release();
 
-
         lastUpdate = clock.getElapsedTime().asMilliseconds();
+
+        // ===== ATTACK =====
+        if(player.isAttacking && player.timer_atk == -1) {
+            // printf("Player is attacking\n");
+            player.timer_atk = lastUpdate - before;
+        }
+        if(player.timer_atk != -1) {
+            player.timer_atk += lastUpdate - before;
+            // printf("progress : dt = %d\n", player.timer_atk);
+        }
+        if(player.timer_atk >= player.wpn.getAttackSpeed() + player.wpn.getReload()) {
+            // printf("Retour a -1 !\n");
+            player.timer_atk = -1;
+        }
+
+        for(auto& [name, opp] : opponents) {
+            if(opp.isAttacking && opp.timer_atk == -1) {
+                // printf("Player is attacking\n");
+                opp.timer_atk = lastUpdate - before;
+            }
+            if(opp.timer_atk != -1) {
+                opp.timer_atk += lastUpdate - before;
+                // printf("progress : dt = %d\n", opp.timer_atk);
+            }
+            if(opp.timer_atk >= opp.wpn.getAttackSpeed() + opp.wpn.getReload()) {
+                // printf("Retour a -1 !\n");
+                opp.timer_atk = -1;
+            }
+        }
+        before = lastUpdate;
         sf::sleep(sf::Time()); // Shortest sleep possible (as update loop runs as fast as possible)
     }
 
