@@ -26,7 +26,7 @@ struct Player {
 
     // ====== ATTACK ======
     bool isAttacking;           // indicate if the player is attacking or not
-    int timer_atk;
+    int timer_atk;              // timer that indicate where we are in the animation, -1 stand for no animation
     int point;
 };
 

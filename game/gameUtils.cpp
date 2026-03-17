@@ -26,8 +26,6 @@ void drawPlayer(ImDrawList* draw_list, Player player, ImVec2 min, ImVec2 max) {
     float angle = player.radius; // radians
     float distance = player_radius + 2.f * scale;
 
-    // ========= ATTACK =========
-
 
     // ========= DRAW WEAPON =========
     if (mode) {
@@ -35,6 +33,7 @@ void drawPlayer(ImDrawList* draw_list, Player player, ImVec2 min, ImVec2 max) {
         float height = player.wpn.getHeight() * scale;
         float width  = player.wpn.getWidth()  * scale;
 
+        // ======== ATTACK ANIMATION ========
         float offset = 0;
         if(player.timer_atk != -1) {
             if(player.timer_atk <= player.wpn.getAttackSpeed()) {

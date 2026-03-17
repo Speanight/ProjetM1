@@ -237,29 +237,23 @@ int Client::update() {
 
         // ===== ATTACK =====
         if(player.isAttacking && player.timer_atk == -1) {
-            // printf("Player is attacking\n");
             player.timer_atk = lastUpdate - before;
         }
         if(player.timer_atk != -1) {
             player.timer_atk += lastUpdate - before;
-            // printf("progress : dt = %d\n", player.timer_atk);
         }
         if(player.timer_atk >= player.wpn.getAttackSpeed() + player.wpn.getReload()) {
-            // printf("Retour a -1 !\n");
             player.timer_atk = -1;
         }
 
         for(auto& [name, opp] : opponents) {
             if(opp.isAttacking && opp.timer_atk == -1) {
-                // printf("Player is attacking\n");
                 opp.timer_atk = lastUpdate - before;
             }
             if(opp.timer_atk != -1) {
                 opp.timer_atk += lastUpdate - before;
-                // printf("progress : dt = %d\n", opp.timer_atk);
             }
             if(opp.timer_atk >= opp.wpn.getAttackSpeed() + opp.wpn.getReload()) {
-                // printf("Retour a -1 !\n");
                 opp.timer_atk = -1;
             }
         }
