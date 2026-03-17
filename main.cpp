@@ -67,6 +67,14 @@ int main() {
         {Inputs::WPN_CHANGE, sf::Keyboard::Key::L},
         {Inputs::ATTACK, sf::Keyboard::Key::O}
     });
+//    clientB->setKeybinds({
+//         {Inputs::MOVEMENT_DOWN, sf::Joystick::Axis::Y},
+//         {Inputs::MOVEMENT_RIGHT, sf::Joystick::Axis::X},
+//         {Inputs::WPN_CCW, 4}, // LB button
+//         {Inputs::WPN_CW, 5}, // RB button
+//         {Inputs::WPN_CHANGE, 2},
+//         {Inputs::ATTACK, sf::Joystick::Axis::R} // RT button
+//     });
 
     clientA->addOpponent(clientB->getName(), clientB->getColor());
     clientB->addOpponent(clientA->getName(), clientA->getColor());

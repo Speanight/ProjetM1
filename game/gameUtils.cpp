@@ -141,9 +141,61 @@ Position resolveCollision(Position player, Position opponent) {
     return opponent;
 }
 
-Position smoothenDeplacement(State p, State s, int clockSync) {
-    Position pos;
-    pos.setX(p.getPosition().getX() + (s.getPosition().getX() - p.getPosition().getX()) * clockSync / (s.getTimestamp() - p.getTimestamp()));
-    pos.setY(p.getPosition().getY() + (s.getPosition().getY() - p.getPosition().getY()) * clockSync / (s.getTimestamp() - p.getTimestamp()));
-    return pos;
+short resolveAttacks(State attacker, State opponent) {
+    // ====== POINT GESTION ======
+    ImVec2 diff = {attacker.getPosition().getX() - opponent.getPosition().getX(), attacker.getPosition().getY() - opponent.getPosition().getY()};
+
+    float distAB = std::sqrt(pow(diff.x, 2) + pow(diff.y, 2));
+
+    // max distance for the weapon to touch the enemy
+    float maxReach = PLAYER_SIZE * 2.f + attacker.getWpn().getHeight() + attacker.getWpn().getRange();
+
+    std::cout << "distance: " << distAB << " <= " << maxReach << std::endl;
+
+    if (distAB <= maxReach) {    // if players close enough for the weapon to touch
+        // weapon direction
+        ImVec2 dir = {std::cos(attacker.getRadius()), std::sin(attacker.getRadius())};
+
+        // distance between the player and the surface of the opponent
+        float attackReach = maxReach - PLAYER_SIZE;
+
+        ImVec2 top = {attacker.getPosition().getX() + dir.x * attackReach, attacker.getPosition().getY() + dir.y * attackReach};
+        ImVec2 d2 = {opponent.getPosition().getX() - top.x, opponent.getPosition().getY() - top.y};
+
+        float distTop = std::sqrt(pow(d2.x, 2) + pow(d2.y, 2));
+
+
+        if (distTop <= PLAYER_SIZE) {        // if the weapon can enter the opponent perimeters, then it's a touch
+            bool blocked = false;
+
+            if (!opponent.getMode()) {  // if the opponent have its defense activated
+
+                // looking for the angle between the player and it's opponent
+                float angleToAttacker = std::atan2(
+                        attacker.getPosition().getY() - opponent.getPosition().getY(),
+                        attacker.getPosition().getX() - opponent.getPosition().getX()
+                );
+
+                auto normalize = [&](float a) {
+                    a = std::fmod(a, 2 * std::numbers::pi);
+                    if (a < 0) a += 2 * std::numbers::pi;
+                    return a;
+                };
+
+                angleToAttacker = normalize(angleToAttacker);
+                float opponentRadius = normalize(opponent.getRadius());
+
+                float shieldStart = normalize(opponentRadius - 0.8f);
+                float shieldEnd = normalize(opponentRadius + 0.8f);
+
+                if (shieldStart < shieldEnd)
+                    blocked = (angleToAttacker >= shieldStart && angleToAttacker <= shieldEnd);
+                else
+                    blocked = (angleToAttacker >= shieldStart || angleToAttacker <= shieldEnd);
+            }
+
+            return blocked;
+        }
+    }
+    return -1;
 }

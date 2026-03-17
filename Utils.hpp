@@ -60,8 +60,10 @@ namespace Inputs {
     static constexpr int MOVEMENT_RIGHT = 3;
     static constexpr int WPN_CCW = 4;
     static constexpr int WPN_CW = 5;
-    static constexpr int WPN_CHANGE = 6;
-    static constexpr int ATTACK = 7;
+    static constexpr int WPN_ANGLE_WE = 6;
+    static constexpr int WPN_ANGLE_NS = 7;
+    static constexpr int WPN_CHANGE = 8;
+    static constexpr int ATTACK = 9;
 }
 
 namespace Compensation {

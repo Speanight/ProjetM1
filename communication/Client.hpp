@@ -49,7 +49,6 @@ private:
 
     sf::IpAddress server;
     sf::UdpSocket socket;
-//    std::unordered_map<int,sf::Keyboard::Key> keybinds;
     std::unordered_map<int, std::variant<sf::Keyboard::Key, sf::Joystick::Axis, int>> keybinds; // int = button ID.
     short controllerNumber = -1;
 

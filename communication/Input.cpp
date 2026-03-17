@@ -1,7 +1,7 @@
 #include "Input.hpp"
 
 
-Input::Input(unsigned int id, float x, float y, float r, bool mode, bool attack, int wpn_id) {
+Input::Input(unsigned int id, float x, float y, float r, bool mode, bool attack, int wpn_id, bool onController) {
     this->id = id;
     this->movementX = x;
     this->movementY = y;
@@ -10,6 +10,7 @@ Input::Input(unsigned int id, float x, float y, float r, bool mode, bool attack,
     this->mode_enable = true;
     this->attack = attack;
     this->wpn_id = wpn_id;
+    this->onController = onController;
 }
 
 
@@ -50,6 +51,10 @@ int Input::getWpnID() {
     return wpn_id;
 }
 
+bool Input::getOnController() {
+    return onController;
+}
+
 
 // Setters
 void Input::setId(unsigned int id) {
@@ -88,6 +93,10 @@ void Input::setWpnID(int wpn_id) {
     this->wpn_id = wpn_id;
 }
 
+void Input::setOnController(bool onController) {
+    this->onController = onController;
+}
+
 
 void Input::handleInput(int inputCode, float value) {
     switch (inputCode) {
@@ -109,6 +118,9 @@ void Input::handleInput(int inputCode, float value) {
         case Inputs::WPN_CW:        // Handle the weapon rotation
             rotate -= value;
             break;
+        case Inputs::WPN_ANGLE:
+            rotate = value;
+            break;
         case Inputs::WPN_CHANGE:    // Signal to change the weapon
             mode = value;
             break;
@@ -121,7 +133,7 @@ void Input::handleInput(int inputCode, float value) {
 }
 
 sf::Packet& operator<<(sf::Packet &packet, Input inputs) {
-    return packet << inputs.getId() << inputs.getMovementX() << inputs.getMovementY() << inputs.getRotate() << inputs.getMode() << inputs.getAttack() << inputs.getWpnID();
+    return packet << inputs.getId() << inputs.getMovementX() << inputs.getMovementY() << inputs.getRotate() << inputs.getMode() << inputs.getAttack() << inputs.getWpnID() << inputs.getOnController();
 }
 
 sf::Packet& operator>>(sf::Packet &packet, Input& inputs) {
@@ -132,7 +144,8 @@ sf::Packet& operator>>(sf::Packet &packet, Input& inputs) {
     bool mode;
     bool attack;
     int wpn_id;
-    packet >> id >> x >> y >> r >> mode >> attack >> wpn_id;
+    bool onController;
+    packet >> id >> x >> y >> r >> mode >> attack >> wpn_id >> onController;
 
     inputs.setId(id);
     inputs.setMovementX(x);
@@ -141,6 +154,7 @@ sf::Packet& operator>>(sf::Packet &packet, Input& inputs) {
     inputs.setMode(mode);
     inputs.setAttack(attack);
     inputs.setWpnID(wpn_id);
+    inputs.setOnController(onController);
 
     return packet;
 }

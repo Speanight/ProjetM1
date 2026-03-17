@@ -48,6 +48,8 @@ void ClientUI::addOpponent(const std::string& name, sf::Color color) {
     Player pl;
     pl.name = name;
     pl.color = color;
+    pl.wpn = Weapon(0);
+    pl.timer_atk = -1;
     opponents.insert(std::make_pair(name, pl));
     this->bufferOnReceipt.addClient(pl);
 }

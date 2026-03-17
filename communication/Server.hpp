@@ -34,7 +34,6 @@ private:
     std::unordered_map<std::string, Player> clients;
 
     bool loop = true;
-    bool newGame = true;
 
 public:
     Server(sf::Clock clock);

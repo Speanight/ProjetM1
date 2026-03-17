@@ -28,10 +28,7 @@ private:
 
 public:
     State();
-    State(int timestamp, Position position, float radius, bool mode, Input inputs);
-    State(int timestamp, Position position, float radius, bool mode, bool attack, Input inputs);
-    State(int timestamp, Position position, float radius, bool mode, bool attack, int wpn_id, Input inputs);
-    State(int timestamp, Position position, float radius, bool mode, bool attack, int wpn_id, int point, Input inputs);
+    State(int timestamp, Position position, Input inputs, float radius = 0, bool mode = false, bool attack = false, int wpn_id = 0, int point = 0);
 
     // Getters / Setters
     int getTimestamp() const;

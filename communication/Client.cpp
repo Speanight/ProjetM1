@@ -148,6 +148,7 @@ void Client::setKeybinds(std::unordered_map<int, std::variant<sf::Keyboard::Key,
 Input Client::getInputs(bool mode_enable, bool attack_enable) {
     Input input;
     float value;
+    ImVec2 weaponAngle = {};
 
     for (const std::pair<const int, std::variant<sf::Keyboard::Key, sf::Joystick::Axis, int>> & i : keybinds) {
         // If keybind is on keyboard:
@@ -187,11 +188,26 @@ Input Client::getInputs(bool mode_enable, bool attack_enable) {
                 }
                 input.setAttackEnable(value > 0.f);
                 break;
+            case Inputs::WPN_ANGLE_NS:
+                input.setOnController(true);
+                weaponAngle.x = value;
+
+            case Inputs::WPN_ANGLE_WE:
+                input.setOnController(true);
+                weaponAngle.y = value;
+
             default:
                 input.handleInput(i.first, value);
                 break;
         }
     }
+
+    // TODO: get angle with trigonometry.
+    // Check if weapon angle is adjusted through controller:
+//    if (input.getOnController()) {
+//        input.setRotate(weaponAngle);
+//    }
+
     return input;
 }
 
@@ -218,10 +234,16 @@ int Client::update() {
         inputs.setWpnID(this->player.wpn.getId());
 
         // Storing recent local positions to re-adjust if needed.
-        State state(clock.getElapsedTime().asMilliseconds(), getPlayer().position, getRadius(), getPlayer().mode, getPlayer().isAttacking, getPlayer().wpn.getId(), inputs);
-        inputs.setId(lastInputId);
-        inputsBuffer[lastInputId] = state;
-        lastInputId++;
+        if (player.status == Status::DONE) {
+            State state(clock.getElapsedTime().asMilliseconds(), getPlayer().position, inputs, getRadius(), getPlayer().mode, getPlayer().isAttacking, getPlayer().wpn.getId());
+            inputs.setId(lastInputId);
+            inputsBuffer[lastInputId] = state;
+            lastInputId++;
+        }
+        else {
+            lastInputId = 0;
+            inputsBuffer.clear();
+        }
 
         // ==========| PACKET HANDLER |========== //
         // Verifying if we should drop packet (packet loss %):
@@ -281,27 +303,39 @@ int Client::update() {
  * executing.
  */
 int Client::sendPacket(Input inputs) {
-    if (newGame) {
-        sf::Packet packet;
-        packet << Pkt::ACK << Pkt::ROUND_START;
+    switch (player.status) {
+        case Status::WAITING_FOR_ROUND_START: {
+            sf::Packet packet;
+            packet << Pkt::ACK << Pkt::ROUND_START << clock.getElapsedTime().asMilliseconds();
 
-        socket.send(packet, server, COMM_PORT_SERVER);
+            socket.send(packet, server, COMM_PORT_SERVER);
+            break;
+        }
 
-        newGame = false;
-    }
+        // Client sent waiting for round start and received answer. Waiting for other clients:
+        case Status::READY_TO_START: {
+            sf::Packet packet;
+            packet << Pkt::ACK << Pkt::ACK << clock.getElapsedTime().asMilliseconds(); // Waiting...
 
-    QueuedPacket pkt;
-    pkt.timestamp = clock.getElapsedTime();
+            socket.send(packet, server, COMM_PORT_SERVER);
+            break;
+        }
 
-    pkt.packet << Pkt::INPUTS << pkt.timestamp.asMilliseconds() << inputs;
-    packets.push_back(pkt); // Adds the packet to the array of packets.
+        // Default behavior: game is playing.
+        case Status::DONE: {
+            QueuedPacket pkt;
+            pkt.timestamp = clock.getElapsedTime();
 
-    // If the packet isn't lost (editable through packet loss % slider):
-    auto packet = getLatestPacket(); // Get latest packet that meets ping criteria.
+            pkt.packet << Pkt::INPUTS << pkt.timestamp.asMilliseconds() << inputs;
+            packets.push_back(pkt); // Adds the packet to the array of packets.
 
-    // Check that packet does exist:
-    if (packet.has_value()) {
-        socket.send(packet.value(), server, COMM_PORT_SERVER);
+            auto packet = getLatestPacket();
+
+            if (packet.has_value()) {
+                socket.send(packet.value(), server, COMM_PORT_SERVER);
+            }
+            break;
+        }
     }
 
     return Err::ERR_NONE;
@@ -322,12 +356,17 @@ int Client::receiveLoop() {
                 packet >> type;
 
                 switch (type) {
+                    case Pkt::ACK:
+                        int value;
+                        packet >> value;
+                        break;
+
                     case Pkt::ROUND_START:
-                        std::cout << "Client " << getName() << " received ROUND_START" << std::endl;
-                        newGame = true;
-                        // No break because round start has position afterwards (and therefor will execute Pkt::GLOBAL case)
+                        player.status = Status::READY_TO_START;
+                        break;
 
                     case Pkt::GLOBAL: {
+                        player.status = Status::DONE;
                         int nbPlayers;
                         int stateTick;
                         std::string name;
@@ -489,7 +528,7 @@ void Client::compensationPrediction(Input inputs) {
 
     setRadius(getPlayer().radius + inputs.getRotate() * Const::PLAYER_RADIUS_SPEED * (now - lastUpdate));
 
-    State state(now, pos, getRadius(), getPlayer().mode, getPlayer().isAttacking, getPlayer().wpn.getId(), inputs);
+    State state(now, pos, inputs, getRadius(), getPlayer().mode, getPlayer().isAttacking, getPlayer().wpn.getId());
     inputsBuffer[lastInputId] = state;
 }
 
@@ -507,7 +546,7 @@ void Client::compensationReconciliation() {
             pos.setX(pos.getX() - diff.x/2);
             pos.setY(pos.getY() - diff.y/2);
 
-            // TODO: Find a better fix. This just sets it back to old pos. without taking into account latest inputs.
+            // TODO: Remove below if fix is working (need further analysis):
             /* Should send a variable or something to tell that the position has been fixed, otherwise it gets fixed X times
              * Until the server sends back a new packet, causing those large "round-like" fixes.
             */
@@ -516,7 +555,7 @@ void Client::compensationReconciliation() {
             setPosition(pos);
         }
 
-        if (std::fmod(inputsBuffer[lastReceivedInputs].getRadius() - currentState.getRadius(), 2*std::numbers::pi) > 2*std::numbers::pi/180) { // If radius diff. > 2°
+        if (std::fmod(inputsBuffer[lastReceivedInputs].getRadius() - currentState.getRadius(), 2*std::numbers::pi) > 1*std::numbers::pi/180) { // If radius diff. > 1°
             setRadius(currentState.getRadius());
         }
 
@@ -525,6 +564,6 @@ void Client::compensationReconciliation() {
         while (it != inputsBuffer.end() and it->first <= lastReceivedInputs) {
             ++it;
         }
-        inputsBuffer.erase(inputsBuffer.begin(), it);
+        inputsBuffer.erase(inputsBuffer.begin(), ++it);
     }
 }

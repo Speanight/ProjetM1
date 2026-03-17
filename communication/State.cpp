@@ -4,36 +4,7 @@ State::State() {
     this->timestamp = 0;
 }
 
-// State::State(int timestamp, Position position, float radius, bool mode, Input inputs) {
-//     this->timestamp = timestamp;
-//     this->position = position;
-//     this->radius = radius;
-//     this->inputs[timestamp] = inputs;
-//     this->mode = mode;
-// }
-//
-// State::State(int timestamp, Position position, float radius, bool mode, bool attack, Input inputs) {
-//     this->timestamp = timestamp;
-//     this->position = position;
-//     this->radius = radius;
-//     this->inputs[timestamp] = inputs;
-//     this->mode = mode;
-//     this->attack = attack;
-// }
-
-State::State(int timestamp, Position position, float radius, bool mode, bool attack, int wpn_id, Input inputs) {
-    this->timestamp = timestamp;
-    this->position = position;
-    this->radius = radius;
-    this->inputs[timestamp] = inputs;
-    this->mode = mode;
-    this->attack = attack;
-    this->wpn = Weapon(wpn_id);
-
-    this->point = 0;
-}
-
-State::State(int timestamp, Position position, float radius, bool mode, bool attack, int wpn_id, int point, Input inputs) {
+State::State(int timestamp, Position position, Input inputs, float radius, bool mode, bool attack, int wpn_id, int point) {
     this->timestamp = timestamp;
     this->position = position;
     this->radius = radius;

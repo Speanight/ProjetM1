@@ -26,7 +26,7 @@ struct Player {
 
     // ====== ATTACK ======
     bool isAttacking;           // indicate if the player is attacking or not
-    int timer_atk;              // timer that indicate where we are in the animation, -1 stand for no animation
+    int timer_atk = -1;         // timer that indicate where we are in the animation, -1 stand for no animation
     int point;
 };
 
@@ -55,6 +55,7 @@ public:
     void push(int clockState);
     void addClient(Player p);
     void addInputsToLastState(const Player& player, int timestamp, Input inputs);
+    State getStateAtTimestamp(Player player, int timestamp);
 };
 
 

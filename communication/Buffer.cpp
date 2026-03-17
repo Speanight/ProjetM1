@@ -86,6 +86,25 @@ std::unordered_map<std::string, State> Buffer::getTState(int t) {
     return {}; // Element not found in past states.
 }
 
+State Buffer::getStateAtTimestamp(Player player, int timestamp) {
+    if (auto search = nextState.find(player.name); search != nextState.end()) {
+        if (nextState[player.name].getTimestamp() <= timestamp) {
+            return nextState[player.name];
+        }
+    }
+    if (timestamp >= currentTick) {
+        return currentState[player.name];
+    }
+
+    for (auto n : pastStates) {
+        if (n[player.name].getTimestamp() <= timestamp) {
+            return n[player.name];
+        }
+    }
+
+    return {};
+}
+
 /**
  * @brief Returns the last state of a given player.
  *
@@ -95,8 +114,10 @@ std::unordered_map<std::string, State> Buffer::getTState(int t) {
  * @return corresponding state. Empty ({}) if none correspond.
  */
 State Buffer::getLastState(const Player& player) {
-    if (auto search = nextState.find(player.name); search != nextState.end()) {
-        return search->second;
+    if (!nextState.empty()) {
+        if (auto search = nextState.find(player.name); search != nextState.end()) {
+            return search->second;
+        }
     }
     if (auto search = currentState.find(player.name); search != currentState.end()) {
         return search->second;
