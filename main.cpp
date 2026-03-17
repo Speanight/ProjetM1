@@ -27,28 +27,36 @@ int main() {
 
     std::cout << "Tickrate changes " << Const::TICKRATE.count() << " times per second." << std::endl;
 
+    // CONTROLLER MODE = 0 ; KEYBORD MODE = -1
+    // TODO : add something that detect if a controller is up to select it
+    int ca_controller = -1;
+    int cb_controller = -1;
+
     std::cout << "Starting server on Network: " << SERVER_IP << ":" << COMM_PORT_SERVER << std::endl;
-    ClientUI* clientA = new ClientUI(clock, "Client A", 0, sf::Color::Red);
-    ClientUI* clientB = new ClientUI(clock, "Client B", -1, sf::Color::Green);
+    ClientUI* clientA = new ClientUI(clock, "Client A", ca_controller, sf::Color::Red);
+    ClientUI* clientB = new ClientUI(clock, "Client B", cb_controller, sf::Color::Green);
 
     // Settings players keybinds...
-//    clientA->setKeybinds({
-//        {Inputs::MOVEMENT_UP, sf::Keyboard::Key::Z},
-//        {Inputs::MOVEMENT_DOWN, sf::Keyboard::Key::S},
-//        {Inputs::MOVEMENT_LEFT, sf::Keyboard::Key::Q},
-//        {Inputs::MOVEMENT_RIGHT, sf::Keyboard::Key::D},
-//        {Inputs::WPN_CCW, sf::Keyboard::Key::A},
-//        {Inputs::WPN_CW, sf::Keyboard::Key::E},
-//        {Inputs::WPN_CHANGE, sf::Keyboard::Key::W},
-//        {Inputs::ATTACK, sf::Keyboard::Key::C}
-//    });
+    if(ca_controller == -1) {
+        // Keyboard keybind for client A:
+        clientA->setKeybinds({
+            {Inputs::MOVEMENT_UP, sf::Keyboard::Key::Z},
+            {Inputs::MOVEMENT_DOWN, sf::Keyboard::Key::S},
+            {Inputs::MOVEMENT_LEFT, sf::Keyboard::Key::Q},
+            {Inputs::MOVEMENT_RIGHT, sf::Keyboard::Key::D},
+            {Inputs::WPN_CCW, sf::Keyboard::Key::A},
+            {Inputs::WPN_CW, sf::Keyboard::Key::E},
+            {Inputs::WPN_CHANGE, sf::Keyboard::Key::W},
+            {Inputs::ATTACK, sf::Keyboard::Key::C}
+        });
+    }
+    else {
+        // Controller keybind for client A:
+        // Axis U = R stick L <-> R
+        // Axis V = R stick U <-> D
+        // Axis Z = LT button
 
-// Axis U = R stick L <-> R
-// Axis V = R stick U <-> D
-// Axis Z = LT button
-
-    // Controller keybind for client A:
-    clientA->setKeybinds({
+        clientA->setKeybinds({
          {Inputs::MOVEMENT_DOWN, sf::Joystick::Axis::Y},
          {Inputs::MOVEMENT_RIGHT, sf::Joystick::Axis::X},
          {Inputs::WPN_CCW, 4}, // LB button
@@ -56,17 +64,25 @@ int main() {
          {Inputs::WPN_CHANGE, 2},
          {Inputs::ATTACK, sf::Joystick::Axis::R} // RT button
      });
+    }
 
-    clientB->setKeybinds({
-        {Inputs::MOVEMENT_UP, sf::Keyboard::Key::Up},
-        {Inputs::MOVEMENT_DOWN, sf::Keyboard::Key::Down},
-        {Inputs::MOVEMENT_LEFT, sf::Keyboard::Key::Left},
-        {Inputs::MOVEMENT_RIGHT, sf::Keyboard::Key::Right},
-        {Inputs::WPN_CCW, sf::Keyboard::Key::P},
-        {Inputs::WPN_CW, sf::Keyboard::Key::M},
-        {Inputs::WPN_CHANGE, sf::Keyboard::Key::L},
-        {Inputs::ATTACK, sf::Keyboard::Key::O}
-    });
+    if(cb_controller == -1) {
+        // Keyboard keybind for client B:
+        clientB->setKeybinds({
+            {Inputs::MOVEMENT_UP, sf::Keyboard::Key::Up},
+            {Inputs::MOVEMENT_DOWN, sf::Keyboard::Key::Down},
+            {Inputs::MOVEMENT_LEFT, sf::Keyboard::Key::Left},
+            {Inputs::MOVEMENT_RIGHT, sf::Keyboard::Key::Right},
+            {Inputs::WPN_CCW, sf::Keyboard::Key::P},
+            {Inputs::WPN_CW, sf::Keyboard::Key::M},
+            {Inputs::WPN_CHANGE, sf::Keyboard::Key::L},
+            {Inputs::ATTACK, sf::Keyboard::Key::O}
+        });
+    }
+    else {
+        // Controller keybind for client B:
+
+    }
 
     clientA->addOpponent(clientB->getName(), clientB->getColor());
     clientB->addOpponent(clientA->getName(), clientA->getColor());
