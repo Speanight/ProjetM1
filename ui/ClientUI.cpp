@@ -66,11 +66,16 @@ void ClientUI::drawConfig() {
     ImGui::Separator();
 
     int packetLoss = getPacketLoss();
-    int ping = getPing();
+    int ping[2] = {getReceivingPing(), getSendingPing()};
     std::array<bool,3> compensations = getCompensations();
 
+    // Ensure the ping sliders only take available space:
+    ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x * 0.25f);
     ImGui::SliderInt("Packet loss", &packetLoss, 0, 100);
-    ImGui::InputInt("Ping", &ping);
+    ImGui::InputInt("Ping S -> C", &ping[0]);
+    ImGui::SameLine();
+    ImGui::InputInt("Ping C -> S", &ping[1]);
+    ImGui::PopItemWidth();
 
     ImGui::Checkbox("Interpolation", &compensations[Compensation::INTERPOLATION]);
     ImGui::SameLine();
@@ -79,7 +84,8 @@ void ClientUI::drawConfig() {
     ImGui::Checkbox("Reconciliation", &compensations[Compensation::RECONCILIATION]);
 
     setPacketLoss(packetLoss);
-    setPing(ping);
+    setReceivingPing(ping[0]);
+    setSendingPing(ping[1]);
 
     if (!compensations[Compensation::PREDICTION] and compensations[Compensation::RECONCILIATION]) {
         compensations[Compensation::PREDICTION] = true;

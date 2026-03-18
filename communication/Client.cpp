@@ -16,7 +16,8 @@
 Client::Client(const sf::Clock clock, std::string name, short controller, sf::Color color) : server(SERVER_IP_BYTE1, SERVER_IP_BYTE2, SERVER_IP_BYTE3, SERVER_IP_BYTE4), semaphore(1) {
     this->network.packetLoss = 0;
     this->clock = clock;
-    this->network.ping = 0;
+    this->network.ping[0] = 0;
+    this->network.ping[1] = 0;
     this->player.name = std::move(name);
     this->player.color = color;
     this->bufferOnReceipt.addClient(player);
@@ -83,8 +84,12 @@ int Client::getPacketLoss() const {
     return network.packetLoss;
 }
 
-int Client::getPing() const {
-    return network.ping;
+int Client::getReceivingPing() const {
+    return network.ping[0];
+}
+
+int Client::getSendingPing() const {
+    return network.ping[1];
 }
 
 float Client::getRadius() const {
@@ -121,9 +126,15 @@ void Client::setPacketLoss(int packetLoss) {
     }
 }
 
-void Client::setPing(int ping) {
+void Client::setReceivingPing(int ping) {
     if (ping >= 0) {
-        this->network.ping = ping;
+        this->network.ping[0] = ping;
+    }
+}
+
+void Client::setSendingPing(int ping) {
+    if (ping >= 0) {
+        this->network.ping[1] = ping;
     }
 }
 
@@ -202,11 +213,20 @@ Input Client::getInputs(bool mode_enable, bool attack_enable) {
         }
     }
 
-    // TODO: get angle with trigonometry.
     // Check if weapon angle is adjusted through controller:
-//    if (input.getOnController()) {
-//        input.setRotate(weaponAngle);
-//    }
+    if (input.getOnController()) {
+        if (weaponAngle.x == 0 and weaponAngle.y == 0) {
+            input.setRotate(-999);
+        }
+        else {
+            float angle = atan2(weaponAngle.y, -weaponAngle.x);
+            angle -= M_PI/2; // Adjust for in-game angle.
+            if (angle < 0) {
+                angle += 2*M_PI;
+            }
+            input.setRotate(angle);
+        }
+    }
 
     return input;
 }
@@ -235,7 +255,11 @@ int Client::update() {
 
         // Storing recent local positions to re-adjust if needed.
         if (player.status == Status::DONE) {
-            State state(clock.getElapsedTime().asMilliseconds(), getPlayer().position, inputs, getRadius(), getPlayer().mode, getPlayer().isAttacking, getPlayer().wpn.getId());
+            float radius = getRadius();
+            if (inputs.getRotate() == -999) { // If user on controller and not moving stick:
+                inputs.setRotate(inputsBuffer[lastInputId].getRadius()); // Get last radius pos.
+            }
+            State state(clock.getElapsedTime().asMilliseconds(), getPlayer().position, inputs, radius, getPlayer().mode, getPlayer().isAttacking, getPlayer().wpn.getId());
             inputs.setId(lastInputId);
             inputsBuffer[lastInputId] = state;
             lastInputId++;
@@ -264,6 +288,11 @@ int Client::update() {
         if (getCompensationEnabled(Compensation::RECONCILIATION)) {
             compensationReconciliation();
         }
+        else { // If not reconciliation, we empty inputsBuffer to avoid SIGSEGV/huge memory alloc.:
+            inputsBuffer.clear();
+        }
+        State state(lastUpdate, getPosition(), inputs, getRadius(), getPlayer().mode, getPlayer().isAttacking, getPlayer().wpn.getId());
+        inputsBuffer[lastInputId] = state; // We add the last input as it may be used for controller players. (R-stick)
         semaphore.release();
 
         lastUpdate = clock.getElapsedTime().asMilliseconds();
@@ -291,7 +320,7 @@ int Client::update() {
             }
         }
         before = lastUpdate;
-        sf::sleep(sf::Time()); // Shortest sleep possible (as update loop runs as fast as possible)
+        sf::sleep(sf::milliseconds(10)); // Small sleep to make sure everyone send same amount of inputs.
     }
 
     return Err::ERR_NONE;
@@ -327,7 +356,7 @@ int Client::sendPacket(Input inputs) {
             pkt.timestamp = clock.getElapsedTime();
 
             pkt.packet << Pkt::INPUTS << pkt.timestamp.asMilliseconds() << inputs;
-            packets.push_back(pkt); // Adds the packet to the array of packets.
+            packets[1].push_back(pkt); // Adds the packet to the array of packets.
 
             auto packet = getLatestPacket();
 
@@ -352,6 +381,19 @@ int Client::receiveLoop() {
         packet.clear();
         sf::sleep(sf::Time()); // "empty" sleep: required for loops.
         if (socket.receive(packet, sender, port) == sf::Socket::Status::Done) {
+            QueuedPacket pkt;
+            pkt.timestamp = clock.getElapsedTime();
+            pkt.packet = packet;
+            packets[0].push_back(pkt);
+
+            auto tempPacket = getLatestPacket(0);
+
+            if (!tempPacket.has_value()) {
+                return Err::ERR_NONE;
+            }
+
+            packet = tempPacket.value();
+
             if (port == COMM_PORT_SERVER) {
                 packet >> type;
 
@@ -468,22 +510,22 @@ Client& Client::operator=(const Client& other) {
  *
  * @return Latest packet respecting ping value. Empty packet if none corresponds.
  */
-std::optional<sf::Packet> Client::getLatestPacket() {
+std::optional<sf::Packet> Client::getLatestPacket(int pos) {
     // Shouldn't happen: only if packets is empty.
-    if (packets.empty()) {
+    if (packets[pos].empty()) {
         return std::nullopt;
     }
 
     sf::Time now = clock.getElapsedTime();
-    sf::Time timestamp = now - sf::milliseconds(network.ping);
+    sf::Time timestamp = now - sf::milliseconds(network.ping[pos]);
 
     sf::Packet toSend;
     bool found = false;
 
     // Check in the packets until we find the right one.
-    while (!packets.empty() && packets.front().timestamp <= timestamp) {
-        toSend = packets.front().packet;
-        packets.pop_front();
+    while (!packets[pos].empty() && packets[pos].front().timestamp <= timestamp) {
+        toSend = packets[pos].front().packet;
+        packets[pos].pop_front();
         found = true;
     }
 
@@ -526,30 +568,44 @@ void Client::compensationPrediction(Input inputs) {
     pos.move(inputs.getMovementX(), inputs.getMovementY(), now-lastUpdate);
     setPosition(pos);
 
-    setRadius(getPlayer().radius + inputs.getRotate() * Const::PLAYER_RADIUS_SPEED * (now - lastUpdate));
+    if (inputs.getOnController()) {
+        setRadius(inputs.getRotate());
+    }
+    else {
+        setRadius(getPlayer().radius + inputs.getRotate() * Const::PLAYER_RADIUS_SPEED * (now - lastUpdate));
+    }
 
-    State state(now, pos, inputs, getRadius(), getPlayer().mode, getPlayer().isAttacking, getPlayer().wpn.getId());
-    inputsBuffer[lastInputId] = state;
+//    State state(now, pos, inputs, getRadius(), getPlayer().mode, getPlayer().isAttacking, getPlayer().wpn.getId());
+//    inputsBuffer[lastInputId] = state;
 }
 
 void Client::compensationReconciliation() {
     State currentState = bufferOnReceipt.getCurrentState()[getName()];
     unsigned int lastReceivedInputs = currentState.getLastInputsId();
 
-    if (inputsBuffer.begin()->first < lastReceivedInputs) {
+
+    if (inputsBuffer.begin()->first <= lastReceivedInputs) {
+        std::cout << inputsBuffer.begin()->first << std::endl;
         // If 1st element of buffer < last state received by server. (AKA if need to check for reconciliation)
         Position p = inputsBuffer[lastReceivedInputs].getPosition();
         Position q = currentState.getPosition();
         ImVec2 diff = {p.getX() - q.getX(), p.getY() - q.getY()};
         if (sqrt(pow(diff.x, 2) + pow(diff.y, 2)) > Const::PLAYER_SPEED * 20) { // If diff. of pos > eq. of 20ms of movement:
             Position pos = getPosition();
-            pos.setX(pos.getX() - diff.x/2);
-            pos.setY(pos.getY() - diff.y/2);
+            pos.setX(pos.getX() - diff.x);
+            pos.setY(pos.getY() - diff.y);
+
+            // Re-emulates all past positions:
+            for (auto& [tick, state] : inputsBuffer) {
+                if (tick > lastReceivedInputs) {
+                    Position pos = state.getPosition();
+                    pos.setX(pos.getX() - diff.x);
+                    pos.setY(pos.getY() - diff.y);
+                    inputsBuffer[tick].setPosition(pos);
+                }
+            }
 
             // TODO: Remove below if fix is working (need further analysis):
-            /* Should send a variable or something to tell that the position has been fixed, otherwise it gets fixed X times
-             * Until the server sends back a new packet, causing those large "round-like" fixes.
-            */
 //            pos.setX(q.getX());
 //            pos.setY(q.getY());
             setPosition(pos);

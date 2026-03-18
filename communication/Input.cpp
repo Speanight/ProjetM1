@@ -118,9 +118,9 @@ void Input::handleInput(int inputCode, float value) {
         case Inputs::WPN_CW:        // Handle the weapon rotation
             rotate -= value;
             break;
-        case Inputs::WPN_ANGLE:
-            rotate = value;
-            break;
+//        case Inputs::WPN_ANGLE:
+//            rotate = value;
+//            break;
         case Inputs::WPN_CHANGE:    // Signal to change the weapon
             mode = value;
             break;

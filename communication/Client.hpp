@@ -33,7 +33,7 @@ struct QueuedPacket {
 };
 
 struct NetworkState {
-    int ping;
+    int ping[2]; // [0] = reception ping; [1] = sending ping
     int packetLoss;
 
     std::array<bool,3> compensations = {false, false, false};
@@ -43,7 +43,7 @@ struct NetworkState {
 class Client {
 private:
     Player player;
-    std::deque<QueuedPacket> packets;
+    std::array<std::deque<QueuedPacket>, 2> packets; // [0] = received; [1] = sent
 
     std::binary_semaphore semaphore;
 
@@ -85,7 +85,8 @@ public:
     Player getPlayer();
     std::string getName();
     int getPacketLoss() const;
-    int getPing() const;
+    int getReceivingPing() const;
+    int getSendingPing() const;
     sf::Color getColor();
     std::array<bool,3> getCompensations() const;
     bool getCompensationEnabled(int compensation);
@@ -95,7 +96,8 @@ public:
     Input getInputs(bool mode_enable=false, bool attack_enable=true);
 
     void setPacketLoss(int packetLoss);
-    void setPing(int ping);
+    void setReceivingPing(int ping);
+    void setSendingPing(int ping);
     void setKeybinds(std::unordered_map<int, std::variant<sf::Keyboard::Key, sf::Joystick::Axis, int>> keybinds);
     void setPosition(Position p);
     void setRadius(float radius);
@@ -107,7 +109,7 @@ public:
     int update();
     int sendPacket(Input inputs);
     int receiveLoop();
-    std::optional<sf::Packet> getLatestPacket();
+    std::optional<sf::Packet> getLatestPacket(int pos = 1);
 
     // Compensations
     void compensationInterpolation();

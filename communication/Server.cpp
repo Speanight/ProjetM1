@@ -157,19 +157,23 @@ int Server::receiveLoop() {
                             radius = playerState.getRadius();
 
                             // Get time elapsed since last packet from client. Used for consistency in speed and such.
-                            dt = (time - playerState.getTimestamp()) % (Const::TICKRATE.count());
+                            dt = std::min(time - playerState.getTimestamp(), static_cast<int>(Const::TICKRATE.count()));
 
                             // Adjust client values according to last state and new inputs values.
                             position.move(inputs.getMovementX(), inputs.getMovementY(), dt);
-                            radius += std::fmod(inputs.getRotate() * Const::PLAYER_RADIUS_SPEED * dt,
-                                                2.f * std::numbers::pi);
+
+                            if (inputs.getOnController()) { // If inputs are made through R-stick of controller:
+                                radius = inputs.getRotate(); // Get raw inputs
+                            }
+                            else { // Otherwise calculate with rotate speed:
+                                radius += std::fmod(inputs.getRotate() * Const::PLAYER_RADIUS_SPEED * dt, 2.f * std::numbers::pi);
+                            }
 
                             // ====== WEAPON MODE ======
                             bool mode = playerState.getMode() != inputs.getMode();
 
                             // ====== ATTACK ======
                             bool attack = inputs.getAttack() or playerState.getAttack();
-//                            if(attack)("input => %d, playerstate => %d\n", inputs.getAttack(), playerState.getAttack());
 
                             // ====== WEAPON DATAS CHANGE ======
                             int wpn_id = playerState.getWpn().getId();
@@ -194,6 +198,10 @@ int Server::receiveLoop() {
 
                                         State stP = buffer.getStateAtTimestamp(player, time);
                                         State stO = buffer.getStateAtTimestamp(p, time);
+
+                                        std::cout << "attacker rollbacks @" << time - stP.getTimestamp() << std::endl;
+                                        std::cout << "opponent rollbacks @" << time - stO.getTimestamp() << std::endl;
+                                        std::cout << "|--------------------|" << std::endl;
 
                                         short attackResult = resolveAttacks(stP, stO);
 

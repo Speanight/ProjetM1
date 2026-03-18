@@ -14,7 +14,6 @@ int main() {
     XInitThreads(); // Needed for multi-threading.
     // Initializing objects
     sf::Clock clock;
-
     sf::Joystick::update();
 
     for (int i = 0; i < 8; i++) {
@@ -29,7 +28,7 @@ int main() {
 
     std::cout << "Starting server on Network: " << SERVER_IP << ":" << COMM_PORT_SERVER << std::endl;
     ClientUI* clientA = new ClientUI(clock, "Client A", 0, sf::Color::Red);
-    ClientUI* clientB = new ClientUI(clock, "Client B", -1, sf::Color::Green);
+    ClientUI* clientB = new ClientUI(clock, "Client B", 1, sf::Color::Green);
 
     // Settings players keybinds...
 //    clientA->setKeybinds({
@@ -53,28 +52,32 @@ int main() {
          {Inputs::MOVEMENT_RIGHT, sf::Joystick::Axis::X},
          {Inputs::WPN_CCW, 4}, // LB button
          {Inputs::WPN_CW, 5}, // RB button
-         {Inputs::WPN_CHANGE, 2},
-         {Inputs::ATTACK, sf::Joystick::Axis::R} // RT button
+         {Inputs::WPN_CHANGE, 2}, // X (xbox HyperX)
+         {Inputs::ATTACK, sf::Joystick::Axis::R}, // RT button
+         {Inputs::WPN_ANGLE_WE, sf::Joystick::Axis::U},
+         {Inputs::WPN_ANGLE_NS, sf::Joystick::Axis::V}
      });
 
-    clientB->setKeybinds({
-        {Inputs::MOVEMENT_UP, sf::Keyboard::Key::Up},
-        {Inputs::MOVEMENT_DOWN, sf::Keyboard::Key::Down},
-        {Inputs::MOVEMENT_LEFT, sf::Keyboard::Key::Left},
-        {Inputs::MOVEMENT_RIGHT, sf::Keyboard::Key::Right},
-        {Inputs::WPN_CCW, sf::Keyboard::Key::P},
-        {Inputs::WPN_CW, sf::Keyboard::Key::M},
-        {Inputs::WPN_CHANGE, sf::Keyboard::Key::L},
-        {Inputs::ATTACK, sf::Keyboard::Key::O}
-    });
 //    clientB->setKeybinds({
-//         {Inputs::MOVEMENT_DOWN, sf::Joystick::Axis::Y},
-//         {Inputs::MOVEMENT_RIGHT, sf::Joystick::Axis::X},
-//         {Inputs::WPN_CCW, 4}, // LB button
-//         {Inputs::WPN_CW, 5}, // RB button
-//         {Inputs::WPN_CHANGE, 2},
-//         {Inputs::ATTACK, sf::Joystick::Axis::R} // RT button
-//     });
+//        {Inputs::MOVEMENT_UP, sf::Keyboard::Key::Up},
+//        {Inputs::MOVEMENT_DOWN, sf::Keyboard::Key::Down},
+//        {Inputs::MOVEMENT_LEFT, sf::Keyboard::Key::Left},
+//        {Inputs::MOVEMENT_RIGHT, sf::Keyboard::Key::Right},
+//        {Inputs::WPN_CCW, sf::Keyboard::Key::P},
+//        {Inputs::WPN_CW, sf::Keyboard::Key::M},
+//        {Inputs::WPN_CHANGE, sf::Keyboard::Key::L},
+//        {Inputs::ATTACK, sf::Keyboard::Key::O}
+//    });
+    clientB->setKeybinds({
+         {Inputs::MOVEMENT_DOWN, sf::Joystick::Axis::Y},
+         {Inputs::MOVEMENT_RIGHT, sf::Joystick::Axis::X},
+         {Inputs::WPN_CCW, 4}, // LB button
+         {Inputs::WPN_CW, 5}, // RB button
+         {Inputs::WPN_CHANGE, 2}, // X (logitech)
+         {Inputs::ATTACK, sf::Joystick::Axis::R}, // RT button
+         {Inputs::WPN_ANGLE_WE, sf::Joystick::Axis::U},
+         {Inputs::WPN_ANGLE_NS, sf::Joystick::Axis::V}
+     });
 
     clientA->addOpponent(clientB->getName(), clientB->getColor());
     clientB->addOpponent(clientA->getName(), clientA->getColor());

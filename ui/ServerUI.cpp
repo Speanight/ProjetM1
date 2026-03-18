@@ -1,3 +1,4 @@
+#include <iostream>
 #include "ServerUI.hpp"
 
 ServerUI::ServerUI() {
@@ -57,16 +58,12 @@ void ServerUI::addToGraph(int timestamp, const std::string& from, const std::str
                 data[f].insert(data[f].end(), toPush, FLT_EPSILON);
 
             if (data[f].size() > Const::GRAPH_DISPLAY_VALUES) {
-                data[f].erase(data[f].begin(), data[f].begin() + toPush);
-            }
-
-            if (t.size() > Const::GRAPH_DISPLAY_VALUES) {
-                data[f].erase(data[f].begin(), data[f].begin() + (t.size() - Const::GRAPH_DISPLAY_VALUES));
+                data[f].erase(data[f].begin(), data[f].begin() + toPush + 1);
             }
         }
 
         // Finally, we insert the value in last place:
-        data[from].push_back(1.0f);
+        data[from].push_back(100.0f);
         lastTimestamp = timestamp;
     }
 }
@@ -147,7 +144,7 @@ void ServerUI::draw() {
                     static const char* ilabels[] = {"Packet Loss", "Packet Delivered"};
 
                     ImPlot::SetupAxes("Time","Packet",ImPlotAxisFlags_NoDecorations, ImPlotAxisFlags_NoDecorations);
-                    ImPlot::PlotBarGroups(ilabels,values.data(),1,groups,1,0,{ImPlotProp_Flags, ImPlotBarGroupsFlags_Stacked});
+                    ImPlot::PlotBarGroups(ilabels,data[from].data(),1,groups,1,0,{ImPlotProp_Flags, ImPlotBarGroupsFlags_Stacked});
 
                     ImPlot::EndPlot(); // Bar Group
                 }
