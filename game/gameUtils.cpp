@@ -28,6 +28,7 @@ void drawPlayer(ImDrawList* draw_list, Player player, ImVec2 min, ImVec2 max) {
 
 
     // ========= DRAW WEAPON =========
+
     if (mode) {
         ImVec2 dir = { cosf(angle), sinf(angle) };
         float height = player.wpn.getHeight() * scale;

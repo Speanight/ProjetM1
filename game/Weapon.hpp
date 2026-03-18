@@ -11,7 +11,7 @@
 
 class Weapon {
     private :
-    // ===== FORM =====
+    // ===== FORM MAKER=====
     int w_id;
 
     // ===== FORM =====
@@ -23,7 +23,8 @@ class Weapon {
     float w_atk_speed;      // wpn attack speed (will depend of the game clock)
     float w_rld;            // wpn realod speed (will depend of the game clock)
     float w_range;          // wpn range
-    float w_transform;      // wpn transformation time
+    int w_damage;             // wpn damage
+    float w_transform;      // wpn transformation time (never used for now, maybe in the future)
 
 public:
     // ===== CONSTRUCTORS =====
@@ -39,6 +40,7 @@ public:
     float  getAttackSpeed() const;
     float  getReload() const;
     float  getRange() const;
+    int getDamage() const;
     float getTransform() const;
 
     // ===== INTERNAL FUNCTION =====

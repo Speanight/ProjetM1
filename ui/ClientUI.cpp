@@ -12,7 +12,7 @@ void ClientUI::drawGame() { // Game space
     ImVec2 avail = ImGui::GetContentRegionAvail();
 
     // game size
-    float size = std::max(std::min(avail.x, avail.y - 300.f), 400.f); //TODO : replace the 500.f by a constant that is the size of the server UI
+    float size = std::max(std::min(avail.x, avail.y - 300.f), 400.f); //TODO : replace the 300.f by a constant that is the size of the server UI
 
     // minimal game size
     size = std::max(size, 400.f);

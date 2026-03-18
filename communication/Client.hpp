@@ -58,8 +58,10 @@ private:
 
     NetworkState network;
 
-    bool loop = true;
     bool newGame = false;
+    bool loop = true;
+    bool newRound = false;
+    bool endGame = false;
 
 protected:
     sf::Clock clock;

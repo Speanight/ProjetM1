@@ -19,6 +19,7 @@ Weapon::Weapon(const Weapon& other)
     w_atk_speed(other.w_atk_speed),
     w_rld(other.w_rld),
     w_range(other.w_range),
+    w_damage(other.w_damage),
     w_transform(other.w_transform) {
 
 }
@@ -53,6 +54,10 @@ float Weapon::getRange() const {
     return w_range;
 }
 
+int Weapon::getDamage() const {
+    return w_damage;
+}
+
 float Weapon::getTransform() const {
     return w_transform;
 }
@@ -65,10 +70,11 @@ void Weapon::applyID(int id) {
             w_height = 20.f;
             w_width = 8.f;
             w_type = 1;
-            w_atk_speed = 0.2f;
-            w_rld = 0.4f;
+            w_atk_speed = 70.f;
+            w_rld = 200.f;
             w_range = 12.f;
-            w_transform = 0.3f;
+            w_damage = 10;
+            w_transform = 5.f;
             break;
 
         default: // Default weapon
@@ -79,7 +85,8 @@ void Weapon::applyID(int id) {
             w_atk_speed = 70.f;
             w_rld = 200.f;
             w_range = 15.0f;
-            w_transform = 0.2f;
+            w_damage = 10;
+            w_transform = 1.f;
         break;
     }
 }

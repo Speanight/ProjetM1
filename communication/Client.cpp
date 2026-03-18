@@ -182,7 +182,7 @@ Input Client::getInputs(bool mode_enable, bool attack_enable) {
                 input.setModeEnable(value > 0.f);
                 break;
             case Inputs::ATTACK:
-                if(value > 0.f && !attack_enable && this->player.timer_atk == -1) {
+                if(value > 0.f && !attack_enable && this->player.timer_atk == -1 && this->player.mode == true) {
                     input.setAttack(true);
                 }
                 input.setAttackEnable(value > 0.f);
@@ -281,13 +281,13 @@ int Client::update() {
  * executing.
  */
 int Client::sendPacket(Input inputs) {
-    if (newGame) {
+    if (newRound) {
         sf::Packet packet;
         packet << Pkt::ACK << Pkt::ROUND_START;
 
         socket.send(packet, server, COMM_PORT_SERVER);
 
-        newGame = false;
+        newRound = false;
     }
 
     QueuedPacket pkt;
@@ -322,10 +322,15 @@ int Client::receiveLoop() {
                 packet >> type;
 
                 switch (type) {
-                    case Pkt::ROUND_START:
+                    case Pkt::NEW_GAME: {
+                        printf("new game ! \n");
+                    }
+                    case Pkt::ROUND_START: {
+
                         std::cout << "Client " << getName() << " received ROUND_START" << std::endl;
-                        newGame = true;
+                        newRound = true;
                         // No break because round start has position afterwards (and therefor will execute Pkt::GLOBAL case)
+                    }
 
                     case Pkt::GLOBAL: {
                         int nbPlayers;
@@ -375,14 +380,29 @@ int Client::receiveLoop() {
                         break;
                     }
 
-                    case Pkt::SHUTDOWN:
+                    case Pkt::SHUTDOWN: {
                         std::cout << "Client " << player.name << " received shutdown packet!" << std::endl;
                         loop = false;
                         break;
+                    }
 
                     case Pkt::POSITION: {
                         Position tempPos;
                         packet >> tempPos;
+                        break;
+                    }
+
+                    case Pkt::END_GAME : {
+                        printf("End game !\n");
+                        std::string winner;
+                        packet >> lastServerTick >> winner;
+                        if(this->getName() == winner) {
+                            std::cout<<"EPIC WIN !!"<< this->getName()<< std::endl;
+                        }
+                        else{
+                            std::cout<<"SKILL ISSUE "<< this->getName()<<std::endl;
+                        }
+                        endGame = true;
                         break;
                     }
 

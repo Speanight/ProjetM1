@@ -22,6 +22,7 @@ private:
     bool attack;
     Weapon wpn;
     int point;
+    std::string killerName;
     unsigned int lastInputsId;
 
     std::map<int,Input> inputs;
@@ -43,18 +44,20 @@ public:
     bool getAttack() const;
     Weapon getWpn();
     int getPoint() const;
+    std::string getKillerName() const;
 
     void setPosition(Position position);
     void addInputs(int timestamp, Input inputs);
     void setRadius(float radius);
     void setMode(bool mode);
-    void setTimestamp(int timestamp);
-    void setLastInputsId(unsigned int id);
-
-    Input getPercentInput(double percent);
     void setAttack(bool attack);
     void setWpn(int wpn_id);
     void setPoint(int point);
+    void setKillerName(std::string killerName);
+    void setTimestamp(int timestamp);
+
+    void setLastInputsId(unsigned int id);
+    Input getPercentInput(double percent);
 };
 
 sf::Packet& operator<<(sf::Packet &packet, State state);

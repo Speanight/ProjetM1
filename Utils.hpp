@@ -50,6 +50,8 @@ namespace Pkt {
     static const int POSITION = 3;      // tick << client.position
     static const int INPUTS = 4;        // tick << inputs
     static const int ACK = 5;
+    static const int NEW_GAME = 6;      // TODO
+    static const int END_GAME = 7;      // TODO
 }
 
 namespace Inputs {

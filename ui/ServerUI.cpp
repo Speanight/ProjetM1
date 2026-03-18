@@ -101,6 +101,7 @@ void ServerUI::draw() {
     //  GRAPH  //
     /////////////
     ImGui::SameLine();
+
     if (ImGui::BeginTable("##table", 2)) {
         // Table headers:
         ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_WidthFixed, 75.0f);

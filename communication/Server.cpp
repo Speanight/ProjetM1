@@ -81,6 +81,7 @@ int Server::receiveLoop() {
     std::unordered_map<std::string, State> currentState;
     State playerState;
     float radius;
+    int remainingPlayer = 2;            // TODO do something to change the number of player here
 
     while (loop) {
         sf::sleep(sf::Time());
@@ -109,17 +110,19 @@ int Server::receiveLoop() {
                     packet >> type;
 
                     switch (type) {
-                        case Pkt::ROUND_START: {
-                            newGame = true; // Some players aren't ready for round start!
+                        case Pkt::NEW_GAME: {
+                            printf("NEW_GAME\n");
                         }
-
+                        case Pkt::ROUND_START: {
+                            newRound = true; // Some players aren't ready for round start!
+                        }
                         case Pkt::ACK: {
                             int context;
                             packet >> context;
 
                             switch (context) {
                                 case Pkt::ROUND_START:
-                                    newGame = false;
+                                    newRound = false;
                                     break;
                                 default:
                                     std::cout << "Received unknown ACK: " << context << " from client " << name << std::endl;
@@ -263,11 +266,14 @@ int Server::receiveLoop() {
 
                                                 if (!blocked) {
                                                     // HIT SECTION
-                                                    int pts = currentState[name].getPoint() + 1;
-                                                    currentState[name].setPoint(pts);
-                                                    playerState.setPoint(pts);
 
-                                                    // printf("Hit %d!\n", pts);
+                                                    int pts =  currentState[n].getPoint() - playerState.getWpn().getDamage();
+                                                    currentState[n].setPoint(pts);
+                                                    if (pts <= 0) {
+                                                        std::cout << name << " kill  " << n <<std::endl;
+                                                        currentState[n].setKillerName(name);
+                                                        remainingPlayer -=1;
+                                                    }
                                                 }
                                                 else {
                                                     // BLOCKED SECTION
@@ -294,6 +300,11 @@ int Server::receiveLoop() {
                                             currentState[n].getWpn().getId(),
                                             currentState[n].getPoint(),
                                             inputs);
+
+                                        s.setKillerName(currentState[n].getKillerName());
+
+                                        // TODO : change constructor ?
+
                                         buffer.updateNextPlayerState(p, s);
                                     }
                                 }
@@ -309,10 +320,20 @@ int Server::receiveLoop() {
                                     playerState.getPoint(),
                                     inputs
                                 );
+                                if(remainingPlayer == 1 ) {
+                                    s.setKillerName(playerState.getKillerName());
+
+                                }
+
                                 buffer.updateNextPlayerState(player, s, playerState.getMode());
                                 semaphore.release();
+
                             }
                             break;
+                        }
+                        case Pkt::END_GAME: {
+                            printf("ENDGAME\n");
+                            endGame = true;
                         }
 
                         default: {
@@ -374,8 +395,9 @@ int Server::sendLoop() {
 //
 //            }
             packet.clear();
+            State playerState = currentState[name];
 
-            if (newGame) {
+            if (newRound) {
                 player.status = Status::WAITING_FOR_ROUND_START;
                 packet << Pkt::ROUND_START << int(buffer.getCurrentTick()) << int(clients.size());
 
@@ -387,7 +409,7 @@ int Server::sendLoop() {
                     pos.setX((playerNb * Const::MAP_SIZE_X / (clients.size())) - (Const::MAP_SIZE_X / clients.size()) / 2);
                     pos.setY(Const::MAP_SIZE_Y / 2);
                     Input inputs(buffer.getLastState(player).getInputs().end()->second.getId(), 0, 0, 0.f, false, false, 0);
-                    State s = State(time, pos, std::numbers::pi/2, true, false, 0, 0, inputs);
+                    State s = State(time, pos, std::numbers::pi/2, true, false, 0, 100, inputs);
                     buffer.updateNextPlayerState(player, s);
 
                     playerNb--;
@@ -396,7 +418,30 @@ int Server::sendLoop() {
                 currentState = buffer.getCurrentState(); // Refresh current state.
             }
             else {
-                packet << Pkt::GLOBAL << int(buffer.getCurrentTick()) << int(currentState.size());
+                if(playerState.getKillerName() == "") {
+                    packet << Pkt::GLOBAL << int(buffer.getCurrentTick()) << int(currentState.size());
+                }
+                else {
+                    packet << Pkt::END_GAME << int(buffer.getCurrentTick()) << playerState.getKillerName();
+                }
+                // packet << Pkt::GLOBAL << int(buffer.getCurrentTick()) << int(currentState.size());
+            }
+            if(endGame) {
+                // Getting the winner
+                int playerNb = clients.size();
+                std::string winner;
+                for (auto & [name, player] : clients) {
+                    if(player.point > 0) {
+                        std::cout<< " THE WINNER IS " << player.name << " : " << player.point << std::endl;
+                        winner = player.name;
+                    }
+                    playerNb--;
+                }
+                // Stopping the loop
+                loop = false;
+
+                player.status = Status::WAITING_FOR_ROUND_START;
+                packet << Pkt::END_GAME << int(buffer.getCurrentTick()) << winner;
             }
 
             for (auto & [n, state] : currentState) {
