@@ -50,8 +50,22 @@ namespace Pkt {
     static const int POSITION = 3;      // tick << client.position
     static const int INPUTS = 4;        // tick << inputs
     static const int ACK = 5;
-    static const int NEW_GAME = 6;      // TODO
-    static const int END_GAME = 7;      // TODO
+    static const int NEW_GAME = 6;
+    static const int END_GAME = 7;
+}
+
+
+// Determine in wich case of the game we are, selecting player, starting a new run, playing ...
+namespace PartyState {
+    ////////////////
+    // GAME STATE //
+    ////////////////
+    static const int GAME_START = 0;    // when the players are not selectioned yet, loops are not running
+    static const int GAME_STOP = 1;     // when there is only one player remaining, we cans stop the server
+
+    static const int RUN_START = 2;     // when we acknoledge the players and positionate them on the rigth place
+    static const int RUN_IDLE = 3;      // when the game is playing normally
+
 }
 
 namespace Inputs {
@@ -76,6 +90,7 @@ namespace Status {
     static constexpr short WAITING_FOR_ROUND_START = 0;
     static constexpr short READY_TO_START = 1;
     static constexpr short DONE = 2;
+    static constexpr short DEAD = 3;
 }
 
 #endif

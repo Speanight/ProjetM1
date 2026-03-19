@@ -81,7 +81,6 @@ int Server::receiveLoop() {
     std::unordered_map<std::string, State> currentState;
     State playerState;
     float radius;
-    int remainingPlayer = 2;            // TODO do something to change the number of player here
 
     while (loop) {
         sf::sleep(sf::Time());
@@ -114,6 +113,7 @@ int Server::receiveLoop() {
                             printf("NEW_GAME\n");
                         }
                         case Pkt::ROUND_START: {
+                            partyState = PartyState::RUN_START;
                             newRound = true; // Some players aren't ready for round start!
                         }
                         case Pkt::ACK: {
@@ -122,6 +122,7 @@ int Server::receiveLoop() {
 
                             switch (context) {
                                 case Pkt::ROUND_START:
+                                    partyState = PartyState::RUN_START;
                                     newRound = false;
                                     break;
                                 default:
@@ -268,11 +269,13 @@ int Server::receiveLoop() {
                                                     // HIT SECTION
 
                                                     int pts =  currentState[n].getPoint() - playerState.getWpn().getDamage();
-                                                    currentState[n].setPoint(pts);
                                                     if (pts <= 0) {
                                                         std::cout << name << " kill  " << n <<std::endl;
                                                         currentState[n].setKillerName(name);
-                                                        remainingPlayer -=1;
+                                                        currentState[n].setPoint(0);
+                                                    }
+                                                    else {
+                                                        currentState[n].setPoint(pts);
                                                     }
                                                 }
                                                 else {
@@ -320,10 +323,6 @@ int Server::receiveLoop() {
                                     playerState.getPoint(),
                                     inputs
                                 );
-                                if(remainingPlayer == 1 ) {
-                                    s.setKillerName(playerState.getKillerName());
-
-                                }
 
                                 buffer.updateNextPlayerState(player, s, playerState.getMode());
                                 semaphore.release();
@@ -333,7 +332,7 @@ int Server::receiveLoop() {
                         }
                         case Pkt::END_GAME: {
                             printf("ENDGAME\n");
-                            endGame = true;
+                            // endGame = true;
                         }
 
                         default: {
@@ -397,70 +396,54 @@ int Server::sendLoop() {
             packet.clear();
             State playerState = currentState[name];
 
-            if (newRound) {
-                player.status = Status::WAITING_FOR_ROUND_START;
-                packet << Pkt::ROUND_START << int(buffer.getCurrentTick()) << int(clients.size());
-
-                int playerNb = clients.size();
-                int time = clock.getElapsedTime().asMilliseconds();
-
-                for (auto & [name, player] : clients) {
-                    Position pos;
-                    pos.setX((playerNb * Const::MAP_SIZE_X / (clients.size())) - (Const::MAP_SIZE_X / clients.size()) / 2);
-                    pos.setY(Const::MAP_SIZE_Y / 2);
-                    Input inputs(buffer.getLastState(player).getInputs().end()->second.getId(), 0, 0, 0.f, false, false, 0);
-                    State s = State(time, pos, std::numbers::pi/2, true, false, 0, 100, inputs);
-                    buffer.updateNextPlayerState(player, s);
-
-                    playerNb--;
+            switch (partyState) {
+                case PartyState::GAME_START : {
+                    printf("starting the game");
                 }
-                buffer.push(clock.getElapsedTime().asMilliseconds());
-                currentState = buffer.getCurrentState(); // Refresh current state.
-            }
-            else {
-                if(playerState.getKillerName() == "") {
-                    packet << Pkt::GLOBAL << int(buffer.getCurrentTick()) << int(currentState.size());
+                case PartyState::GAME_STOP : {
+                    printf("ending the game");
                 }
-                else {
-                    packet << Pkt::END_GAME << int(buffer.getCurrentTick()) << playerState.getKillerName();
-                }
-                // packet << Pkt::GLOBAL << int(buffer.getCurrentTick()) << int(currentState.size());
-            }
-            if(endGame) {
-                // Getting the winner
-                int playerNb = clients.size();
-                std::string winner;
-                for (auto & [name, player] : clients) {
-                    if(player.point > 0) {
-                        std::cout<< " THE WINNER IS " << player.name << " : " << player.point << std::endl;
-                        winner = player.name;
+                case PartyState::RUN_START : {
+                    printf("starting the run");
+                    player.status = Status::WAITING_FOR_ROUND_START;
+                    packet << Pkt::ROUND_START << int(buffer.getCurrentTick()) << int(clients.size());
+
+                    int playerNb = clients.size();
+                    int time = clock.getElapsedTime().asMilliseconds();
+
+                    for (auto & [name, player] : clients) {
+                        Position pos;
+                        pos.setX((playerNb * Const::MAP_SIZE_X / (clients.size())) - (Const::MAP_SIZE_X / clients.size()) / 2);
+                        pos.setY(Const::MAP_SIZE_Y / 2);
+                        Input inputs(buffer.getLastState(player).getInputs().end()->second.getId(), 0, 0, 0.f, false, false, 0);
+                        State s = State(time, pos, std::numbers::pi/2, true, false, 0, 100, inputs);
+                        buffer.updateNextPlayerState(player, s);
+
+                        playerNb--;
                     }
-                    playerNb--;
+                    buffer.push(clock.getElapsedTime().asMilliseconds());
+                    currentState = buffer.getCurrentState(); // Refresh current state.
                 }
-                // Stopping the loop
-                loop = false;
+                case PartyState::RUN_IDLE : {
+                    for (auto & [n, state] : currentState) {
+                        packet << n << state;
+                    }
 
-                player.status = Status::WAITING_FOR_ROUND_START;
-                packet << Pkt::END_GAME << int(buffer.getCurrentTick()) << winner;
+                    semaphore.acquire();
+                    packet << clock.getElapsedTime().asMilliseconds(); // Sync clocks
+                    socket.send(packet, sender.value(), player.port);
+
+                    addLine(
+                        "Server >>> " + name
+                        + " position: (" + std::to_string(player.position.getX())
+                        + ", " + std::to_string(player.position.getY())
+                        + ") ; radius : " + std::to_string(player.radius)
+                        + " mode : " + std::to_string(player.mode)
+                        + " attack : " + std::to_string(player.isAttacking)
+                        , sf::Color::White);
+                    semaphore.release();
+                }
             }
-
-            for (auto & [n, state] : currentState) {
-                packet << n << state;
-            }
-
-            semaphore.acquire();
-            packet << clock.getElapsedTime().asMilliseconds(); // Sync clocks
-            socket.send(packet, sender.value(), player.port);
-
-            addLine(
-                "Server >>> " + name
-                + " position: (" + std::to_string(player.position.getX())
-                + ", " + std::to_string(player.position.getY())
-                + ") ; radius : " + std::to_string(player.radius)
-                + " mode : " + std::to_string(player.mode)
-                + " attack : " + std::to_string(player.isAttacking)
-                , sf::Color::White);
-            semaphore.release();
         }
 
         semaphore.acquire();

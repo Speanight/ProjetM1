@@ -33,6 +33,8 @@ private:
 
     std::unordered_map<std::string, Player> clients;
 
+    int partyState;
+
     bool loop = true;
     bool newGame = false;
     bool newRound = true;   // TODO : put to false at the begining and changing
