@@ -101,16 +101,24 @@ void Input::setOnController(bool onController) {
 void Input::handleInput(int inputCode, float value) {
     switch (inputCode) {
         case Inputs::MOVEMENT_UP:
-            movementY -= value;
+            if (fabs(value) > Const::CONTROLLER_DEADZONE) {
+                movementY -= value;
+            }
             break;
         case Inputs::MOVEMENT_DOWN:
-            movementY += value;
+            if (fabs(value) > Const::CONTROLLER_DEADZONE) {
+                movementY += value;
+            }
             break;
         case Inputs::MOVEMENT_LEFT:
-            movementX -= value;
+            if (fabs(value) > Const::CONTROLLER_DEADZONE) {
+                movementX -= value;
+            }
             break;
         case Inputs::MOVEMENT_RIGHT:
-            movementX += value;
+            if (fabs(value) > Const::CONTROLLER_DEADZONE) {
+                movementX += value;
+            }
             break;
         case Inputs::WPN_CCW:       // Handle the weapon rotation
             rotate += value;        // Move less fast than the player

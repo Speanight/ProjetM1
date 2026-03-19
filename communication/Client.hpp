@@ -28,13 +28,13 @@
 using namespace Const;
 
 struct QueuedPacket {
-    sf::Packet packet;
     sf::Time timestamp;
+    sf::Packet packet;
 };
 
 struct NetworkState {
     int ping[2]; // [0] = reception ping; [1] = sending ping
-    int packetLoss;
+    int packetLoss[2]; // [0] = reception packet loss; [1] = sending packet loss
 
     std::array<bool,3> compensations = {false, false, false};
 };
@@ -43,7 +43,7 @@ struct NetworkState {
 class Client {
 private:
     Player player;
-    std::array<std::deque<QueuedPacket>, 2> packets; // [0] = received; [1] = sent
+    std::deque<QueuedPacket> queuedPackets; // [0] = received; [1] = sent
 
     std::binary_semaphore semaphore;
 
@@ -58,7 +58,6 @@ private:
     NetworkState network;
 
     bool loop = true;
-    bool newGame = false;
 
 protected:
     sf::Clock clock;
@@ -84,7 +83,8 @@ public:
     // Getters / Setters
     Player getPlayer();
     std::string getName();
-    int getPacketLoss() const;
+    int getReceivingPacketLoss() const;
+    int getSendingPacketLoss() const;
     int getReceivingPing() const;
     int getSendingPing() const;
     sf::Color getColor();
@@ -95,7 +95,8 @@ public:
 
     Input getInputs(bool mode_enable=false, bool attack_enable=true);
 
-    void setPacketLoss(int packetLoss);
+    void setReceivingPacketLoss(int packetLoss);
+    void setSendingPacketLoss(int packetLoss);
     void setReceivingPing(int ping);
     void setSendingPing(int ping);
     void setKeybinds(std::unordered_map<int, std::variant<sf::Keyboard::Key, sf::Joystick::Axis, int>> keybinds);
@@ -109,7 +110,7 @@ public:
     int update();
     int sendPacket(Input inputs);
     int receiveLoop();
-    std::optional<sf::Packet> getLatestPacket(int pos = 1);
+    std::optional<sf::Packet> getLatestQueuedPacket();
 
     // Compensations
     void compensationInterpolation();

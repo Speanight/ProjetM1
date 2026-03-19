@@ -3,6 +3,7 @@
 
 #include <SFML/Network/Packet.hpp>
 #include "../Utils.hpp"
+#include <cmath>
 
 class Input {
 private:

@@ -31,7 +31,6 @@ void ServerUI::addLine(std::string text, sf::Color color) {
 void ServerUI::addToData(const std::string& to) {
     std::vector<float> vec(Const::GRAPH_DISPLAY_VALUES, FLT_EPSILON);
     data[to] = vec;
-    data[to] = vec;
 }
 
 void ServerUI::addLine(int timestamp, std::string from, std::string to, std::string details, sf::Color color) {
@@ -159,6 +158,6 @@ void ServerUI::draw() {
 }
 
 void ServerUI::setColorMaps(ImU32 server[], ImU32 client[]) {
-    this->serverColorMap = ImPlot::AddColormap("Server packets colors", server, 2);
-    this->clientsColorMap = ImPlot::AddColormap("Client packets colors", client, 2);
+    this->serverColorMap = ImPlot::AddColormap("Server queuedPackets colors", server, 2);
+    this->clientsColorMap = ImPlot::AddColormap("Client queuedPackets colors", client, 2);
 }

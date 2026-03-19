@@ -2,7 +2,7 @@
 
 /**
  * A server is being initialized with MainWindow. It's a needed component to ensure communication between the different
- * clients. It receives the packets, and send packets back to each client. For that, they need to be added manually
+ * clients. It receives the queuedPackets, and send queuedPackets back to each client. For that, they need to be added manually
  * after creation of the server.
  *
  * @param clock Clock, needed to synchronise clients and server together for packet transmission.
@@ -39,7 +39,7 @@ std::unordered_map<std::string, Player> Server::getClients() {
 }
 
 /**
- * Allows to add clients to the server's tracked routes. This means the server will send and receive packets from the
+ * Allows to add clients to the server's tracked routes. This means the server will send and receive queuedPackets from the
  * port of the clients added.
  *
  * @param infos map of infos, usually returned by Client::init().

@@ -24,6 +24,7 @@ namespace Const {
     static const float PLAYER_SPEED = .3f;
     static const float PLAYER_RADIUS_SPEED = .003f;
     static const float PLAYER_SIZE = 20.f;
+    static const float CONTROLLER_DEADZONE = .2f;
 
     static const float MAP_SIZE_X = 500.f;
     static const float MAP_SIZE_Y = 500.f;
