@@ -322,16 +322,13 @@ int Client::receiveLoop() {
                 packet >> type;
 
                 switch (type) {
-                    case Pkt::NEW_GAME: {
-                        printf("new game ! \n");
-                    }
+                    // TODO : delete the old packet types :
                     case Pkt::ROUND_START: {
 
                         std::cout << "Client " << getName() << " received ROUND_START" << std::endl;
                         newRound = true;
                         // No break because round start has position afterwards (and therefor will execute Pkt::GLOBAL case)
                     }
-
                     case Pkt::GLOBAL: {
                         int nbPlayers;
                         int stateTick;
@@ -379,32 +376,18 @@ int Client::receiveLoop() {
 
                         break;
                     }
-
+                    case Pkt::POSITION: {
+                        Position tempPos;
+                        packet >> tempPos;
+                        break;
+                    }
                     case Pkt::SHUTDOWN: {
                         std::cout << "Client " << player.name << " received shutdown packet!" << std::endl;
                         loop = false;
                         break;
                     }
 
-                    case Pkt::POSITION: {
-                        Position tempPos;
-                        packet >> tempPos;
-                        break;
-                    }
-
-                    case Pkt::END_GAME : {
-                        printf("End game !\n");
-                        std::string winner;
-                        packet >> lastServerTick >> winner;
-                        if(this->getName() == winner) {
-                            std::cout<<"EPIC WIN !!"<< this->getName()<< std::endl;
-                        }
-                        else{
-                            std::cout<<"SKILL ISSUE "<< this->getName()<<std::endl;
-                        }
-                        endGame = true;
-                        break;
-                    }
+                    // TODO : [delete me while previous todo done] new packet
 
                     default:
                         std::cout << "UNKNOWN PACKET! Type: " << type << " for client " << player.name << std::endl;

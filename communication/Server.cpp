@@ -92,11 +92,32 @@ int Server::receiveLoop() {
                 packet >> type;
 
                 switch (type) {
-                    case Pkt::SHUTDOWN:
+                    case Pkt::SHUTDOWN: // TODO : delete this without breaking everything
                         std::cout << "Received shutdown packet!" << std::endl;
                         loop = false;
                         break;
 
+                    case Pkt::NEW_PLAYER    :{  // tick << client.name << client.color << client.wpn << client.port             // add the new player datas to the server
+
+                    }
+                    case Pkt::WAIT_START_R  :{  // tick << client.port                                                          // acknoledge the server that the client is waiting for the round to start
+
+                    }
+                    case Pkt::ACK_R         : { // tick << client.port                                                          // send the message that the player is in the right position and ready to start
+
+                    }
+                    case Pkt::INPUTS        : { // tick << inputs << client.port                                                // send the new inputs of the player (the mooves, the radius of the weapon, if he is attacking [...]). also acknoledgge the server that they receive the signal to start the fight
+
+                    }
+                    case Pkt::ACK_D         : { // tick << client.port                                                          // acknoledge that the client know he is dead
+
+                    }
+                    case Pkt::ACK_END_R     : { // tick << client.port                                                          // acknoledge that the client know the round is finished
+
+                    }
+                    case Pkt::END_GAME      : { // tick << client.port                                                          // send the signal of the end of the game, asking the server to shutdown
+
+                    }
                     default:
                         std::cout << "UNKNOWN PACKET! Type: " << type << std::endl;
                 }
@@ -489,6 +510,8 @@ int Server::shutdown() {
         }
         return Err::ERR_NONE;
     }
+
+    loop = false;
 
     return Err::ERR_SERVER_SHUTDOWN;
 }
