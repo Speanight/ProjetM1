@@ -25,9 +25,12 @@ namespace Const {
     static const float PLAYER_RADIUS_SPEED = .003f;
     static const float PLAYER_SIZE = 20.f;
     static const float CONTROLLER_DEADZONE = .2f;
+    static const float WEAPON_GRACE_PERCENT = .4f; // [0-1] - Percent of "grace" for weapon hit detection. Value of .5f means hit will be considered if dist. <= 1.5x weapon size.
 
     static const float MAP_SIZE_X = 500.f;
     static const float MAP_SIZE_Y = 500.f;
+
+    static const int AMT_PLAYERS_MAX = 4;
 }
 
 namespace Err {
@@ -42,9 +45,9 @@ namespace Err {
 }
 
 namespace Pkt {
-    /////////////////////
-    // PACKETS HEADERS //
-    /////////////////////
+    /////////////////////////
+    //// PACKETS HEADERS ////
+    /////////////////////////
     static const int SHUTDOWN = 0;      // None
     static const int ROUND_START = 1;   // tick << amtPlayers << client.name << client.position
     static const int GLOBAL = 2;        // tick << amtPlayers << client.name << client.position << [...]
@@ -74,9 +77,15 @@ namespace Compensation {
 }
 
 namespace Status {
-    static constexpr short WAITING_FOR_ROUND_START = 0;
-    static constexpr short READY_TO_START = 1;
-    static constexpr short DONE = 2;
+    static constexpr short WAITING_FOR_ROUND_START = 1;
+    static constexpr short READY_TO_START = 2;
+    static constexpr short DONE = 3;
+}
+
+namespace Screens {
+    static constexpr short TITLE_SCREEN = 0;
+    static constexpr short PLAYER_SELECT = 1;
+    static constexpr short GAME = 2;
 }
 
 #endif

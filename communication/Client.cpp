@@ -14,11 +14,7 @@
  * @param color Color given to the client in the Server's console.
  */
 Client::Client(const sf::Clock clock, std::string name, short controller, sf::Color color) : server(SERVER_IP_BYTE1, SERVER_IP_BYTE2, SERVER_IP_BYTE3, SERVER_IP_BYTE4), semaphore(1) {
-    this->network.packetLoss[0] = 0;
-    this->network.packetLoss[1] = 0;
     this->clock = clock;
-    this->network.ping[0] = 0;
-    this->network.ping[1] = 0;
     this->player.name = std::move(name);
     this->player.color = color;
     this->bufferOnReceipt.addClient(player);
@@ -156,6 +152,11 @@ void Client::setCompensations(std::array<bool,3> compensations) {
 void Client::setKeybinds(std::unordered_map<int, std::variant<sf::Keyboard::Key, sf::Joystick::Axis, int>> keybinds) {
     this->keybinds = std::move(keybinds);
 }
+
+void Client::setController(short controller) {
+    this->controllerNumber = controller;
+}
+
 
 /**
  * Function that recovers all the users inputs. This uses user's defined keybinds and iterates
@@ -332,7 +333,7 @@ int Client::update() {
             }
         }
         before = lastUpdate;
-        sf::sleep(sf::milliseconds(10)); // Small sleep to make sure everyone send same amount of inputs.
+        sf::sleep(sf::milliseconds(5)); // Small sleep to make sure everyone send same amount of inputs.
     }
 
     return Err::ERR_NONE;
@@ -397,10 +398,7 @@ int Client::receiveLoop() {
 
                     switch (type) {
                         case Pkt::ACK:
-                            int value;
-                            packet >> value;
                             break;
-
                         case Pkt::ROUND_START:
                             player.status = Status::READY_TO_START;
                             break;
@@ -536,6 +534,16 @@ std::optional<sf::Packet> Client::getLatestQueuedPacket() {
     return std::nullopt;
 }
 
+/**
+ * Function that allows the interpolation of enemies position and rotation.
+ *
+ * @details The "Interpolation" is a compensation method that allows the client to display every single opponent's position
+ * between 2 received ticks from the server. This allows the client to see the game at its local, monitor refresh rate,
+ * instead of being limited at the tickrate of the server.
+ *
+ * @attention Without this compensation method, the enemy positions might not look "sharp". This is because modern monitors
+ * have a refresh rate of 60Hz if not more. A server's tickrate is usually kept between 10 and 20.
+ */
 void Client::compensationInterpolation() {
     std::unordered_map<std::string, State> pastState = bufferOnReceipt.getTState(-1);
     std::unordered_map<std::string, State> currState = bufferOnReceipt.getCurrentState();
@@ -545,7 +553,8 @@ void Client::compensationInterpolation() {
             Position currPos = currState[name].getPosition();
 
             // Position = old one + diff. * (0 at beginning of tick, 1 at end of tick)
-            double tickProgress = (clock.getElapsedTime().asMilliseconds() - lastServerTick) / (double)Const::TICKRATE.count();
+            server;
+            double tickProgress = std::min(1.0,(clock.getElapsedTime().asMilliseconds() - lastServerTick) / (double)Const::TICKRATE.count());
             Position pos;
 
             pos.setX(pastPos.getX() + (currPos.getX() - pastPos.getX()) * tickProgress);
@@ -554,19 +563,25 @@ void Client::compensationInterpolation() {
             opponents[name].position = pos;
 
             // If the radius goes through 0, make sure we rotate correctly.
-//            float radDiff = fabs(pastState[name].getRadius() - currState[name].getRadius());
-//            if (radDiff > M_PI) {
-//                // Rotate the other way:
-//                opponents[name].radius =
-//            }
             float diff = currState[name].getRadius() - pastState[name].getRadius();
             diff = std::fmod(diff + 3 * M_PI, 2 * M_PI) - M_PI;
             opponents[name].radius = std::fmod(pastState[name].getRadius() + diff * tickProgress, 2*M_PI);
-            std::cout << pastState[name].getRadius() << " + " << diff << " * " << tickProgress << "  = " << opponents[name].radius << std::endl;
         }
     }
 }
 
+/**
+ * Function that allows the prediction of "future"'s local player's position and rotation.
+ *
+ * @details The "Prediction" is a compensation method that allows a client to predict its next position. For this, the
+ * user runs its own "game simulation". According to the given inputs and the last position, it will move the character
+ * to the newly established position without waiting for server confirmation.
+ *
+ * @param inputs - Inputs played by the player at that corresponding frame.
+ *
+ * @attention Depending of ping, a "rollback" might appear when enabling Prediction without Reconciliation. This is
+ * expected, and caused by the server still having the "last word" regarding the client's position.
+ */
 void Client::compensationPrediction(Input inputs) {
     int now = clock.getElapsedTime().asMilliseconds();
 
@@ -582,6 +597,17 @@ void Client::compensationPrediction(Input inputs) {
     }
 }
 
+/**
+ * @brief Function that changes the local player's position and rotation according to the reconciliation compensation method.
+ *
+ * @details The "Reconciliation" is a compensation method that allows a client to produce its actions locally as soon as
+ * the corresponding keys are pressed. Each inputs packet have an ID, allowing the client to verify that the estimated
+ * position corresponds with the one sent back by the server. If it does, it just deletes the past states from its memory.
+ * If it doesn't, it will re-simulate the entire game state from that point up until the present, to then re-adjust to the
+ * newly estimated position.
+ *
+ * @attention Please note that the Reconciliation compensation method cannot work without the Prediction method!
+ */
 void Client::compensationReconciliation() {
     State currentState = bufferOnReceipt.getCurrentState()[getName()];
     unsigned int lastReceivedInputs = currentState.getLastInputsId();
@@ -606,10 +632,6 @@ void Client::compensationReconciliation() {
                     inputsBuffer[tick].setPosition(pos);
                 }
             }
-
-            // TODO: Remove below if fix is working (need further analysis):
-//            pos.setX(q.getX());
-//            pos.setY(q.getY());
             setPosition(pos);
         }
 

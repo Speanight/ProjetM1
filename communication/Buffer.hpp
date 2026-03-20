@@ -13,6 +13,7 @@ struct Player {
     // ====== SERVER ======
     unsigned short port;        // NEVER MOOVE THIS [use to create the client on the server and must be here
     unsigned short status = Status::WAITING_FOR_ROUND_START;
+    unsigned int clockSync;
 
     // ====== BASIC ======
     std::string name;

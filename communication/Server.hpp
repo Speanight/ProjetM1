@@ -32,6 +32,7 @@ private:
     std::binary_semaphore semaphore;
 
     std::unordered_map<std::string, Player> clients;
+    std::unordered_map<std::string, int> pings;
 
     bool loop = true;
 

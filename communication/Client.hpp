@@ -33,8 +33,8 @@ struct QueuedPacket {
 };
 
 struct NetworkState {
-    int ping[2]; // [0] = reception ping; [1] = sending ping
-    int packetLoss[2]; // [0] = reception packet loss; [1] = sending packet loss
+    int ping[2] = {0,0};        // [0] = reception ping; [1] = sending ping
+    int packetLoss[2] = {0,0};  // [0] = reception packet loss; [1] = sending packet loss
 
     std::array<bool,3> compensations = {false, false, false};
 };
@@ -103,6 +103,7 @@ public:
     void setPosition(Position p);
     void setRadius(float radius);
     void setCompensations(std::array<bool,3> compensations);
+    void setController(short controller);
 
     // Functions
     std::unordered_map<std::string, std::any> init();

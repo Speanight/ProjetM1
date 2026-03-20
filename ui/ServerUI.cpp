@@ -83,7 +83,9 @@ void ServerUI::draw() {
     ImGui::BeginChild("Server", ImVec2(0, 0), true);
     ImGui::Text("SERVER");
     ImGui::SameLine();
-    ImGui::Checkbox("Pause", &this->pauseConsole);
+    if (ImGui::Button("Pause")) {
+        pauseConsole = !pauseConsole;
+    }
     ImGui::Separator();
     ImGui::BeginChild("console", ImVec2(ImGui::GetContentRegionAvail().x * 0.5f, ImGui::GetContentRegionAvail().y));
     for (const auto& line : std::ranges::reverse_view(lines)) {
@@ -155,9 +157,4 @@ void ServerUI::draw() {
     }
 
     ImGui::EndChild();
-}
-
-void ServerUI::setColorMaps(ImU32 server[], ImU32 client[]) {
-    this->serverColorMap = ImPlot::AddColormap("Server queuedPackets colors", server, 2);
-    this->clientsColorMap = ImPlot::AddColormap("Client queuedPackets colors", client, 2);
 }
