@@ -28,7 +28,6 @@ Server::~Server() {
         receiveThread.join();
     }
 }
-
 /**
  * Function that allows to get info of clients paired with the server.
  *
@@ -89,532 +88,579 @@ int Server::receiveLoop() {
         packet.clear();
 
         if (socket.receive(packet, sender, port) == sf::Socket::Status::Done) {
-            if (port == COMM_PORT_SERVER) {
-                packet >> type;
-            }
-
             // Checks for all connected clients:
-            for (auto &[name, player]: clients) {
-                senderNum++;
-                if (player.port == port) { // Check if ports corresponds (AKA the expected client)
-                    packet >> type;
-                    switch (type) {
+            // std::cout<<"SERVER RECEIVE A PACKET"<<std::endl;
+            packet >> type;
+            if(type == Pkt::NEW_PLAYER) {
+                // tick << name << r g b a << wpn << port
+                int tick;
+                std::string pname;
+                short r, g, b, a;
+                int wpn_id;
+                short clientPort;
 
-                        case Pkt::SHUTDOWN: {
-                            std::cout << "Received shutdown packet!" << std::endl;
-                            loop = false;
-                            break;
-                        }
+                packet >> tick >> pname >> r >> g >> b >> a >> wpn_id >> clientPort;
 
-                        case Pkt::ACK: {     // Pkt << typeAck << tick
-                            int tick;
-                            packet >> typeAck >> tick;
+                sf::Color color(r, g, b, a);
 
-                            switch(typeAck) {
-                                case Pkt::READY_R: {
-                                    partyState = PartyState::RUN_START;
-                                    newRound = false;
-                                    break;
-                                }
+                // ===== CHECK IF PLAYER ALREADY EXISTS =====
+                semaphore.acquire();
+                if (clients.contains(pname)) {
+                    // std::cout << "player already exist: " << pname << std::endl;
+                }
+                else {
+                    std::cout << "NEW PLAYER: " << pname << std::endl;
 
-                                case Pkt::DEATH: {
-                                    // TODO
-                                    break;
-                                }
+                    // ===== CREATE PLAYER =====
+                    Player newPlayer;
+                    newPlayer.name = pname;
+                    newPlayer.color = color;
+                    newPlayer.port = clientPort;
+                    newPlayer.position = Position(0, 0);
+                    newPlayer.radius = 0.f;
+                    newPlayer.mode = true;
+                    newPlayer.isAttacking = false;
 
-                                case Pkt::END_R: {
-                                    // TODO
-                                    break;
-                                }
+                    Weapon wpn(wpn_id);
+                    newPlayer.wpn = wpn;
 
-                                default: {
-                                    std::cout << "Unrecognized ack packet: " << typeAck << std::endl;
-                                    break;
-                                }
+                    // ===== ADD TO CLIENTS =====
+                    clients[pname] = newPlayer;
+
+                    // ===== ADD TO BUFFER =====
+                    buffer.addClient(newPlayer);
+
+                    // Création d’un state initial
+                    int time = clock.getElapsedTime().asMilliseconds();
+
+                    Input defaultInput(0, 0.f, 0.f, 0.f, false, false, wpn_id);
+
+                    State initialState(time,
+                        Position(0, 0),
+                        0.f,
+                        true,
+                        false,
+                        wpn_id,
+                        100,
+                        defaultInput
+                        );
+
+                    buffer.updateNextPlayerState(newPlayer, initialState);
+                    buffer.push(time);
+
+                    std::cout << "Player " << pname << " added to server." << std::endl;
+                }
+
+                // ===== PREPARE ACK =====
+                this->packetTypeToSend = Pkt::ACK;
+                this->ackToSend = Pkt::NEW_PLAYER;
+                semaphore.release();
+            }
+            else {
+                for (auto &[name, player]: clients) {
+                    senderNum++;
+                    if (player.port == port) { // Check if ports corresponds (AKA the expected client)
+                        switch (type) {
+                            case Pkt::SHUTDOWN      : {
+                                std::cout << "Received shutdown packet!" << std::endl;
+                                loop = false;
+                                break;
                             }
-                            break;
-                        }
+                            case Pkt::ACK           : {     // Pkt << typeAck << tick
+                                int tick;
+                                packet >> typeAck >> tick;
 
-                        case Pkt::NEW_PLAYER: {
-                            // tick << name << r g b a << wpn << port
-                            int tick;
-                            std::string pname;
-                            short r, g, b, a;
-                            int wpn_id;
-                            short clientPort;
-
-                            packet >> tick >> pname >> r >> g >> b >> a >> wpn_id >> clientPort;
-
-
-                            std::cout << "NEW PLAYER: " << pname << std::endl;
-
-
-                            break;
-                        }
-
-                        case Pkt::WAIT_START_R: {
-                            // tick << port
-                            int tick;
-                            short clientPort;
-
-                            packet >> tick >> clientPort;
-
-                            // TODO : manage the state if the other player doesn't joined yet
-                            break;
-                        }
-
-                        case Pkt::INPUTS: {
-                            // tick << inputs << port
-                            int time;
-                            packet >> time >> inputs;
-
-                            // Get threads priority
-                            semaphore.acquire();
-                            addLine(
-                                name + " >>> Server [PING:" + std::to_string(clock.getElapsedTime().asMilliseconds() - time) +"ms] "
-                                +" | inputs: x=" + std::to_string(inputs.getMovementX()) +
-                                "; y=" + std::to_string(inputs.getMovementY()) +
-                                "; rotate = "+ std::to_string(inputs.getRotate()) +
-                                "; mode = " + std::to_string(inputs.getMode()) +
-                                "; attack = " + std::to_string(inputs.getAttack()) +
-                                "; wpn id = " + std::to_string(inputs.getWpnID()) +
-                                "; inputs #" + std::to_string(inputs.getId()),
-                                player.color
-                                );
-                            addToGraph(clock.getElapsedTime().asMilliseconds(), name, "Server");
-                            semaphore.release();
-
-                            // Get the current server state AND last player state (which might be the next server state!)
-                            currentState = buffer.getCurrentState();
-                            semaphore.acquire();
-                            playerState = buffer.getLastState(player);
-                            semaphore.release();
-                            buffer.addInputsToLastState(player, clock.getElapsedTime().asMilliseconds(), inputs);
-
-                            // ====== POSITION ======
-                            position = playerState.getPosition();
-                            semaphore.acquire();
-                            radius = buffer.getLastState(player).getRadius();
-                            semaphore.release();
-
-                            // Get time elapsed since last packet from client. Used for consistency in speed and such.
-                            dt = (time - playerState.getTimestamp()) % (Const::TICKRATE.count());
-
-                            // Adjust client values according to last state and new inputs values.
-                            position.move(inputs.getMovementX(), inputs.getMovementY(), dt);
-                            float twoPi = 2.f * std::numbers::pi;
-                            radius += std::fmod(inputs.getRotate() * Const::PLAYER_RADIUS_SPEED * dt, twoPi);
-
-                            // ====== WEAPON MODE ======
-                            bool mode = playerState.getMode();
-                            if(inputs.getMode()) {
-                                mode = !mode;
-                            }
-
-                            // ====== ATTACK ======
-                            bool attack = inputs.getAttack() or playerState.getAttack();
-                            if(attack)("input => %d, playerstate => %d\n", inputs.getAttack(), playerState.getAttack());
-
-                            // ====== WEAPON DATAS CHANGE ======
-                            int wpn_id = playerState.getWpn().getId();
-                            currentState[name].setWpn(wpn_id);
-
-                            // loops of all interaction between players
-                            for (auto &[n, p]: clients) {
-                                if (name != n) {
-                                    bool interaction = false;
-                                    // Check if there is a collision between players (and therefor if it should be resolved)
-                                    Position opponentPos = currentState[n].getPosition();
-                                    opponentPos = resolveCollision(position, opponentPos);
-
-                                    // If yes, we re-adjust the new position of said opponent:
-                                    if (opponentPos.getX() != currentState[n].getPosition().getX() and
-                                        opponentPos.getY() != currentState[n].getPosition().getY()) {
-                                        interaction = true;
+                                switch(typeAck) {
+                                    case Pkt::READY_R   : {
+                                        std::cout << "THE WAR MAY BEGIN ..." << std::endl;
+                                        semaphore.acquire();
+                                        packetTypeToSend = Pkt::START_R;
+                                        break;
                                     }
+                                    case Pkt::DEATH     : {
+                                        // TODO
+                                        break;
+                                    }
+                                    case Pkt::END_R     : {
+                                        // TODO
+                                        break;
+                                    }
+                                    default             : {
+                                        std::cout << "Unrecognized ack packet: " << typeAck << std::endl;
+                                        break;
+                                    }
+                                }
+                                break;
+                            }
+                            case Pkt::WAIT_START_R  : {
+                                // tick << port
+                                int tick;
+                                short clientPort;
 
+                                packet >> tick >> clientPort;
 
-                                    if(inputs.getAttack()) {
-                                        interaction = true;
-                                        // ====== POINT GESTION ======
+                                // std::cout << clientPort << " said he was ready to start" << std::endl;
+                                if (clients.size() < maxPlayers) {
+                                    std::cout << "Not enough players yet" << std::endl;
+                                    break;
+                                }
+                                // std::cout<<"WE CAN START ! "<<std::endl;
+                                semaphore.acquire();
+                                packetTypeToSend = Pkt::READY_R;
+                                semaphore.release();
+                                break;
+                            }
+                            case Pkt::INPUTS        : {
+                                // tick << inputs << port
+                                int time;
+                                packet >> time >> inputs;
+
+                                // Get threads priority
+                                semaphore.acquire();
+                                addLine(
+                                    name + " >>> Server [PING:" + std::to_string(clock.getElapsedTime().asMilliseconds() - time) +"ms] "
+                                    +" | inputs: x=" + std::to_string(inputs.getMovementX()) +
+                                    "; y=" + std::to_string(inputs.getMovementY()) +
+                                    "; rotate = "+ std::to_string(inputs.getRotate()) +
+                                    "; mode = " + std::to_string(inputs.getMode()) +
+                                    "; attack = " + std::to_string(inputs.getAttack()) +
+                                    "; wpn id = " + std::to_string(inputs.getWpnID()) +
+                                    "; inputs #" + std::to_string(inputs.getId()),
+                                    player.color
+                                    );
+                                addToGraph(clock.getElapsedTime().asMilliseconds(), name, "Server");
+                                semaphore.release();
+
+                                // Get the current server state AND last player state (which might be the next server state!)
+                                currentState = buffer.getCurrentState();
+                                semaphore.acquire();
+                                playerState = buffer.getLastState(player);
+                                semaphore.release();
+                                buffer.addInputsToLastState(player, clock.getElapsedTime().asMilliseconds(), inputs);
+
+                                // ====== POSITION ======
+                                position = playerState.getPosition();
+                                semaphore.acquire();
+                                radius = buffer.getLastState(player).getRadius();
+                                semaphore.release();
+
+                                // Get time elapsed since last packet from client. Used for consistency in speed and such.
+                                dt = (time - playerState.getTimestamp()) % (Const::TICKRATE.count());
+
+                                // Adjust client values according to last state and new inputs values.
+                                position.move(inputs.getMovementX(), inputs.getMovementY(), dt);
+                                float twoPi = 2.f * std::numbers::pi;
+                                radius += std::fmod(inputs.getRotate() * Const::PLAYER_RADIUS_SPEED * dt, twoPi);
+
+                                // ====== WEAPON MODE ======
+                                bool mode = playerState.getMode();
+                                if(inputs.getMode()) {
+                                    mode = !mode;
+                                }
+
+                                // ====== ATTACK ======
+                                bool attack = inputs.getAttack() or playerState.getAttack();
+                                if(attack)("input => %d, playerstate => %d\n", inputs.getAttack(), playerState.getAttack());
+
+                                // ====== WEAPON DATAS CHANGE ======
+                                int wpn_id = playerState.getWpn().getId();
+                                currentState[name].setWpn(wpn_id);
+
+                                // loops of all interaction between players
+                                for (auto &[n, p]: clients) {
+                                    if (name != n) {
+                                        bool interaction = false;
+                                        // Check if there is a collision between players (and therefor if it should be resolved)
                                         Position opponentPos = currentState[n].getPosition();
+                                        opponentPos = resolveCollision(position, opponentPos);
 
-                                        float dx = opponentPos.getX() - position.getX();
-                                        float dy = opponentPos.getY() - position.getY();
+                                        // If yes, we re-adjust the new position of said opponent:
+                                        if (opponentPos.getX() != currentState[n].getPosition().getX() and
+                                            opponentPos.getY() != currentState[n].getPosition().getY()) {
+                                            interaction = true;
+                                            }
 
-                                        float distAB = std::sqrt(dx*dx + dy*dy);
 
-                                        // max distance for the weapon to touch the enemy
-                                        float maxReach = PLAYER_SIZE * 2.f
-                                            + currentState[name].getWpn().getHeight()
-                                            + currentState[name].getWpn().getRange();
+                                        if(inputs.getAttack()) {
+                                            interaction = true;
+                                            // ====== POINT GESTION ======
+                                            Position opponentPos = currentState[n].getPosition();
 
-                                        if (distAB <= maxReach){    // if players close enough for the weapon to touch
-                                            // weapopn direction
-                                            float dirx = std::cos(radius);
-                                            float diry = std::sin(radius);
+                                            float dx = opponentPos.getX() - position.getX();
+                                            float dy = opponentPos.getY() - position.getY();
 
-                                            // distance between the player and the surface of the opponent
-                                            float attackReach = maxReach - PLAYER_SIZE;
+                                            float distAB = std::sqrt(dx*dx + dy*dy);
 
-                                            float topx = position.getX() + dirx * attackReach;
-                                            float topy = position.getY() + diry * attackReach;
+                                            // max distance for the weapon to touch the enemy
+                                            float maxReach = PLAYER_SIZE * 2.f
+                                                + currentState[name].getWpn().getHeight()
+                                                + currentState[name].getWpn().getRange();
 
-                                            float dx2 = opponentPos.getX() - topx;
-                                            float dy2 = opponentPos.getY() - topy;
+                                            if (distAB <= maxReach){    // if players close enough for the weapon to touch
+                                                // weapopn direction
+                                                float dirx = std::cos(radius);
+                                                float diry = std::sin(radius);
 
-                                            float distTop = std::sqrt(dx2*dx2 + dy2*dy2);
+                                                // distance between the player and the surface of the opponent
+                                                float attackReach = maxReach - PLAYER_SIZE;
 
-                                            if (distTop <= PLAYER_SIZE){        // if the weapon can enter the opponent perimeters, then it's a touch
-                                                bool blocked = false;
+                                                float topx = position.getX() + dirx * attackReach;
+                                                float topy = position.getY() + diry * attackReach;
 
-                                                bool opponentMode = currentState[n].getMode();
-                                                float opponentRadius = currentState[n].getRadius();
+                                                float dx2 = opponentPos.getX() - topx;
+                                                float dy2 = opponentPos.getY() - topy;
 
-                                                if (!opponentMode) {  // if the opponent have it's defense activated
+                                                float distTop = std::sqrt(dx2*dx2 + dy2*dy2);
 
-                                                    // looking for the angle between the player and it's opponent
-                                                    float angleToAttacker = std::atan2(
-                                                        position.getY() - opponentPos.getY(),
-                                                        position.getX() - opponentPos.getX()
-                                                    );
+                                                if (distTop <= PLAYER_SIZE){        // if the weapon can enter the opponent perimeters, then it's a touch
+                                                    bool blocked = false;
 
-                                                    float twoPi = 2.f * std::numbers::pi;
+                                                    bool opponentMode = currentState[n].getMode();
+                                                    float opponentRadius = currentState[n].getRadius();
 
-                                                    auto normalize = [&](float a) {
-                                                        a = std::fmod(a, twoPi);
-                                                        if (a < 0) a += twoPi;
-                                                        return a;
-                                                    };
+                                                    if (!opponentMode) {  // if the opponent have it's defense activated
 
-                                                    angleToAttacker = normalize(angleToAttacker);
-                                                    opponentRadius  = normalize(opponentRadius);
+                                                        // looking for the angle between the player and it's opponent
+                                                        float angleToAttacker = std::atan2(
+                                                            position.getY() - opponentPos.getY(),
+                                                            position.getX() - opponentPos.getX()
+                                                        );
 
-                                                    float shieldStart = normalize(opponentRadius - 0.8f);
-                                                    float shieldEnd   = normalize(opponentRadius + 0.8f);
+                                                        float twoPi = 2.f * std::numbers::pi;
 
-                                                    if (shieldStart < shieldEnd)
-                                                        blocked = (angleToAttacker >= shieldStart && angleToAttacker <= shieldEnd);
-                                                    else
-                                                        blocked = (angleToAttacker >= shieldStart || angleToAttacker <= shieldEnd);
-                                                }
+                                                        auto normalize = [&](float a) {
+                                                            a = std::fmod(a, twoPi);
+                                                            if (a < 0) a += twoPi;
+                                                            return a;
+                                                        };
 
-                                                if (!blocked) {
-                                                    // HIT SECTION
+                                                        angleToAttacker = normalize(angleToAttacker);
+                                                        opponentRadius  = normalize(opponentRadius);
 
-                                                    int pts =  currentState[n].getPoint() - playerState.getWpn().getDamage();
-                                                    if (pts <= 0) {
-                                                        std::cout << name << " kill  " << n <<std::endl;
-                                                        currentState[n].setKillerName(name);
-                                                        currentState[n].setPoint(0);
+                                                        float shieldStart = normalize(opponentRadius - 0.8f);
+                                                        float shieldEnd   = normalize(opponentRadius + 0.8f);
+
+                                                        if (shieldStart < shieldEnd)
+                                                            blocked = (angleToAttacker >= shieldStart && angleToAttacker <= shieldEnd);
+                                                        else
+                                                            blocked = (angleToAttacker >= shieldStart || angleToAttacker <= shieldEnd);
+                                                    }
+
+                                                    if (!blocked) {
+                                                        // HIT SECTION
+
+                                                        int pts =  currentState[n].getPoint() - playerState.getWpn().getDamage();
+                                                        if (pts <= 0) {
+                                                            std::cout << name << " kill  " << n <<std::endl;
+                                                            currentState[n].setKillerName(name);
+                                                            currentState[n].setPoint(0);
+                                                        }
+                                                        else {
+                                                            currentState[n].setPoint(pts);
+                                                        }
                                                     }
                                                     else {
-                                                        currentState[n].setPoint(pts);
+                                                        // BLOCKED SECTION
+                                                        float dirx = std::cos(radius);
+                                                        float diry = std::sin(radius);
+
+                                                        // distance de knockback = 2x la range de l'arme
+                                                        float knockbackDist = currentState[name].getWpn().getRange() * 2.f;
+
+                                                        // nouvelle position du joueur attaquant
+                                                        position.setX(position.getX() - dirx * knockbackDist);
+                                                        position.setY(position.getY() - diry * knockbackDist);
                                                     }
-                                                }
-                                                else {
-                                                    // BLOCKED SECTION
-                                                    float dirx = std::cos(radius);
-                                                    float diry = std::sin(radius);
-
-                                                    // distance de knockback = 2x la range de l'arme
-                                                    float knockbackDist = currentState[name].getWpn().getRange() * 2.f;
-
-                                                    // nouvelle position du joueur attaquant
-                                                    position.setX(position.getX() - dirx * knockbackDist);
-                                                    position.setY(position.getY() - diry * knockbackDist);
                                                 }
                                             }
                                         }
+
+                                        if(interaction) {
+                                            State s = State(time,
+                                                opponentPos,
+                                                currentState[n].getRadius(),
+                                                currentState[n].getMode(),
+                                                currentState[n].getAttack(),
+                                                currentState[n].getWpn().getId(),
+                                                currentState[n].getPoint(),
+                                                inputs);
+
+                                            s.setKillerName(currentState[n].getKillerName());
+
+                                            // TODO : change constructor ?
+
+                                            buffer.updateNextPlayerState(p, s);
+                                        }
                                     }
 
-                                    if(interaction) {
-                                        State s = State(time,
-                                            opponentPos,
-                                            currentState[n].getRadius(),
-                                            currentState[n].getMode(),
-                                            currentState[n].getAttack(),
-                                            currentState[n].getWpn().getId(),
-                                            currentState[n].getPoint(),
-                                            inputs);
+                                    semaphore.acquire();
+                                    State s = State(
+                                        time,
+                                        position,
+                                        radius,
+                                        mode,
+                                        attack,
+                                        wpn_id,
+                                        playerState.getPoint(),
+                                        inputs
+                                    );
 
-                                        s.setKillerName(currentState[n].getKillerName());
+                                    buffer.updateNextPlayerState(player, s, playerState.getMode());
+                                    semaphore.release();
 
-                                        // TODO : change constructor ?
-
-                                        buffer.updateNextPlayerState(p, s);
-                                    }
                                 }
-
-                                semaphore.acquire();
-                                State s = State(
-                                    time,
-                                    position,
-                                    radius,
-                                    mode,
-                                    attack,
-                                    wpn_id,
-                                    playerState.getPoint(),
-                                    inputs
-                                );
-
-                                buffer.updateNextPlayerState(player, s, playerState.getMode());
-                                semaphore.release();
-
+                                break;
                             }
-                            break;
+                            case Pkt::END_GAME      : {
+                                int tick;
+                                short clientPort;
+
+                                packet >> tick >> clientPort;
+
+                                std::cout << "END GAME received" << std::endl;
+                                loop = false;
+                                break;
+                            }
+                            default                 : {
+                                std::cout << "UNKNOWN PACKET TO SEND! Type: " << type << std::endl;
+                                break;
+                            }
                         }
 
-                        case Pkt::END_GAME: {
-                            int tick;
-                            short clientPort;
-
-                            packet >> tick >> clientPort;
-
-                            std::cout << "END GAME received" << std::endl;
-                            loop = false;
-                            break;
-                        }
-
-                        default: {
-                            std::cout << "UNKNOWN PACKET! Type: " << type << std::endl;
-                            break;
-                        }
+                        /*
+                        // switch (type) {
+                        //     case Pkt::NEW_GAME: {
+                        //         printf("NEW_GAME\n");
+                        //     }
+                        //     case Pkt::ROUND_START: {
+                        //         partyState = PartyState::RUN_START;
+                        //         newRound = true; // Some players aren't ready for round start!
+                        //     }
+                        //     case Pkt::ACK: {
+                        //         int context;
+                        //         packet >> context;
+                        //
+                        //         switch (context) {
+                        //             case Pkt::ROUND_START:
+                        //                 partyState = PartyState::RUN_START;
+                        //                 newRound = false;
+                        //                 break;
+                        //             default:
+                        //                 std::cout << "Received unknown ACK: " << context << " from client " << name << std::endl;
+                        //         }
+                        //         break;
+                        //     }
+                        //     case Pkt::INPUTS: {
+                        //         int time;
+                        //         packet >> time >> inputs;
+                        //
+                        //         // Get threads priority
+                        //         semaphore.acquire();
+                        //         addLine(
+                        //             name + " >>> Server [PING:" + std::to_string(clock.getElapsedTime().asMilliseconds() - time) +"ms] "
+                        //             +" | inputs: x=" + std::to_string(inputs.getMovementX()) +
+                        //             "; y=" + std::to_string(inputs.getMovementY()) +
+                        //             "; rotate = "+ std::to_string(inputs.getRotate()) +
+                        //             "; mode = " + std::to_string(inputs.getMode()) +
+                        //             "; attack = " + std::to_string(inputs.getAttack()) +
+                        //             "; wpn id = " + std::to_string(inputs.getWpnID()) +
+                        //             "; inputs #" + std::to_string(inputs.getId()),
+                        //             player.color
+                        //             );
+                        //         addToGraph(clock.getElapsedTime().asMilliseconds(), name, "Server");
+                        //         semaphore.release();
+                        //
+                        //         // Get the current server state AND last player state (which might be the next server state!)
+                        //         currentState = buffer.getCurrentState();
+                        //         semaphore.acquire();
+                        //         playerState = buffer.getLastState(player);
+                        //         semaphore.release();
+                        //         buffer.addInputsToLastState(player, clock.getElapsedTime().asMilliseconds(), inputs);
+                        //
+                        //         // ====== POSITION ======
+                        //         position = playerState.getPosition();
+                        //         semaphore.acquire();
+                        //         radius = buffer.getLastState(player).getRadius();
+                        //         semaphore.release();
+                        //
+                        //         // Get time elapsed since last packet from client. Used for consistency in speed and such.
+                        //         dt = (time - playerState.getTimestamp()) % (Const::TICKRATE.count());
+                        //
+                        //         // Adjust client values according to last state and new inputs values.
+                        //         position.move(inputs.getMovementX(), inputs.getMovementY(), dt);
+                        //         float twoPi = 2.f * std::numbers::pi;
+                        //         radius += std::fmod(inputs.getRotate() * Const::PLAYER_RADIUS_SPEED * dt, twoPi);
+                        //
+                        //         // ====== WEAPON MODE ======
+                        //         bool mode = playerState.getMode();
+                        //         if(inputs.getMode()) {
+                        //             mode = !mode;
+                        //         }
+                        //
+                        //         // ====== ATTACK ======
+                        //         bool attack = inputs.getAttack() or playerState.getAttack();
+                        //         if(attack)("input => %d, playerstate => %d\n", inputs.getAttack(), playerState.getAttack());
+                        //
+                        //         // ====== WEAPON DATAS CHANGE ======
+                        //         int wpn_id = playerState.getWpn().getId();
+                        //         currentState[name].setWpn(wpn_id);
+                        //
+                        //         // loops of all interaction between players
+                        //         for (auto &[n, p]: clients) {
+                        //             if (name != n) {
+                        //                 bool interaction = false;
+                        //                 // Check if there is a collision between players (and therefor if it should be resolved)
+                        //                 Position opponentPos = currentState[n].getPosition();
+                        //                 opponentPos = resolveCollision(position, opponentPos);
+                        //
+                        //                 // If yes, we re-adjust the new position of said opponent:
+                        //                 if (opponentPos.getX() != currentState[n].getPosition().getX() and
+                        //                     opponentPos.getY() != currentState[n].getPosition().getY()) {
+                        //                     interaction = true;
+                        //                 }
+                        //
+                        //
+                        //                 if(inputs.getAttack()) {
+                        //                     interaction = true;
+                        //                     // ====== POINT GESTION ======
+                        //                     Position opponentPos = currentState[n].getPosition();
+                        //
+                        //                     float dx = opponentPos.getX() - position.getX();
+                        //                     float dy = opponentPos.getY() - position.getY();
+                        //
+                        //                     float distAB = std::sqrt(dx*dx + dy*dy);
+                        //
+                        //                     // max distance for the weapon to touch the enemy
+                        //                     float maxReach = PLAYER_SIZE * 2.f
+                        //                         + currentState[name].getWpn().getHeight()
+                        //                         + currentState[name].getWpn().getRange();
+                        //
+                        //                     if (distAB <= maxReach){    // if players close enough for the weapon to touch
+                        //                         // weapopn direction
+                        //                         float dirx = std::cos(radius);
+                        //                         float diry = std::sin(radius);
+                        //
+                        //                         // distance between the player and the surface of the opponent
+                        //                         float attackReach = maxReach - PLAYER_SIZE;
+                        //
+                        //                         float topx = position.getX() + dirx * attackReach;
+                        //                         float topy = position.getY() + diry * attackReach;
+                        //
+                        //                         float dx2 = opponentPos.getX() - topx;
+                        //                         float dy2 = opponentPos.getY() - topy;
+                        //
+                        //                         float distTop = std::sqrt(dx2*dx2 + dy2*dy2);
+                        //
+                        //                         if (distTop <= PLAYER_SIZE){        // if the weapon can enter the opponent perimeters, then it's a touch
+                        //                             bool blocked = false;
+                        //
+                        //                             bool opponentMode = currentState[n].getMode();
+                        //                             float opponentRadius = currentState[n].getRadius();
+                        //
+                        //                             if (!opponentMode) {  // if the opponent have it's defense activated
+                        //
+                        //                                 // looking for the angle between the player and it's opponent
+                        //                                 float angleToAttacker = std::atan2(
+                        //                                     position.getY() - opponentPos.getY(),
+                        //                                     position.getX() - opponentPos.getX()
+                        //                                 );
+                        //
+                        //                                 float twoPi = 2.f * std::numbers::pi;
+                        //
+                        //                                 auto normalize = [&](float a) {
+                        //                                     a = std::fmod(a, twoPi);
+                        //                                     if (a < 0) a += twoPi;
+                        //                                     return a;
+                        //                                 };
+                        //
+                        //                                 angleToAttacker = normalize(angleToAttacker);
+                        //                                 opponentRadius  = normalize(opponentRadius);
+                        //
+                        //                                 float shieldStart = normalize(opponentRadius - 0.8f);
+                        //                                 float shieldEnd   = normalize(opponentRadius + 0.8f);
+                        //
+                        //                                 if (shieldStart < shieldEnd)
+                        //                                     blocked = (angleToAttacker >= shieldStart && angleToAttacker <= shieldEnd);
+                        //                                 else
+                        //                                     blocked = (angleToAttacker >= shieldStart || angleToAttacker <= shieldEnd);
+                        //                             }
+                        //
+                        //                             if (!blocked) {
+                        //                                 // HIT SECTION
+                        //
+                        //                                 int pts =  currentState[n].getPoint() - playerState.getWpn().getDamage();
+                        //                                 if (pts <= 0) {
+                        //                                     std::cout << name << " kill  " << n <<std::endl;
+                        //                                     currentState[n].setKillerName(name);
+                        //                                     currentState[n].setPoint(0);
+                        //                                 }
+                        //                                 else {
+                        //                                     currentState[n].setPoint(pts);
+                        //                                 }
+                        //                             }
+                        //                             else {
+                        //                                 // BLOCKED SECTION
+                        //                                 float dirx = std::cos(radius);
+                        //                                 float diry = std::sin(radius);
+                        //
+                        //                                 // distance de knockback = 2x la range de l'arme
+                        //                                 float knockbackDist = currentState[name].getWpn().getRange() * 2.f;
+                        //
+                        //                                 // nouvelle position du joueur attaquant
+                        //                                 position.setX(position.getX() - dirx * knockbackDist);
+                        //                                 position.setY(position.getY() - diry * knockbackDist);
+                        //                             }
+                        //                         }
+                        //                     }
+                        //                 }
+                        //
+                        //                 if(interaction) {
+                        //                     State s = State(time,
+                        //                         opponentPos,
+                        //                         currentState[n].getRadius(),
+                        //                         currentState[n].getMode(),
+                        //                         currentState[n].getAttack(),
+                        //                         currentState[n].getWpn().getId(),
+                        //                         currentState[n].getPoint(),
+                        //                         inputs);
+                        //
+                        //                     s.setKillerName(currentState[n].getKillerName());
+                        //
+                        //                     // TODO : change constructor ?
+                        //
+                        //                     buffer.updateNextPlayerState(p, s);
+                        //                 }
+                        //             }
+                        //
+                        //             semaphore.acquire();
+                        //             State s = State(
+                        //                 time,
+                        //                 position,
+                        //                 radius,
+                        //                 mode,
+                        //                 attack,
+                        //                 wpn_id,
+                        //                 playerState.getPoint(),
+                        //                 inputs
+                        //             );
+                        //
+                        //             buffer.updateNextPlayerState(player, s, playerState.getMode());
+                        //             semaphore.release();
+                        //
+                        //         }
+                        //         break;
+                        //     }
+                        //     case Pkt::END_GAME: {
+                        //         printf("ENDGAME\n");
+                        //         // endGame = true;
+                        //     }
+                        //
+                        //     default: {
+                        //         std::cout << " UNKNOWN CLIENT PACKET! Type: " << type << " from client " << name << std::endl;
+                        //     }
+                        // }
+                        */
                     }
-
-                    /*
-                    // switch (type) {
-                    //     case Pkt::NEW_GAME: {
-                    //         printf("NEW_GAME\n");
-                    //     }
-                    //     case Pkt::ROUND_START: {
-                    //         partyState = PartyState::RUN_START;
-                    //         newRound = true; // Some players aren't ready for round start!
-                    //     }
-                    //     case Pkt::ACK: {
-                    //         int context;
-                    //         packet >> context;
-                    //
-                    //         switch (context) {
-                    //             case Pkt::ROUND_START:
-                    //                 partyState = PartyState::RUN_START;
-                    //                 newRound = false;
-                    //                 break;
-                    //             default:
-                    //                 std::cout << "Received unknown ACK: " << context << " from client " << name << std::endl;
-                    //         }
-                    //         break;
-                    //     }
-                    //     case Pkt::INPUTS: {
-                    //         int time;
-                    //         packet >> time >> inputs;
-                    //
-                    //         // Get threads priority
-                    //         semaphore.acquire();
-                    //         addLine(
-                    //             name + " >>> Server [PING:" + std::to_string(clock.getElapsedTime().asMilliseconds() - time) +"ms] "
-                    //             +" | inputs: x=" + std::to_string(inputs.getMovementX()) +
-                    //             "; y=" + std::to_string(inputs.getMovementY()) +
-                    //             "; rotate = "+ std::to_string(inputs.getRotate()) +
-                    //             "; mode = " + std::to_string(inputs.getMode()) +
-                    //             "; attack = " + std::to_string(inputs.getAttack()) +
-                    //             "; wpn id = " + std::to_string(inputs.getWpnID()) +
-                    //             "; inputs #" + std::to_string(inputs.getId()),
-                    //             player.color
-                    //             );
-                    //         addToGraph(clock.getElapsedTime().asMilliseconds(), name, "Server");
-                    //         semaphore.release();
-                    //
-                    //         // Get the current server state AND last player state (which might be the next server state!)
-                    //         currentState = buffer.getCurrentState();
-                    //         semaphore.acquire();
-                    //         playerState = buffer.getLastState(player);
-                    //         semaphore.release();
-                    //         buffer.addInputsToLastState(player, clock.getElapsedTime().asMilliseconds(), inputs);
-                    //
-                    //         // ====== POSITION ======
-                    //         position = playerState.getPosition();
-                    //         semaphore.acquire();
-                    //         radius = buffer.getLastState(player).getRadius();
-                    //         semaphore.release();
-                    //
-                    //         // Get time elapsed since last packet from client. Used for consistency in speed and such.
-                    //         dt = (time - playerState.getTimestamp()) % (Const::TICKRATE.count());
-                    //
-                    //         // Adjust client values according to last state and new inputs values.
-                    //         position.move(inputs.getMovementX(), inputs.getMovementY(), dt);
-                    //         float twoPi = 2.f * std::numbers::pi;
-                    //         radius += std::fmod(inputs.getRotate() * Const::PLAYER_RADIUS_SPEED * dt, twoPi);
-                    //
-                    //         // ====== WEAPON MODE ======
-                    //         bool mode = playerState.getMode();
-                    //         if(inputs.getMode()) {
-                    //             mode = !mode;
-                    //         }
-                    //
-                    //         // ====== ATTACK ======
-                    //         bool attack = inputs.getAttack() or playerState.getAttack();
-                    //         if(attack)("input => %d, playerstate => %d\n", inputs.getAttack(), playerState.getAttack());
-                    //
-                    //         // ====== WEAPON DATAS CHANGE ======
-                    //         int wpn_id = playerState.getWpn().getId();
-                    //         currentState[name].setWpn(wpn_id);
-                    //
-                    //         // loops of all interaction between players
-                    //         for (auto &[n, p]: clients) {
-                    //             if (name != n) {
-                    //                 bool interaction = false;
-                    //                 // Check if there is a collision between players (and therefor if it should be resolved)
-                    //                 Position opponentPos = currentState[n].getPosition();
-                    //                 opponentPos = resolveCollision(position, opponentPos);
-                    //
-                    //                 // If yes, we re-adjust the new position of said opponent:
-                    //                 if (opponentPos.getX() != currentState[n].getPosition().getX() and
-                    //                     opponentPos.getY() != currentState[n].getPosition().getY()) {
-                    //                     interaction = true;
-                    //                 }
-                    //
-                    //
-                    //                 if(inputs.getAttack()) {
-                    //                     interaction = true;
-                    //                     // ====== POINT GESTION ======
-                    //                     Position opponentPos = currentState[n].getPosition();
-                    //
-                    //                     float dx = opponentPos.getX() - position.getX();
-                    //                     float dy = opponentPos.getY() - position.getY();
-                    //
-                    //                     float distAB = std::sqrt(dx*dx + dy*dy);
-                    //
-                    //                     // max distance for the weapon to touch the enemy
-                    //                     float maxReach = PLAYER_SIZE * 2.f
-                    //                         + currentState[name].getWpn().getHeight()
-                    //                         + currentState[name].getWpn().getRange();
-                    //
-                    //                     if (distAB <= maxReach){    // if players close enough for the weapon to touch
-                    //                         // weapopn direction
-                    //                         float dirx = std::cos(radius);
-                    //                         float diry = std::sin(radius);
-                    //
-                    //                         // distance between the player and the surface of the opponent
-                    //                         float attackReach = maxReach - PLAYER_SIZE;
-                    //
-                    //                         float topx = position.getX() + dirx * attackReach;
-                    //                         float topy = position.getY() + diry * attackReach;
-                    //
-                    //                         float dx2 = opponentPos.getX() - topx;
-                    //                         float dy2 = opponentPos.getY() - topy;
-                    //
-                    //                         float distTop = std::sqrt(dx2*dx2 + dy2*dy2);
-                    //
-                    //                         if (distTop <= PLAYER_SIZE){        // if the weapon can enter the opponent perimeters, then it's a touch
-                    //                             bool blocked = false;
-                    //
-                    //                             bool opponentMode = currentState[n].getMode();
-                    //                             float opponentRadius = currentState[n].getRadius();
-                    //
-                    //                             if (!opponentMode) {  // if the opponent have it's defense activated
-                    //
-                    //                                 // looking for the angle between the player and it's opponent
-                    //                                 float angleToAttacker = std::atan2(
-                    //                                     position.getY() - opponentPos.getY(),
-                    //                                     position.getX() - opponentPos.getX()
-                    //                                 );
-                    //
-                    //                                 float twoPi = 2.f * std::numbers::pi;
-                    //
-                    //                                 auto normalize = [&](float a) {
-                    //                                     a = std::fmod(a, twoPi);
-                    //                                     if (a < 0) a += twoPi;
-                    //                                     return a;
-                    //                                 };
-                    //
-                    //                                 angleToAttacker = normalize(angleToAttacker);
-                    //                                 opponentRadius  = normalize(opponentRadius);
-                    //
-                    //                                 float shieldStart = normalize(opponentRadius - 0.8f);
-                    //                                 float shieldEnd   = normalize(opponentRadius + 0.8f);
-                    //
-                    //                                 if (shieldStart < shieldEnd)
-                    //                                     blocked = (angleToAttacker >= shieldStart && angleToAttacker <= shieldEnd);
-                    //                                 else
-                    //                                     blocked = (angleToAttacker >= shieldStart || angleToAttacker <= shieldEnd);
-                    //                             }
-                    //
-                    //                             if (!blocked) {
-                    //                                 // HIT SECTION
-                    //
-                    //                                 int pts =  currentState[n].getPoint() - playerState.getWpn().getDamage();
-                    //                                 if (pts <= 0) {
-                    //                                     std::cout << name << " kill  " << n <<std::endl;
-                    //                                     currentState[n].setKillerName(name);
-                    //                                     currentState[n].setPoint(0);
-                    //                                 }
-                    //                                 else {
-                    //                                     currentState[n].setPoint(pts);
-                    //                                 }
-                    //                             }
-                    //                             else {
-                    //                                 // BLOCKED SECTION
-                    //                                 float dirx = std::cos(radius);
-                    //                                 float diry = std::sin(radius);
-                    //
-                    //                                 // distance de knockback = 2x la range de l'arme
-                    //                                 float knockbackDist = currentState[name].getWpn().getRange() * 2.f;
-                    //
-                    //                                 // nouvelle position du joueur attaquant
-                    //                                 position.setX(position.getX() - dirx * knockbackDist);
-                    //                                 position.setY(position.getY() - diry * knockbackDist);
-                    //                             }
-                    //                         }
-                    //                     }
-                    //                 }
-                    //
-                    //                 if(interaction) {
-                    //                     State s = State(time,
-                    //                         opponentPos,
-                    //                         currentState[n].getRadius(),
-                    //                         currentState[n].getMode(),
-                    //                         currentState[n].getAttack(),
-                    //                         currentState[n].getWpn().getId(),
-                    //                         currentState[n].getPoint(),
-                    //                         inputs);
-                    //
-                    //                     s.setKillerName(currentState[n].getKillerName());
-                    //
-                    //                     // TODO : change constructor ?
-                    //
-                    //                     buffer.updateNextPlayerState(p, s);
-                    //                 }
-                    //             }
-                    //
-                    //             semaphore.acquire();
-                    //             State s = State(
-                    //                 time,
-                    //                 position,
-                    //                 radius,
-                    //                 mode,
-                    //                 attack,
-                    //                 wpn_id,
-                    //                 playerState.getPoint(),
-                    //                 inputs
-                    //             );
-                    //
-                    //             buffer.updateNextPlayerState(player, s, playerState.getMode());
-                    //             semaphore.release();
-                    //
-                    //         }
-                    //         break;
-                    //     }
-                    //     case Pkt::END_GAME: {
-                    //         printf("ENDGAME\n");
-                    //         // endGame = true;
-                    //     }
-                    //
-                    //     default: {
-                    //         std::cout << " UNKNOWN CLIENT PACKET! Type: " << type << " from client " << name << std::endl;
-                    //     }
-                    // }
-                    */
                 }
             }
         }
@@ -640,7 +686,6 @@ int Server::sendLoop() {
         int tick = clock.getElapsedTime().asMilliseconds();
 
         for (auto & [name, player] : clients) {
-
             sf::Packet packet;
             /*
             //            switch (player.status) {
@@ -676,14 +721,15 @@ int Server::sendLoop() {
             //            }
             */
             switch (packetTypeToSend) {
+                case Pkt::NONE          : {
+                    break;
+                }
                 case Pkt::SHUTDOWN      : {     // None
                     packet << Pkt::SHUTDOWN;
                     break;
                 }
-
                 case Pkt::ACK           : {     // Pkt << tick
                     packet << Pkt::ACK;
-
                     switch(ackToSend) {
                         case Pkt::NEW_PLAYER    : {
                             packet << Pkt::NEW_PLAYER << tick;
@@ -696,38 +742,35 @@ int Server::sendLoop() {
                     }
                     break;
                 }
-
                 case Pkt::READY_R       : {     // tick << client infos
+                    std::cout << "sending position" << std::endl;
                     packet << Pkt::READY_R;
-                    packet << tick << int(clients.size());
+                    packet << tick << maxPlayers;
 
-                    int playerNb = clients.size();
-                    int time = tick;
+                    int playerNb = maxPlayers;
 
                     for (auto & [n, p] : clients) {
                         Position pos;
-                        pos.setX((playerNb * Const::MAP_SIZE_X / clients.size()) - (Const::MAP_SIZE_X / clients.size()) / 2);
+                        pos.setX((playerNb * Const::MAP_SIZE_X / maxPlayers) - (Const::MAP_SIZE_X / maxPlayers) / 2);
                         pos.setY(Const::MAP_SIZE_Y / 2);
 
                         Input inputs(buffer.getLastState(p).getInputs().end()->second.getId(), 0, 0, 0.f, false, false, 0);
-                        State s = State(time, pos, std::numbers::pi/2, true, false, 0, 100, inputs);
+                        State s = State(tick, pos, std::numbers::pi/2, true, false, 0, 100, inputs);
 
                         buffer.updateNextPlayerState(p, s);
 
-                        packet << n << s;
+                        packet << n << s << p.color.r << p.color.g << p.color.b << p.color.a << p.wpn.getId();
                         playerNb--;
                     }
 
-                    buffer.push(time);
+                    buffer.push(tick);
                     break;
                 }
-
                 case Pkt::START_R       : {     // tick << amtPlayer
                     packet << Pkt::START_R;
-                    packet << tick << int(clients.size());
+                    packet << tick;
                     break;
                 }
-
                 case Pkt::GLOBAL        : {     // tick << amtPlayers << states
                     packet << Pkt::GLOBAL;
 
@@ -741,27 +784,17 @@ int Server::sendLoop() {
                     packet << tick; // lastServerTick
                     break;
                 }
-
                 case Pkt::DEATH         : {     // tick << killerName
                     packet << Pkt::DEATH;
                     packet << tick;
                     // packet << lastKillerName;
                     break;
                 }
-
-                case Pkt::KILL          : {     // tick << killedName
-                    packet << Pkt::KILL;
-                    packet << tick;
-                    // packet << lastKilledName;
-                    break;
-                }
-
                 case Pkt::END_R         : {     // tick
                     packet << Pkt::END_R;
                     packet << tick;
                     break;
                 }
-
                 default                 : {
                     std::cout << "UNKNOWN PACKET! Type: " << packetTypeToSend << std::endl;
                     continue;
@@ -838,36 +871,41 @@ int Server::sendLoop() {
         }
         */
 
-            // SENDING TO CLIENT
-            socket.send(packet, sender.value(), player.port);
+            if(packetTypeToSend != Pkt::NONE) {
+                // SENDING TO CLIENT
+                socket.send(packet, sender.value(), player.port);
 
-            // PRINT MESSAGE IN SERVER CONSOLE
-            addLine(
-                "Server >>> " + name
-                + " position: (" + std::to_string(player.position.getX())
-                + ", " + std::to_string(player.position.getY())
-                + ") ; radius : " + std::to_string(player.radius)
-                + " mode : " + std::to_string(player.mode)
-                + " attack : " + std::to_string(player.isAttacking),
-                sf::Color::White
-            );
-        }
+                // PRINT MESSAGE IN SERVER CONSOLE
+                addLine(
+                    "Server >>> " + name
+                    + " position: (" + std::to_string(player.position.getX())
+                    + ", " + std::to_string(player.position.getY())
+                    + ") ; radius : " + std::to_string(player.radius)
+                    + " mode : " + std::to_string(player.mode)
+                    + " attack : " + std::to_string(player.isAttacking),
+                    sf::Color::White
+                );
 
-        // BUFFER UPDATE
-        semaphore.acquire();
-        addToGraph(clock.getElapsedTime().asMilliseconds(), "Server", "clients");
-        buffer.push(clock.getElapsedTime().asMilliseconds());
-        semaphore.release();
 
-        // POST MAJ
-        for (auto & [name, player] : clients) {
-            State last = buffer.getLastState(player);
-            if (last.getAttack()) {
-                last.setAttack(false);
-                buffer.updateNextPlayerState(player, last);
+                // BUFFER UPDATE
+                semaphore.acquire();
+                addToGraph(clock.getElapsedTime().asMilliseconds(), "Server", "clients");
+                buffer.push(clock.getElapsedTime().asMilliseconds());
+                semaphore.release();
+
+                // POST MAJ
+                for (auto & [name, player] : clients) {
+                    State last = buffer.getLastState(player);
+                    if (last.getAttack()) {
+                        last.setAttack(false);
+                        buffer.updateNextPlayerState(player, last);
+                    }
+                }
+            }
+            else {
+                std::cout << "waiting for players" << std::endl;
             }
         }
-
 
     }
 

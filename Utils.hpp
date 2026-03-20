@@ -45,11 +45,15 @@ namespace Pkt {
     // PACKETS HEADERS //
     /////////////////////
 
+    // NULL / WAITING PACKET
+    // quand il n'y a aucun paquet a envoyer
+    static const int NONE           = 0;
+
     // SHUTDOWN
-    static const int SHUTDOWN       = 0;    // None                                                                         // indicate to the clients to shut down themselve
+    static const int SHUTDOWN       = 1;    // None                                                                         // indicate to the clients to shut down themselve
 
     // ACKNOLEDGE
-    static const int ACK            = 1;    // Pkt << tick                                                                  // make an acknoledge
+    static const int ACK            = 2;    // Pkt << tick                                                                  // make an acknoledge
     // ACK << READY_R                       // tick                                                                         // acknoledge the server that the client know he can start
     // ACK << DEATH                         // tick                                                                         // acknoledge the server that the client know he is dead
     // ACK << END_R                         // tick                                                                         // acknoledge the server that the client know the round is finished
@@ -58,12 +62,10 @@ namespace Pkt {
 
 
     /// SERVER PACKAGES (what the server send to the clients)
-    static const int READY_R        = 2;    // tick << client.[info client 1] << client.[info client2] << [...]             // put the player in position for the round to start
-    static const int START_R        = 3;    // tick << amtPlayer                                                            // send the signal so start the fight to the players
-    static const int GLOBAL         = 4;    // tick << amtPlayers << client.name << client.position << [...]                // send the position and the information about the players and it's opponent during the game
-    static const int DEATH          = 5;    // tick << killerName                                                           // send the signal to a specific player that the player is dead
-    static const int KILL           = 6;    // tick << killedName                                                           // send the signal to the other player that one player is dead (+ who it was)
-    // TODO : find a better solution for KILL ?
+    static const int READY_R        = 3;    // tick << client.[info client 1] << client.[info client2] << [...]             // put the player in position for the round to start
+    static const int START_R        = 4;    // tick << amtPlayer                                                            // send the signal so start the fight to the players
+    static const int GLOBAL         = 5;    // tick << amtPlayers << client.name << client.position << [...]                // send the position and the information about the players and it's opponent during the game
+    static const int DEATH          = 6;    // tick << killerName                                                           // send the signal to a specific player that the player is dead
     static const int END_R          = 7;    // tick                                                                         // send the signal that the round is finished
 
     /// CLIENT PACKAGES (what the clients send to the server)
@@ -73,28 +75,10 @@ namespace Pkt {
     static const int END_GAME       = 11;   // tick << client.port                                                          // send the signal of the end of the game, asking the server to shutdown
 
 
-
-    // TODO : CHANGER LES ACKNOLEDGE
-
-
-    // TODO : delete the old package types
-    static const int ROUND_START = 20;   // tick << amtPlayers << client.name << client.position
-    static const int POSITION = 21;      // tick << client.position
-    static const int NEW_GAME = 22;
-}
-
-
-// Determine in wich case of the game we are, selecting player, starting a new run, playing ...
-namespace PartyState {
-    ////////////////
-    // GAME STATE //
-    ////////////////
-    static const int GAME_START = 0;    // when the players are not selectioned yet, loops are not running
-    static const int GAME_STOP = 1;     // when there is only one player remaining, we cans stop the server
-
-    static const int RUN_START = 2;     // when we acknoledge the players and positionate them on the rigth place
-    static const int RUN_IDLE = 3;      // when the game is playing normally
-
+    // // TODO : delete the old package types
+    // static const int ROUND_START = 20;   // tick << amtPlayers << client.name << client.position
+    // static const int POSITION = 21;      // tick << client.position
+    // static const int NEW_GAME = 22;
 }
 
 namespace Inputs {

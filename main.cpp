@@ -26,15 +26,16 @@ int main() {
     MainWindow window(clock);
 
     std::cout << "Tickrate changes " << Const::TICKRATE.count() << " times per second." << std::endl;
-
     // CONTROLLER MODE = 0 ; KEYBORD MODE = -1
     // TODO : add something that detect if a controller is up to select it
     int ca_controller = -1;
     int cb_controller = -1;
 
+    // TODO : changing the way clients are added (# selection page)
     std::cout << "Starting server on Network: " << SERVER_IP << ":" << COMM_PORT_SERVER << std::endl;
-    ClientUI* clientA = new ClientUI(clock, "Client A", ca_controller, sf::Color::Red);
-    ClientUI* clientB = new ClientUI(clock, "Client B", cb_controller, sf::Color::Green);
+
+    ClientUI* clientA = new ClientUI(clock, "Client A", ca_controller, sf::Color::Red, 0);
+    ClientUI* clientB = new ClientUI(clock, "Client B", cb_controller, sf::Color::Green,0);
 
     // Settings players keybinds...
     if(ca_controller == -1) {
@@ -84,12 +85,15 @@ int main() {
 
     }
 
-    clientA->addOpponent(clientB->getName(), clientB->getColor());
-    clientB->addOpponent(clientA->getName(), clientA->getColor());
+    // TODO : delete this part, the opponent is added with the READY_R reception
+    // clientA->addOpponent(clientB->getName(), clientB->getColor());
+    // clientB->addOpponent(clientA->getName(), clientA->getColor());
+    clientA->init();
+    clientB->init();
 
     std::cout << "Adding client to server..." << std::endl;
-    window.addClient(clientA);
-    window.addClient(clientB);
+    // window.addClient(clientA);
+    // window.addClient(clientB);
 
     // Print window
     sf::ContextSettings settings;

@@ -11,8 +11,9 @@ MainWindow::~MainWindow() {
 }
 
 void MainWindow::addClient(ClientUI* client) {
-    clients.push_back(client);
-    server.addClient(client->init());
+    // clients.push_back(client);
+    // client->update();
+    // server.addClient(client->init());
 }
 
 /**

@@ -34,8 +34,10 @@ private:
     std::unordered_map<std::string, Player> clients;
 
     int partyState; // TODO : delete me
-    int packetTypeToSend    = Pkt::READY_R;
-    int ackToSend;
+    int packetTypeToSend    = Pkt::NONE;
+    int ackToSend           = Pkt::NONE;
+
+    int maxPlayers = 2;     // TODO : make something better to handle how many players we want before starting the game
 
     bool loop = true;
     bool newGame = false;

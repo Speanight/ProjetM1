@@ -63,8 +63,8 @@ private:
     bool newRound = false;
     bool endGame = false;
 
-    int packetTypeToSend = Pkt::READY_R;
-    int ackToSend = Pkt::READY_R;
+    int packetTypeToSend    = Pkt::NONE;
+    int ackToSend           = Pkt::NONE;
 
 protected:
     sf::Clock clock;
@@ -75,11 +75,13 @@ protected:
 
     int lastServerTick;
     unsigned int lastInputId = 0;
+    bool created = false;
 
     int lastUpdate;
 
 public:
     Client(sf::Clock clock, std::string name, short controller = -1, sf::Color color = sf::Color::Red);
+    Client(sf::Clock clock, std::string name, short controller = -1, sf::Color color = sf::Color::Red, int wpn_id = 0);
     // Client(sf::Clock clock, std::string name, sf::Color color = sf::Color::Red, float radius = 0);
     ~Client();
 
@@ -114,6 +116,8 @@ public:
     int sendPacket(Input inputs);
     int receiveLoop();
     std::optional<sf::Packet> getLatestPacket();
+
+    void applyState(std::string name, State state);
 
     // Compensations
     void compensationInterpolation();
