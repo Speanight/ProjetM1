@@ -281,28 +281,98 @@ int Client::update() {
  * executing.
  */
 int Client::sendPacket(Input inputs) {
-    if (newRound) {
-        sf::Packet packet;
-        packet << Pkt::ACK << Pkt::ROUND_START;
-
-        socket.send(packet, server, COMM_PORT_SERVER);
-
-        newRound = false;
-    }
-
+    // QueuedPacket pkt;
+    // pkt.timestamp = clock.getElapsedTime();
     QueuedPacket pkt;
     pkt.timestamp = clock.getElapsedTime();
+    int tick = clock.getElapsedTime().asMilliseconds();
 
-    pkt.packet << Pkt::INPUTS << pkt.timestamp.asMilliseconds() << inputs;
-    packets.push_back(pkt); // Adds the packet to the array of packets.
+    switch (packetTypeToSend) {
+        case Pkt::ACK               : {     // Pkt << tick
+            pkt.packet << Pkt::ACK;
 
-    // If the packet isn't lost (editable through packet loss % slider):
-    auto packet = getLatestPacket(); // Get latest packet that meets ping criteria.
+            switch (ackToSend) {
+                case Pkt::READY_R   : {
+                    pkt.packet << Pkt::READY_R << tick;
+                    break;
+                }
 
-    // Check that packet does exist:
-    if (packet.has_value()) {
-        socket.send(packet.value(), server, COMM_PORT_SERVER);
+                case Pkt::DEATH     : {
+                    pkt.packet << Pkt::DEATH << tick;
+                    break;
+                }
+
+                case Pkt::END_R     : {
+                    pkt.packet << Pkt::END_R << tick;
+                    break;
+                }
+
+                default             : {
+                    std::cout << "Unrecognized acknoledge packet send in client section, please identify yourself " << ackToSend << std::endl;
+                    break;
+                }
+            }
+            break;
+        }
+        case Pkt::NEW_PLAYER        : {     // tick << client.name << client.color << client.wpn << client.port
+            pkt.packet << Pkt::NEW_PLAYER;
+            short r = player.color.r;
+            short g = player.color.g;
+            short b = player.color.b;
+            short a = player.color.a;
+            pkt.packet << tick << player.name << r << g << b << a << player.wpn.getId() << player.port;
+            break;
+        }
+        case Pkt::WAIT_START_R      : {     // tick << client.port
+            pkt.packet << Pkt::WAIT_START_R;
+            pkt.packet << tick << player.port;
+            break;
+        }
+        case Pkt::INPUTS            : {     // tick << inputs << client.port
+            pkt.packet << Pkt::INPUTS << pkt.timestamp.asMilliseconds() << inputs << player.port;
+            break;
+        }
+        case Pkt::END_GAME          : {     // tick << client.port
+            sf::Packet packet;
+            packet << Pkt::END_GAME;
+            packet << tick << player.port;
+            break;
+        }
+        default                     : {
+            std::cout << "Unrecognized packet send in client section, please identify yourself " << packetTypeToSend << std::endl;
+            break;
+        }
     }
+    packets.push_back(pkt); // Adds the packet to the array of packets.
+    auto packetToSend = getLatestPacket();
+    if (packetToSend.has_value()) {
+        socket.send(packetToSend.value(), server, COMM_PORT_SERVER);
+    }
+
+    /*
+        if (newRound) {
+            sf::Packet packet;
+            packet << Pkt::ACK << Pkt::ROUND_START;
+
+            socket.send(packet, server, COMM_PORT_SERVER);
+
+            newRound = false;
+        }
+
+        QueuedPacket pkt;
+        pkt.timestamp = clock.getElapsedTime();
+
+        pkt.packet << Pkt::INPUTS << pkt.timestamp.asMilliseconds() << inputs;
+        packets.push_back(pkt); // Adds the packet to the array of packets.
+
+        // If the packet isn't lost (editable through packet loss % slider):
+        auto packet = getLatestPacket(); // Get latest packet that meets ping criteria.
+
+        // Check that packet does exist:
+        if (packet.has_value()) {
+            socket.send(packet.value(), server, COMM_PORT_SERVER);
+        }
+        */
 
     return Err::ERR_NONE;
 }
@@ -311,6 +381,7 @@ int Client::receiveLoop() {
     std::optional<sf::IpAddress> sender = sf::IpAddress::resolve(SERVER_IP);
     sf::Packet packet;
     int type;
+    int typeAck;
     const sf::Time tickrate = std::chrono::milliseconds(TICKRATE);
     short unsigned int port;
 
@@ -320,11 +391,112 @@ int Client::receiveLoop() {
         if (socket.receive(packet, sender, port) == sf::Socket::Status::Done) {
             if (port == COMM_PORT_SERVER) {
                 packet >> type;
-
                 switch (type) {
-                    // TODO : delete the old packet types :
-                    case Pkt::ROUND_START: {
+                    case Pkt::SHUTDOWN      : {     // None                                                                         // indicate to the clients to shut down themselve
+                        std::cout << "Client " << player.name << " received shutdown packet!" << std::endl;
+                        loop = false;
+                        break;
+                    }
 
+                    case Pkt::ACK           : {     // Pkt << tick                                                                  // make an acknoledge
+                        packet >> typeAck;
+                        switch(typeAck) {
+                            case Pkt::NEW_PLAYER    : { // tick                                                                     // acknoledge the client that the server know he exist and have datas
+                                // TODO
+                                break;
+                            }
+                            default                 : {
+                                std::cout << "Unrecognized acknoledge packet received in client section, please identify yourself " << typeAck << std::endl;
+                                break;
+                            }
+                        }
+                        break;
+                    }
+
+                    case Pkt::READY_R       : {     // tick << client.[info client 1] << client.[info client2] << [...]             // put the player in position for the round to start
+                        // (à remplir)
+                        break;
+                    }
+
+                    case Pkt::START_R       : {     // tick << amtPlayer                                                            // send the signal so start the fight to the players
+                        std::cout << "Client " << getName() << " received ROUND_START" << std::endl;
+                        newRound = true;
+                        break;
+                    }
+
+                    case Pkt::GLOBAL        : {     // tick << amtPlayers << client.name << client.position << [...]                // send the position and the information about the players and it's opponent during the game
+                        int nbPlayers;
+                        int stateTick;
+                        std::string name;
+                        packet >> stateTick >> nbPlayers;
+
+                        while (nbPlayers > 0) {
+                            State state;
+                            packet >> name >> state;
+                            std::unordered_map<std::string, State> currentState = bufferOnReceipt.getCurrentState();
+                            std::unordered_map<std::string, State> pastState = bufferOnReceipt.getTState(-1);
+
+                            if (name == this->getName()) {
+                                this->bufferOnReceipt.updateNextPlayerState(player, state);
+                                semaphore.acquire();
+                                State currState = bufferOnReceipt.getLastState(player);
+                                semaphore.release();
+
+                                if (!this->getCompensations()[Compensation::RECONCILIATION]) {
+                                    this->player.position.setX(currState.getPosition().getX());
+                                    this->player.position.setY(currState.getPosition().getY());
+                                    this->player.radius = state.getRadius();
+                                }
+                                this->player.mode = state.getMode();
+                                this->player.isAttacking = state.getAttack();
+                                this->player.wpn.applyID(state.getWpn().getId());
+                                this->player.point = state.getPoint();
+                            }
+                            else {
+                                // Opponent position:
+                                this->bufferOnReceipt.updateNextPlayerState(opponents[name], state);
+                                opponents[name].position.setX(currentState[name].getPosition().getX());
+                                opponents[name].position.setY(currentState[name].getPosition().getY());
+                                opponents[name].radius = currentState[name].getRadius();
+                                opponents[name].mode = currentState[name].getMode();
+                                opponents[name].isAttacking = currentState[name].getAttack();
+                                opponents[name].wpn.applyID(currentState[name].getWpn().getId());
+                                opponents[name].point = currentState[name].getPoint();
+                            }
+                            nbPlayers--;
+                        }
+
+                        this->bufferOnReceipt.push(stateTick);
+                        packet >> lastServerTick;
+
+                        break;
+                    }
+
+                    case Pkt::DEATH         : {     // tick << killerName                                                           // send the signal to a specific player that the player is dead
+                        // TODO
+                        break;
+                    }
+
+                    case Pkt::KILL          : {     // tick << killedName                                                           // send the signal to the other player that one player is dead (+ who it was)
+                        // TODO
+                        break;
+                    }
+
+                    case Pkt::END_R         : {     // tick                                                                         // send the signal that the round is finished
+                        // TODO
+                        break;
+                    }
+
+                    default                 : {
+                        std::cout << "UNKNOWN PACKET! Type: " << type << std::endl;
+                        break;
+                    }
+                }
+
+                // TODO : delete the old swith
+                /*
+                switch (type) {
+                    case Pkt::ROUND_START: {
                         std::cout << "Client " << getName() << " received ROUND_START" << std::endl;
                         newRound = true;
                         // No break because round start has position afterwards (and therefor will execute Pkt::GLOBAL case)
@@ -392,6 +564,7 @@ int Client::receiveLoop() {
                     default:
                         std::cout << "UNKNOWN PACKET! Type: " << type << " for client " << player.name << std::endl;
                 }
+            */
             }
         }
     }

@@ -33,7 +33,9 @@ private:
 
     std::unordered_map<std::string, Player> clients;
 
-    int partyState;
+    int partyState; // TODO : delete me
+    int packetTypeToSend    = Pkt::READY_R;
+    int ackToSend;
 
     bool loop = true;
     bool newGame = false;

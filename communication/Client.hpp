@@ -63,6 +63,9 @@ private:
     bool newRound = false;
     bool endGame = false;
 
+    int packetTypeToSend = Pkt::READY_R;
+    int ackToSend = Pkt::READY_R;
+
 protected:
     sf::Clock clock;
     std::map<std::string, Player> opponents;
