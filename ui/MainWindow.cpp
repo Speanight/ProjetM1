@@ -27,6 +27,7 @@ MainWindow::~MainWindow() {
     ImGui::SFML::Shutdown();
     ImPlot::DestroyContext();
     ImGui::DestroyContext();
+    ImGui::SFML::Shutdown();
 }
 
 void MainWindow::addClient(ClientUI* client) {
@@ -109,7 +110,9 @@ void MainWindow::loop() {
     // check imgui OK
     IMGUI_CHECKVERSION();
     ImGui::CreateContext();
+    ImGui::GetCurrentContext();
     ImPlot::CreateContext();
+    ImPlot::GetCurrentContext();
     ImGui::StyleColorsDark();
 
     if (!ImGui::SFML::Init(window)) {

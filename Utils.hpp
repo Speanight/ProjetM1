@@ -88,4 +88,13 @@ namespace Screens {
     static constexpr short GAME = 2;
 }
 
+namespace Weapons {
+    // Types
+    static constexpr short TRIANGLE = 0;
+    static constexpr short ARC = 1;
+
+    // Specific weapons
+    static constexpr short SHIELD = 0;
+}
+
 #endif

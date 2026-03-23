@@ -15,7 +15,7 @@ std::unordered_map<std::string, State> Buffer::getCurrentState() {
     return currentState;
 }
 
-void Buffer::updateNextPlayerState(const Player& player, State state, bool oldMode) {
+void Buffer::updateNextPlayerState(const Player& player, State state) {
     nextState[player.name] = state;
 }
 

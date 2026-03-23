@@ -22,7 +22,8 @@ struct Player {
 
     // ====== WEAPON ======
     float radius;               // must be saved as radiant so degree * ~1.111111 = radiant
-    bool mode;                  // indicate if the weapon is in attack or defense mode (# true = atk, false = defense
+    std::vector<short> weapons = {1, Weapons::SHIELD};
+    short weapon = 0; // Index of weapons, points to which weapon is being used right now.
     Weapon wpn;
 
     // ====== ATTACK ======
@@ -52,7 +53,7 @@ public:
     // Functions
     std::unordered_map<std::string, State> getTState(int t);
     State getLastState(const Player& player);
-    void updateNextPlayerState(const Player& player, State state, bool oldMode = false);
+    void updateNextPlayerState(const Player& player, State state);
     void push(int clockState);
     void addClient(Player p);
     void addInputsToLastState(const Player& player, int timestamp, Input inputs);

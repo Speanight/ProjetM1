@@ -1,18 +1,16 @@
-//
-// Created by julie on 04/03/2026.
-//
+#ifndef WEAPON_HPP
+#define WEAPON_HPP
+
 #include <imgui.h>
 #include <imgui-SFML.h>
 #include <SFML/Graphics.hpp>
 #include <cmath>
 #include "../Utils.hpp"
-#ifndef WEAPON_HPP
-#define WEAPON_HPP
 
 class Weapon {
     private :
     // ===== FORM =====
-    int w_id;
+    short w_id;
 
     // ===== FORM =====
     float w_height;         // wpn size
@@ -28,7 +26,7 @@ class Weapon {
 public:
     // ===== CONSTRUCTORS =====
     //Weapon(float height = 16.f, float width = 24.f, float type = 0.f, float atk_spd = 0.1f, float rld=0.3f, float range = 10.f, float transform = 0.2f);
-    Weapon(int id = 0);
+    Weapon(int id = 1);
     Weapon(const Weapon& other);
 
     // ===== GETTERS =====
@@ -42,7 +40,7 @@ public:
     float getTransform() const;
 
     // ===== INTERNAL FUNCTION =====
-    void applyID(int id);
+    void applyID(short id);
 
 };
 #endif //WEAPON_HPP

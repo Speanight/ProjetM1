@@ -22,69 +22,7 @@ void drawPlayer(ImDrawList* draw_list, Player player, ImVec2 min, ImVec2 max) {
         IM_COL32(player.color.r, player.color.g, player.color.b, player.color.a)
     );
 
-    bool mode = player.mode;
-    float angle = player.radius; // radians
-    float distance = player_radius + 2.f * scale;
-
-
-    // ========= DRAW WEAPON =========
-    if (mode) {
-        ImVec2 dir = { cosf(angle), sinf(angle) };
-        float height = player.wpn.getHeight() * scale;
-        float width  = player.wpn.getWidth()  * scale;
-
-        // ======== ATTACK ANIMATION ========
-        float offset = 0;
-        if(player.timer_atk != -1) {
-            if(player.timer_atk <= player.wpn.getAttackSpeed()) {
-                offset = player.timer_atk / player.wpn.getAttackSpeed();
-            }
-            else if(player.timer_atk <= player.wpn.getAttackSpeed() + player.wpn.getReload()) {
-                offset = 1 - player.timer_atk / (player.wpn.getAttackSpeed()+ player.wpn.getReload());
-            }
-        }
-
-
-        ImVec2 bottom = {
-            pl_position.x + dir.x * (distance + (offset * player.wpn.getRange()) * scale),
-            pl_position.y + dir.y * (distance + (offset * player.wpn.getRange()) * scale)
-        };
-        ImVec2 top = {
-            pl_position.x + dir.x * (distance + (offset * player.wpn.getRange()) * scale + height),
-            pl_position.y + dir.y * (distance + (offset * player.wpn.getRange()) * scale + height)
-        };
-
-        ImVec2 perp = { -dir.y, dir.x };
-        ImVec2 left  = { bottom.x + perp.x * (width*0.5f), bottom.y + perp.y * (width*0.5f) };
-        ImVec2 right = { bottom.x - perp.x * (width*0.5f), bottom.y - perp.y * (width*0.5f) };
-
-        draw_list->AddTriangleFilled(
-            top,
-            left,
-            right,
-            IM_COL32(player.color.r, player.color.g, player.color.b, player.color.a)
-        );
-    }
-    else {
-        // ========= DEFENSE MODE =========
-        float arcWidth = 0.8f;
-        float a_min = angle - arcWidth;
-        float a_max = angle + arcWidth;
-
-        draw_list->PathArcTo(
-            pl_position,
-            distance + 1.f*scale,
-            a_min,
-            a_max,
-            24
-        );
-
-        draw_list->PathStroke(
-            IM_COL32(player.color.r, player.color.g, player.color.b, player.color.a),
-            false,
-            4.f * scale
-        );
-    }
+    drawWeapon(player, draw_list, pl_position, scale);
 
     // ========= POINT =========
     std::string points = std::to_string(player.point);
@@ -112,8 +50,73 @@ void drawPlayer(ImDrawList* draw_list, Player player, ImVec2 min, ImVec2 max) {
         IM_COL32(0, 0, 0, 255),
         points.c_str()
     );
+}
 
+void drawWeapon(Player player, ImDrawList* draw_list, ImVec2 pl_position, float scale) {
+    float player_radius = Const::PLAYER_SIZE * scale;
+    float distance = player_radius + 2.f * scale;
+    switch (player.wpn.getType()) {
+        case Weapons::TRIANGLE: {
+            ImVec2 dir = {cosf(player.radius), sinf(player.radius)};
+            float height = player.wpn.getHeight() * scale;
+            float width = player.wpn.getWidth() * scale;
 
+            // ======== ATTACK ANIMATION ========
+            float offset = 0;
+            if (player.timer_atk != -1) {
+                if (player.timer_atk <= player.wpn.getAttackSpeed()) {
+                    offset = player.timer_atk / player.wpn.getAttackSpeed();
+                } else if (player.timer_atk <= player.wpn.getAttackSpeed() + player.wpn.getReload()) {
+                    offset = 1 - player.timer_atk / (player.wpn.getAttackSpeed() + player.wpn.getReload());
+                }
+            }
+
+            ImVec2 bottom = {
+                    pl_position.x + dir.x * (distance + (offset * player.wpn.getRange()) * scale),
+                    pl_position.y + dir.y * (distance + (offset * player.wpn.getRange()) * scale)
+            };
+            ImVec2 top = {
+                    pl_position.x + dir.x * (distance + (offset * player.wpn.getRange()) * scale + height),
+                    pl_position.y + dir.y * (distance + (offset * player.wpn.getRange()) * scale + height)
+            };
+
+            ImVec2 perp = {-dir.y, dir.x};
+            ImVec2 left = {bottom.x + perp.x * (width * 0.5f), bottom.y + perp.y * (width * 0.5f)};
+            ImVec2 right = {bottom.x - perp.x * (width * 0.5f), bottom.y - perp.y * (width * 0.5f)};
+
+            draw_list->AddTriangleFilled(
+                    top,
+                    left,
+                    right,
+                    IM_COL32(player.color.r, player.color.g, player.color.b, player.color.a)
+            );
+            break;
+        }
+
+        case Weapons::ARC: {
+            float arcWidth = 0.8f;
+            float a_min = player.radius - arcWidth;
+            float a_max = player.radius + arcWidth;
+
+            draw_list->PathArcTo(
+                    pl_position,
+                    distance + 1.f*scale,
+                    a_min,
+                    a_max,
+                    24
+            );
+
+            draw_list->PathStroke(
+                    IM_COL32(player.color.r, player.color.g, player.color.b, player.color.a),
+                    false,
+                    4.f * scale
+            );
+            break;
+        }
+
+        default:
+            std::cout << "Unknown weapon type: " << player.wpn.getType() << std::endl;
+    }
 }
 
 Position resolveCollision(Position player, Position opponent) {
@@ -142,32 +145,23 @@ Position resolveCollision(Position player, Position opponent) {
 }
 
 short resolveAttacks(State attacker, State opponent) {
-    // ====== POINT GESTION ======
-    ImVec2 diff = {attacker.getPosition().getX() - opponent.getPosition().getX(), attacker.getPosition().getY() - opponent.getPosition().getY()};
-
-//    float distAB = std::sqrt(pow(diff.x, 2) + pow(diff.y, 2));
-
-    // max distance for the weapon to touch the enemy
-    float maxReach = PLAYER_SIZE * 2.f + attacker.getWpn().getHeight() + attacker.getWpn().getRange();
-
-//    if (distAB <= maxReach) {    // if players close enough for the weapon to touch
-    // weapon direction
+    if (attacker.getWpn().getId() == Weapons::SHIELD) {
+        return -1;
+    }
     ImVec2 dir = {std::cos(attacker.getRadius()), std::sin(attacker.getRadius())};
 
-    // distance between the player and the surface of the opponent
-    float attackReach = maxReach - PLAYER_SIZE;
+    // distance between the players weapon and the surface of the opponent
+    float attackReach = PLAYER_SIZE + attacker.getWpn().getHeight() + attacker.getWpn().getRange();
 
-    ImVec2 top = {attacker.getPosition().getX() + dir.x * attackReach, attacker.getPosition().getY() + dir.y * attackReach};
-    ImVec2 d2 = {opponent.getPosition().getX() - top.x, opponent.getPosition().getY() - top.y};
+    ImVec2 d2 = {opponent.getPosition().getX() - attacker.getPosition().getX() - dir.x * attackReach,
+                 opponent.getPosition().getY() - attacker.getPosition().getY() - dir.y * attackReach};
 
     float distTop = std::sqrt(pow(d2.x, 2) + pow(d2.y, 2));
 
-    std::cout << "dist. weapon: " << distTop << " <= " << PLAYER_SIZE << std::endl;
     if (distTop <= PLAYER_SIZE * (1+WEAPON_GRACE_PERCENT)) {        // if the weapon can enter the opponent perimeters, then it's a touch
         bool blocked = false;
 
-        if (!opponent.getMode()) {  // if the opponent have its defense activated
-
+        if (opponent.getWpn().getId() == Weapons::SHIELD) {
             // looking for the angle between the player and it's opponent
             float angleToAttacker = std::atan2(
                     attacker.getPosition().getY() - opponent.getPosition().getY(),
@@ -194,6 +188,5 @@ short resolveAttacks(State attacker, State opponent) {
 
         return blocked;
     }
-//    }
     return -1;
 }

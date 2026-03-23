@@ -9,6 +9,7 @@
 #include "../communication/Client.hpp"
 
 void drawPlayer(ImDrawList* draw_list, Player player, ImVec2 min, ImVec2 max);
+void drawWeapon(Player player, ImDrawList* draw_list, ImVec2 pl_position, float scale);
 Position resolveCollision(Position player, Position opponent);
 short resolveAttacks(State attacker, State opponent);
 

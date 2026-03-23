@@ -19,12 +19,12 @@ Client::Client(const sf::Clock clock, std::string name, short controller, sf::Co
     this->player.color = color;
     this->bufferOnReceipt.addClient(player);
     this->player.radius = std::numbers::pi/2; //put the element on top in radius
-    this->player.mode = true;
+    this->player.weapons = {1, 0};
     this->player.isAttacking = false;
     this->player.timer_atk = -1;
     this->controllerNumber = controller;
 
-    Weapon wpn (0);                         // ID of the default wpn
+    Weapon wpn (player.weapons[0]);                         // ID of the default wpn
     this->player.wpn = wpn;
 }
 
@@ -164,7 +164,7 @@ void Client::setController(short controller) {
  * "handleInput", from the object "Input", which will put the correct key/value into the correct
  * variable in the object Input.
  *
- * @param mode_enable (<optional> false by default) - Allows you to give the function last weapon mode value (attack/defense)
+ * @param mode_enable (<optional> false by default) - Allows you to give the function last weapon changeWpn value (attack/defense)
  * @param attack_enable (<optional> true by default) - Allows the user to attack (should be false if cooldown, switching weapon, ...)
  * @return - Returns an object Input with corresponding values according to keys pressed.
  */
@@ -200,7 +200,7 @@ Input Client::getInputs(bool mode_enable, bool attack_enable) {
                 }
             case Inputs::WPN_CHANGE:
                 if(value > 0.f && !mode_enable && this->player.timer_atk == -1) {
-                    input.setMode(true);
+                    input.setChangeWpn(true);
                 }
 
                 input.setModeEnable(value > 0.f);
@@ -263,7 +263,6 @@ int Client::update() {
         Input inputs = this->getInputs(mode_enable, attack_enable);
         mode_enable = inputs.getModeEnable();
         attack_enable = inputs.getAttackEnable();
-        inputs.setWpnID(this->player.wpn.getId());
 
         // Storing recent local positions to re-adjust if needed.
         if (player.status == Status::DONE) {
@@ -271,7 +270,7 @@ int Client::update() {
             if (inputs.getRotate() == -999) { // If user on controller and not moving stick:
                 inputs.setRotate(player.radius); // Get last radius pos.
             }
-            State state(clock.getElapsedTime().asMilliseconds(), getPlayer().position, inputs, radius, getPlayer().mode, getPlayer().isAttacking, getPlayer().wpn.getId());
+            State state(clock.getElapsedTime().asMilliseconds(), getPlayer().position, inputs, radius, getPlayer().isAttacking, getPlayer().wpn.getId());
             inputs.setId(lastInputId);
             inputsBuffer[lastInputId] = state;
             lastInputId++;
@@ -304,7 +303,7 @@ int Client::update() {
         else { // If not reconciliation, we empty inputsBuffer to avoid SIGSEGV/huge memory alloc.:
             inputsBuffer.clear();
         }
-        State state(lastUpdate, getPosition(), inputs, getRadius(), getPlayer().mode, getPlayer().isAttacking, getPlayer().wpn.getId());
+        State state(lastUpdate, getPosition(), inputs, getRadius(), getPlayer().isAttacking, getPlayer().wpn.getId());
         inputsBuffer[lastInputId] = state; // We add the last input as it may be used for controller players. (R-stick)
         semaphore.release();
 
@@ -427,8 +426,8 @@ int Client::receiveLoop() {
                                         this->player.position.setY(currState.getPosition().getY());
                                         this->player.radius = currState.getRadius();
                                     }
-                                    this->player.mode = state.getMode();
                                     this->player.isAttacking = state.getAttack();
+//                                    this->player.wpn = Weapon(state.getWpn().getId());
                                     this->player.wpn.applyID(state.getWpn().getId());
                                     this->player.point = state.getPoint();
                                 } else {
@@ -437,7 +436,6 @@ int Client::receiveLoop() {
                                     opponents[name].position.setX(currentState[name].getPosition().getX());
                                     opponents[name].position.setY(currentState[name].getPosition().getY());
                                     opponents[name].radius = currentState[name].getRadius();
-                                    opponents[name].mode = currentState[name].getMode();
                                     opponents[name].isAttacking = currentState[name].getAttack();
                                     opponents[name].wpn.applyID(currentState[name].getWpn().getId());
                                     opponents[name].point = currentState[name].getPoint();
@@ -485,7 +483,8 @@ Client::Client(const Client& other) : server(other.server), semaphore(1) {
     this->player.color = other.player.color;
     this->player.position = Position(other.player.position.getX(), other.player.position.getY());
     this->player.radius = other.player.radius;
-    this->player.mode = other.player.mode;
+    this->player.wpn = other.player.wpn;
+    this->player.weapons = other.player.weapons;
 }
 
 Client& Client::operator=(const Client& other) {
@@ -493,7 +492,8 @@ Client& Client::operator=(const Client& other) {
     this->clock = other.clock;
     this->player.name = other.player.name;
     this->player.radius = other.player.radius;
-    this->player.mode = other.player.mode;
+    this->player.wpn = other.player.wpn;
+    this->player.weapons = other.player.weapons;
 
     return *this;
 }

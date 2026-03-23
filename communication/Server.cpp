@@ -55,6 +55,8 @@ int Server::addClient(std::unordered_map<std::string, std::any> infos) {
     player.name = std::any_cast<std::string>(infos["name"]);
     player.color = std::any_cast<sf::Color>(infos["color"]);
 
+    player.weapons = {1, Weapons::SHIELD};
+
     clients[std::any_cast<std::string>(infos["name"])] = player;
     pings[std::any_cast<std::string>(infos["name"])] = 0;
     buffer.addClient(player);
@@ -136,9 +138,8 @@ int Server::receiveLoop() {
                                     + " | inputs: x=" + std::to_string(inputs.getMovementX()) +
                                     "; y=" + std::to_string(inputs.getMovementY()) +
                                     "; rotate = " + std::to_string(inputs.getRotate()) +
-                                    "; mode = " + std::to_string(inputs.getMode()) +
+                                    "; changeWpn = " + std::to_string(inputs.getChangeWpn()) +
                                     "; attack = " + std::to_string(inputs.getAttack()) +
-                                    "; wpn id = " + std::to_string(inputs.getWpnID()) +
                                     "; inputs #" + std::to_string(inputs.getId()),
                                     player.color
                             );
@@ -173,14 +174,16 @@ int Server::receiveLoop() {
                                 radius += std::fmod(inputs.getRotate() * Const::PLAYER_RADIUS_SPEED * dt, 2.f * std::numbers::pi);
                             }
 
-                            // ====== WEAPON MODE ======
-                            bool mode = playerState.getMode() != inputs.getMode();
-
                             // ====== ATTACK ======
                             bool attack = inputs.getAttack() or playerState.getAttack();
 
                             // ====== WEAPON DATAS CHANGE ======
-                            int wpn_id = playerState.getWpn().getId();
+                            if (inputs.getChangeWpn()) {
+                                player.weapon = (player.weapon + 1) % player.weapons.size();
+                                player.wpn = Weapon(player.weapons[player.weapon]);
+                            }
+
+                            int wpn_id = player.weapons[player.weapon];
                             currentState[name].setWpn(wpn_id);
 
                             // loops of all interaction between players
@@ -231,22 +234,21 @@ int Server::receiveLoop() {
                                     }
 
                                     if (interaction) {
-                                        State s = State(clock.getElapsedTime().asMilliseconds(), opponentPos, inputs, currentState[n].getRadius(),
-                                                        currentState[n].getMode(), currentState[n].getAttack(),
+                                        State s = State(clock.getElapsedTime().asMilliseconds(), opponentPos, inputs,
+                                                        currentState[n].getRadius(), currentState[n].getAttack(),
                                                         currentState[n].getWpn().getId(), currentState[n].getPoint());
                                         buffer.updateNextPlayerState(p, s);
                                     }
                                 }
 
                                 semaphore.acquire();
-                                State s = State(time, position, inputs, radius, mode, attack, wpn_id, playerState.getPoint());
+                                State s = State(time, position, inputs, radius, attack, wpn_id, playerState.getPoint());
                                 player.position = position;
                                 player.radius = radius;
-                                player.mode = mode;
                                 player.isAttacking = attack;
                                 player.wpn = Weapon(wpn_id);
                                 player.point = playerState.getPoint();
-                                buffer.updateNextPlayerState(player, s, playerState.getMode());
+                                buffer.updateNextPlayerState(player, s);
                                 semaphore.release();
                             }
                             break;
@@ -297,7 +299,7 @@ int Server::sendLoop() {
                         Position pos;
                         pos.setX((playerNb * Const::MAP_SIZE_X / (clients.size())) - (Const::MAP_SIZE_X / clients.size()) / 2);
                         pos.setY(Const::MAP_SIZE_Y / 2);
-                        Input inputs(buffer.getLastState(player).getInputs().end()->second.getId(), 0, 0, 0.f, false, false, 0);
+                        Input inputs(buffer.getLastState(player).getInputs().end()->second.getId(), 0, 0, 0.f, false, false);
                         State s = State(time, pos, inputs, std::numbers::pi/2, true);
                         buffer.updateNextPlayerState(player, s);
 
@@ -332,9 +334,9 @@ int Server::sendLoop() {
                 "Server >>> " + name
                 + " position: (" + std::to_string(player.position.getX())
                 + ", " + std::to_string(player.position.getY())
-                + ") ; radius : " + std::to_string(player.radius)
-                + " mode : " + std::to_string(player.mode)
-                + " attack : " + std::to_string(player.isAttacking)
+                + ") ; radius: " + std::to_string(player.radius)
+                + " Weapon: " + std::to_string(player.wpn.getId())
+                + " attack: " + std::to_string(player.isAttacking)
                 , sf::Color::White);
             semaphore.release();
         }

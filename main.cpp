@@ -12,10 +12,5 @@ int main() {
 
     MainWindow window(clock, true);
 
-//    // Print window
-//    sf::ContextSettings settings;
-//    settings.majorVersion = 3;
-//    settings.minorVersion = 3;
-
     return 0;
 }
