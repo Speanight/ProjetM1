@@ -522,9 +522,10 @@ int Client::receiveLoop() {
 
                         while (nbPlayers > 0) {
                             State state;
-                            packet >> name >> state;
-                            std::cout<<"recieve packet to change " << name <<std::endl;
-                            std::cout<< state.getPosition().getX() << " , " << state.getPosition().getY() << std::endl;
+                            if(player.name == "Client B") { //TODO : Delete me soon i am not usefull on the test
+                                packet >> name >> state;
+                                std::cout<< name << " " << state.getPosition().getX() << " , " << state.getPosition().getY() << std::endl;
+                            }
 
                             //TODO : make something to apply the state to yhe current players
                             // applyState(name, state);

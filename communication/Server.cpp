@@ -273,7 +273,7 @@ int Server::receiveLoop() {
                                   currentState[name].setWpn(wpn_id);
 
                                   // loops of all interaction between players
-                                  /*
+
                                   for (auto &[n, p]: clients) {
                                       if (name != n) {
                                           bool interaction = false;
@@ -411,7 +411,6 @@ int Server::receiveLoop() {
                                       semaphore.release();
 
                                   }
-                                  */
                                   semaphore.acquire();
                                   packetTypeToSend = Pkt::GLOBAL;
                                   semaphore.release();
