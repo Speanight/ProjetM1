@@ -4,6 +4,10 @@ MainWindow::MainWindow(sf::Clock clock) : server(clock) {
     thread = std::thread(&MainWindow::loop, this);
 }
 
+MainWindow::MainWindow(sf::Clock clock, int maxPlayers) : server(clock, maxPlayers) {
+    thread = std::thread(&MainWindow::loop, this);
+}
+
 MainWindow::~MainWindow() {
     if (thread.joinable()) {
         thread.join();
@@ -14,12 +18,21 @@ void MainWindow::addClient(ClientUI* client) {
     // clients.push_back(client);
     // client->update();
     // server.addClient(client->init());
+
+    clients.push_back(client);
+    client->init();
 }
 
 /**
  * Draw the main window
  */
 void MainWindow::draw() {
+    // PLAYER SELECTION MENU
+    // TODO: place to add the selection menu for players:
+    // - color
+    // - wpn
+    // - ready button
+
 
     ImGui::SetNextWindowPos(ImVec2(0, 0));
 
@@ -32,7 +45,7 @@ void MainWindow::draw() {
                  ImGuiWindowFlags_NoTitleBar
     );
 
-    ImGui::Columns(clients.size());
+    ImGui::Columns(this->server.getMaxPlayers());
 
      for (auto & client : clients) {
          client->drawGame();
@@ -75,11 +88,9 @@ void MainWindow::loop() {
     sf::Time delta;
 
     // thread of window
-    while (window.isOpen())
-    {
+    while (window.isOpen()) {
         delta = deltaClock.restart();
-        while (auto event = window.pollEvent())
-        {
+        while (auto event = window.pollEvent()) {
             ImGui::SFML::ProcessEvent(window, *event);
             if (event->is<sf::Event::Closed>())
                 window.close();
@@ -107,6 +118,7 @@ void MainWindow::loop() {
 
         ImGui::SFML::Render(window);
         window.display();
+
     }
 
     server.shutdown();
@@ -114,4 +126,5 @@ void MainWindow::loop() {
     ImGui::SFML::Shutdown();
     ImPlot::DestroyContext();
     ImGui::DestroyContext();
+
 }

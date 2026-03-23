@@ -11,6 +11,8 @@
 #include <X11/Xlib.h>
 
 int main() {
+    int maxPlayers = 2;
+
     XInitThreads(); // Needed for multi-threading.
     // Initializing objects
     sf::Clock clock;
@@ -23,7 +25,7 @@ int main() {
         }
     }
 
-    MainWindow window(clock);
+    MainWindow window(clock, maxPlayers);
 
     std::cout << "Tickrate changes " << Const::TICKRATE.count() << " times per second." << std::endl;
     // CONTROLLER MODE = 0 ; KEYBORD MODE = -1
@@ -88,12 +90,12 @@ int main() {
     // TODO : delete this part, the opponent is added with the READY_R reception
     // clientA->addOpponent(clientB->getName(), clientB->getColor());
     // clientB->addOpponent(clientA->getName(), clientA->getColor());
-    clientA->init();
-    clientB->init();
 
     std::cout << "Adding client to server..." << std::endl;
-    // window.addClient(clientA);
-    // window.addClient(clientB);
+    window.addClient(clientA);
+    window.addClient(clientB);
+
+
 
     // Print window
     sf::ContextSettings settings;

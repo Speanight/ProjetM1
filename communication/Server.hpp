@@ -46,6 +46,7 @@ private:
 
 public:
     Server(sf::Clock clock);
+    Server(sf::Clock clock, int maxPlayers);
     ~Server();
 
     // Getters / Setters
@@ -56,6 +57,8 @@ public:
     int sendLoop();
     int receiveLoop();
     int shutdown();
+
+    int getMaxPlayers();
 };
 
 

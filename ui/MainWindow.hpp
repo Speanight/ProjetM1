@@ -21,6 +21,7 @@ private:
 
 public:
     MainWindow(sf::Clock clock);
+    MainWindow(sf::Clock clock, int maxPlayers);
     ~MainWindow();
 
     void addClient(ClientUI* client);
@@ -28,6 +29,8 @@ public:
 
     void draw();
     void loop();
+
+    void createDefaultClients(int count, sf::Clock clock);
 
 };
 

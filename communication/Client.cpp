@@ -435,41 +435,73 @@ int Client::receiveLoop() {
                         break;
                     }
                     case Pkt::READY_R       : {
-                        // tick << nbPlayers << name << state ...
-                        std::cout << player.name << " receive READY_R" << std::endl;
+                        semaphore.acquire();
 
                         int tick;
                         int nbPlayers;
-                        std::string name;
 
-                        packet >> tick >> nbPlayers;
-
-                        while (nbPlayers > 0) {
-                            State state;
-                            std::string name;
-                            short r, g, b ,a;
-                            int wpn_id;
-                            packet >> name >> state >> r >> g >> b >> a >> wpn_id;
-                            // OPPONENT CREATION
-                            if (!opponents.contains(name)) {
-                                Player newOpponent;
-                                newOpponent.name = name;
-                                newOpponent.color = sf::Color(r,g,b,a);
-                                newOpponent.wpn.applyID(wpn_id);
-
-                                opponents[name] = newOpponent;
-                            }
-
-                            applyState(name, state);
+                        if (!(packet >> tick >> nbPlayers)) {
+                            std::cout << "[CLIENT " << player.name << "] ERROR reading header" << std::endl;
+                            semaphore.release();
+                            break;
                         }
 
+                        for (int i = 0; i < nbPlayers; i++) {
+                            std::string n;
+                            State s;
+                            int r, g, b, a;
+                            int wpn_id;
+
+                            if (!(packet >> n >> r >> g >> b >> a >> wpn_id >> s)) {
+                                std::cout << "[CLIENT " << player.name << "] ERROR reading player #" << i << std::endl;
+                                break;
+                            }
+
+                            // PLAYER LOCAL
+                            if (n == player.name) {
+                                // bufferOnReceipt.addClient(player);
+                                bufferOnReceipt.updateNextPlayerState(player, s);
+                                if (!this->getCompensations()[Compensation::RECONCILIATION]) {
+                                    this->player.position.setX(s.getPosition().getX());
+                                    this->player.position.setY(s.getPosition().getY());
+                                    this->player.radius = s.getRadius();
+                                }
+                                this->player.mode = s.getMode();
+                                this->player.isAttacking = s.getAttack();
+                                this->player.wpn.applyID(s.getWpn().getId());
+                                this->player.point = s.getPoint();
+                            }
+                            // OPPONENT
+                            else {
+                                if (!opponents.contains(n)) {
+                                    Player newOpponent;
+                                    newOpponent.name = n;
+                                    newOpponent.color = sf::Color(r, g, b, a);
+                                    newOpponent.wpn.applyID(wpn_id);
+
+                                    opponents[n] = newOpponent;
+
+                                    bufferOnReceipt.addClient(opponents[n]);
+
+                                    opponents[n].position.setX(s.getPosition().getX());
+                                    opponents[n].position.setY(s.getPosition().getY());
+                                    opponents[n].radius = s.getRadius();
+                                    opponents[n].mode = s.getMode();
+                                    opponents[n].isAttacking = s.getAttack();
+                                    opponents[n].wpn.applyID(s.getWpn().getId());
+                                    opponents[n].point = s.getPoint();
+                                }
+
+                                bufferOnReceipt.updateNextPlayerState(opponents[n], s);
+                            }
+                        }
                         bufferOnReceipt.push(tick);
 
+
                         // ===== ACK =====
-                        semaphore.acquire();
                         packetTypeToSend = Pkt::ACK;
                         ackToSend = Pkt::READY_R;
-                        std::cout << "PLAYER IS READY TO FIGHT" <<std::endl;
+
                         semaphore.release();
                         break;
                     }
@@ -486,10 +518,16 @@ int Client::receiveLoop() {
                         std::string name;
                         packet >> stateTick >> nbPlayers;
 
+                        // std::cout<<player.name << " receive a global pket " <<std::endl;
+
                         while (nbPlayers > 0) {
                             State state;
                             packet >> name >> state;
-                            applyState(name, state);
+                            std::cout<<"recieve packet to change " << name <<std::endl;
+                            std::cout<< state.getPosition().getX() << " , " << state.getPosition().getY() << std::endl;
+
+                            //TODO : make something to apply the state to yhe current players
+                            // applyState(name, state);
                             nbPlayers--;
                         }
 

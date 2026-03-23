@@ -42,8 +42,6 @@ State::State(int timestamp, Position position, float radius, bool mode, bool att
     this->attack = attack;
     this->wpn = Weapon(wpn_id);
     this->point = point;
-
-    this->killerName = "";
 }
 
 // GETTERS //
@@ -73,10 +71,6 @@ Weapon State::getWpn() {
 
 int State::getPoint() const {
     return point;
-}
-
-std::string State::getKillerName() const {
-    return killerName;
 }
 
 
@@ -116,10 +110,6 @@ void State::setWpn(int wpn_id) {
 
 void State::setPoint(int point) {
     this->point = point;
-}
-
-void State::setKillerName(std::string killerName) {
-    this->killerName = killerName;
 }
 
 
