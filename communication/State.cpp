@@ -4,41 +4,11 @@ State::State() {
     this->timestamp = 0;
 }
 
-// State::State(int timestamp, Position position, float radius, bool mode, Input inputs) {
-//     this->timestamp = timestamp;
-//     this->position = position;
-//     this->radius = radius;
-//     this->inputs[timestamp] = inputs;
-//     this->mode = mode;
-// }
-//
-// State::State(int timestamp, Position position, float radius, bool mode, bool attack, Input inputs) {
-//     this->timestamp = timestamp;
-//     this->position = position;
-//     this->radius = radius;
-//     this->inputs[timestamp] = inputs;
-//     this->mode = mode;
-//     this->attack = attack;
-// }
-
-State::State(int timestamp, Position position, float radius, bool mode, bool attack, int wpn_id, Input inputs) {
+State::State(int timestamp, Position position, Input inputs, float radius, bool attack, int wpn_id, int point) {
     this->timestamp = timestamp;
     this->position = position;
     this->radius = radius;
     this->inputs[timestamp] = inputs;
-    this->mode = mode;
-    this->attack = attack;
-    this->wpn = Weapon(wpn_id);
-
-    this->point = 0;
-}
-
-State::State(int timestamp, Position position, float radius, bool mode, bool attack, int wpn_id, int point, Input inputs) {
-    this->timestamp = timestamp;
-    this->position = position;
-    this->radius = radius;
-    this->inputs[timestamp] = inputs;
-    this->mode = mode;
     this->attack = attack;
     this->wpn = Weapon(wpn_id);
     this->point = point;
@@ -55,10 +25,6 @@ Position State::getPosition() {
 
 float State::getRadius() const {
      return radius;
-}
-
-bool State::getMode() const {
-    return mode;
 }
 
 bool State::getAttack() const {
@@ -91,10 +57,6 @@ void State::setPosition(Position position) {
 
 void State::setRadius(float radius) {
     this->radius = radius;
-}
-
-void State::setMode(bool mode) {
-    this->mode = mode;
 }
 
 void State::setAttack(bool attack) {
@@ -153,7 +115,6 @@ sf::Packet& operator<<(sf::Packet &packet, State state) {
     << state.getLastInputsId()
     << state.getPosition()
     << state.getRadius()
-    << state.getMode()
     << state.getAttack()
     << state.getWpn().getId()
     << state.getPoint()
@@ -172,7 +133,6 @@ sf::Packet& operator<<(sf::Packet &packet, State state) {
 sf::Packet& operator>>(sf::Packet &packet, State& state) {
     Position pos;
     float radius;
-    bool mode;
     bool attack;
     int wpnId;
     int size;
@@ -185,7 +145,6 @@ sf::Packet& operator>>(sf::Packet &packet, State& state) {
     >> lastInputsId
     >> pos
     >> radius
-    >> mode
     >> attack
     >> wpnId
     >> point
@@ -194,7 +153,6 @@ sf::Packet& operator>>(sf::Packet &packet, State& state) {
     state.setLastInputsId(lastInputsId);
     state.setPosition(pos);
     state.setRadius(radius);
-    state.setMode(mode);
     state.setAttack(attack);
     state.setWpn(wpnId);
     state.setPoint(point);

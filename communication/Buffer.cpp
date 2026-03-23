@@ -15,7 +15,7 @@ std::unordered_map<std::string, State> Buffer::getCurrentState() {
     return currentState;
 }
 
-void Buffer::updateNextPlayerState(const Player& player, State state, bool oldMode) {
+void Buffer::updateNextPlayerState(const Player& player, State state) {
     nextState[player.name] = state;
 }
 
@@ -86,6 +86,60 @@ std::unordered_map<std::string, State> Buffer::getTState(int t) {
     return {}; // Element not found in past states.
 }
 
+State Buffer::getStateAtTimestamp(Player player, int timestamp) {
+    // Find corresponding state:
+    State state;
+    bool found = false;
+
+    if (auto search = nextState.find(player.name); search != nextState.end()) {
+        if (nextState[player.name].getTimestamp() <= timestamp) {
+            state = nextState[player.name];
+            found = true;
+        }
+    }
+    if (!found and timestamp >= currentTick) {
+        state = currentState[player.name];
+        found = true;
+    }
+
+    if (!found) {
+        for (auto& n : pastStates) {
+            if (!found and state.getTimestamp() <= timestamp) {
+                found = true;
+                state = n[player.name];
+            }
+        }
+    }
+
+    if (!found) {
+        return {};
+    }
+
+    // Re-emulate world state until we get to the corresponding timestamp:
+    int stateTimestamp = state.getTimestamp();
+    int dt;
+    Position p;
+    p = state.getPosition();
+
+    if (player.name == "Client B") {
+        std::cout << "";
+    }
+
+    for (auto& [inputsTimestamp, Input] : state.getInputs()) {
+        dt =  std::min(inputsTimestamp, timestamp) - stateTimestamp;
+        p.move(Input.getMovementX(), Input.getMovementY(), dt);
+
+        stateTimestamp += dt;
+
+        if (stateTimestamp == timestamp) {
+            state.setPosition(p);
+            return state;
+        }
+    }
+
+    return state;
+}
+
 /**
  * @brief Returns the last state of a given player.
  *
@@ -95,8 +149,10 @@ std::unordered_map<std::string, State> Buffer::getTState(int t) {
  * @return corresponding state. Empty ({}) if none correspond.
  */
 State Buffer::getLastState(const Player& player) {
-    if (auto search = nextState.find(player.name); search != nextState.end()) {
-        return search->second;
+    if (!nextState.empty()) {
+        if (auto search = nextState.find(player.name); search != nextState.end()) {
+            return search->second;
+        }
     }
     if (auto search = currentState.find(player.name); search != currentState.end()) {
         return search->second;

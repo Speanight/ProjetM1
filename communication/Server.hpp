@@ -32,8 +32,8 @@ private:
     std::binary_semaphore semaphore;
 
     std::unordered_map<std::string, Player> clients;
+    std::unordered_map<std::string, int> pings;
 
-    int partyState; // TODO : delete me
     int packetTypeToSend    = Pkt::NONE;
     int ackToSend           = Pkt::NONE;
 

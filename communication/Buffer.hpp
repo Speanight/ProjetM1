@@ -13,6 +13,7 @@ struct Player {
     // ====== SERVER ======
     unsigned short port;        // NEVER MOOVE THIS [use to create the client on the server and must be here
     unsigned short status = Status::WAITING_FOR_ROUND_START;
+    unsigned int clockSync;
 
     // ====== BASIC ======
     std::string name;
@@ -21,12 +22,13 @@ struct Player {
 
     // ====== WEAPON ======
     float radius;               // must be saved as radiant so degree * ~1.111111 = radiant
-    bool mode;                  // indicate if the weapon is in attack or defense mode (# true = atk, false = defense
+    std::vector<short> weapons = {1, Weapons::SHIELD};
+    short weapon = 0; // Index of weapons, points to which weapon is being used right now.
     Weapon wpn;
 
     // ====== ATTACK ======
     bool isAttacking;           // indicate if the player is attacking or not
-    int timer_atk;              // timer that indicate where we are in the animation, -1 stand for no animation
+    int timer_atk = -1;         // timer that indicate where we are in the animation, -1 stand for no animation
     int point;
 };
 
@@ -51,10 +53,11 @@ public:
     // Functions
     std::unordered_map<std::string, State> getTState(int t);
     State getLastState(const Player& player);
-    void updateNextPlayerState(const Player& player, State state, bool oldMode = false);
+    void updateNextPlayerState(const Player& player, State state);
     void push(int clockState);
     void addClient(Player p);
     void addInputsToLastState(const Player& player, int timestamp, Input inputs);
+    State getStateAtTimestamp(Player player, int timestamp);
 };
 
 

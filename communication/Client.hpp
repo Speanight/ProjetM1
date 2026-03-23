@@ -28,13 +28,13 @@
 using namespace Const;
 
 struct QueuedPacket {
-    sf::Packet packet;
     sf::Time timestamp;
+    sf::Packet packet;
 };
 
 struct NetworkState {
-    int ping;
-    int packetLoss;
+    int ping[2] = {0,0};        // [0] = reception ping; [1] = sending ping
+    int packetLoss[2] = {0,0};  // [0] = reception packet loss; [1] = sending packet loss
 
     std::array<bool,3> compensations = {false, false, false};
 };
@@ -43,13 +43,12 @@ struct NetworkState {
 class Client {
 private:
     Player player;
-    std::deque<QueuedPacket> packets;
+    std::deque<QueuedPacket> queuedPackets; // [0] = received; [1] = sent
 
     std::binary_semaphore semaphore;
 
     sf::IpAddress server;
     sf::UdpSocket socket;
-//    std::unordered_map<int,sf::Keyboard::Key> keybinds;
     std::unordered_map<int, std::variant<sf::Keyboard::Key, sf::Joystick::Axis, int>> keybinds; // int = button ID.
     short controllerNumber = -1;
 
@@ -81,8 +80,6 @@ protected:
 
 public:
     Client(sf::Clock clock, std::string name, short controller = -1, sf::Color color = sf::Color::Red);
-    Client(sf::Clock clock, std::string name, short controller = -1, sf::Color color = sf::Color::Red, int wpn_id = 0);
-    // Client(sf::Clock clock, std::string name, sf::Color color = sf::Color::Red, float radius = 0);
     ~Client();
 
     // Copy constructors
@@ -92,8 +89,10 @@ public:
     // Getters / Setters
     Player getPlayer();
     std::string getName();
-    int getPacketLoss() const;
-    int getPing() const;
+    int getReceivingPacketLoss() const;
+    int getSendingPacketLoss() const;
+    int getReceivingPing() const;
+    int getSendingPing() const;
     sf::Color getColor();
     std::array<bool,3> getCompensations() const;
     bool getCompensationEnabled(int compensation);
@@ -102,12 +101,15 @@ public:
 
     Input getInputs(bool mode_enable=false, bool attack_enable=true);
 
-    void setPacketLoss(int packetLoss);
-    void setPing(int ping);
+    void setReceivingPacketLoss(int packetLoss);
+    void setSendingPacketLoss(int packetLoss);
+    void setReceivingPing(int ping);
+    void setSendingPing(int ping);
     void setKeybinds(std::unordered_map<int, std::variant<sf::Keyboard::Key, sf::Joystick::Axis, int>> keybinds);
     void setPosition(Position p);
     void setRadius(float radius);
     void setCompensations(std::array<bool,3> compensations);
+    void setController(short controller);
 
     // Functions
     std::unordered_map<std::string, std::any> init();
@@ -115,7 +117,7 @@ public:
     int update();
     int sendPacket(Input inputs);
     int receiveLoop();
-    std::optional<sf::Packet> getLatestPacket();
+    std::optional<sf::Packet> getLatestQueuedPacket();
 
     void applyState(std::string name, State state);
 

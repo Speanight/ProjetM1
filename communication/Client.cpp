@@ -9,44 +9,24 @@
  * Clients are being created by ClientUI (which extends this class). A client will have all the information needed
  * for the server-client synchronisation, such as packet loss, ping, name (identification), ...
  *
- * @param clock Clock to synchronise with the server. Needed to sync packets!
+ * @param clock Clock to synchronise with the server. Needed to sync queuedPackets!
  * @param name Name given to the client. Can be any string, must be unique!
  * @param color Color given to the client in the Server's console.
  */
 Client::Client(const sf::Clock clock, std::string name, short controller, sf::Color color) : server(SERVER_IP_BYTE1, SERVER_IP_BYTE2, SERVER_IP_BYTE3, SERVER_IP_BYTE4), semaphore(1) {
-    this->network.packetLoss = 0;
     this->clock = clock;
-    this->network.ping = 0;
     this->player.name = std::move(name);
     this->player.color = color;
     this->bufferOnReceipt.addClient(player);
     this->player.radius = std::numbers::pi/2; //put the element on top in radius
-    this->player.mode = true;
+    this->player.weapons = {1, 0};
     this->player.isAttacking = false;
     this->player.timer_atk = -1;
     this->controllerNumber = controller;
 
-    Weapon wpn (0);                         // ID of the default wpn
+    Weapon wpn (player.weapons[0]);                         // ID of the default wpn
     this->player.wpn = wpn;
 }
-
-Client::Client(const sf::Clock clock, std::string name, short controller, sf::Color color, int wpn_id) : server(SERVER_IP_BYTE1, SERVER_IP_BYTE2, SERVER_IP_BYTE3, SERVER_IP_BYTE4), semaphore(1) {
-    this->network.packetLoss = 0;
-    this->clock = clock;
-    this->network.ping = 0;
-    this->player.name = std::move(name);
-    this->player.color = color;
-    this->bufferOnReceipt.addClient(player);
-    this->player.radius = std::numbers::pi/2; //put the element on top in radius
-    this->player.mode = true;
-    this->player.isAttacking = false;
-    this->player.timer_atk = -1;
-    this->controllerNumber = controller;
-
-    Weapon wpn (wpn_id);                         // ID of the default wpn
-    this->player.wpn = wpn;
-}
-
 
 Client::~Client() {
     socket.unbind();
@@ -97,12 +77,20 @@ std::string Client::getName() {
     return player.name;
 }
 
-int Client::getPacketLoss() const {
-    return network.packetLoss;
+int Client::getReceivingPacketLoss() const {
+    return network.packetLoss[0];
 }
 
-int Client::getPing() const {
-    return network.ping;
+int Client::getSendingPacketLoss() const {
+    return network.packetLoss[1];
+}
+
+int Client::getReceivingPing() const {
+    return network.ping[0];
+}
+
+int Client::getSendingPing() const {
+    return network.ping[1];
 }
 
 float Client::getRadius() const {
@@ -133,15 +121,27 @@ void Client::setRadius(float radius) {
     this->player.radius = std::fmod(radius, 2.f * std::numbers::pi);
 }
 
-void Client::setPacketLoss(int packetLoss) {
+void Client::setReceivingPacketLoss(int packetLoss) {
     if (packetLoss >= 0 and packetLoss <= 100) {
-        this->network.packetLoss = packetLoss;
+        this->network.packetLoss[0] = packetLoss;
     }
 }
 
-void Client::setPing(int ping) {
+void Client::setSendingPacketLoss(int packetLoss) {
+    if (packetLoss >= 0 and packetLoss <= 100) {
+        this->network.packetLoss[1] = packetLoss;
+    }
+}
+
+void Client::setReceivingPing(int ping) {
     if (ping >= 0) {
-        this->network.ping = ping;
+        this->network.ping[0] = ping;
+    }
+}
+
+void Client::setSendingPing(int ping) {
+    if (ping >= 0) {
+        this->network.ping[1] = ping;
     }
 }
 
@@ -153,19 +153,25 @@ void Client::setKeybinds(std::unordered_map<int, std::variant<sf::Keyboard::Key,
     this->keybinds = std::move(keybinds);
 }
 
+void Client::setController(short controller) {
+    this->controllerNumber = controller;
+}
+
+
 /**
  * Function that recovers all the users inputs. This uses user's defined keybinds and iterates
  * over each of them to construct an object called "Input". This function calls a function named
  * "handleInput", from the object "Input", which will put the correct key/value into the correct
  * variable in the object Input.
  *
- * @param mode_enable (<optional> false by default) - Allows you to give the function last weapon mode value (attack/defense)
+ * @param mode_enable (<optional> false by default) - Allows you to give the function last weapon changeWpn value (attack/defense)
  * @param attack_enable (<optional> true by default) - Allows the user to attack (should be false if cooldown, switching weapon, ...)
  * @return - Returns an object Input with corresponding values according to keys pressed.
  */
 Input Client::getInputs(bool mode_enable, bool attack_enable) {
     Input input;
     float value;
+    ImVec2 weaponAngle = {};
 
     for (const std::pair<const int, std::variant<sf::Keyboard::Key, sf::Joystick::Axis, int>> & i : keybinds) {
         // If keybind is on keyboard:
@@ -194,22 +200,46 @@ Input Client::getInputs(bool mode_enable, bool attack_enable) {
                 }
             case Inputs::WPN_CHANGE:
                 if(value > 0.f && !mode_enable && this->player.timer_atk == -1) {
-                    input.setMode(true);
+                    input.setChangeWpn(true);
                 }
 
                 input.setModeEnable(value > 0.f);
                 break;
             case Inputs::ATTACK:
-                if(value > 0.f && !attack_enable && this->player.timer_atk == -1 && this->player.mode == true) {
+                if(value > 0.f && !attack_enable && this->player.timer_atk == -1) {
                     input.setAttack(true);
                 }
                 input.setAttackEnable(value > 0.f);
                 break;
+            case Inputs::WPN_ANGLE_NS:
+                input.setOnController(true);
+                weaponAngle.x = value;
+
+            case Inputs::WPN_ANGLE_WE:
+                input.setOnController(true);
+                weaponAngle.y = value;
+
             default:
                 input.handleInput(i.first, value);
                 break;
         }
     }
+
+    // Check if weapon angle is adjusted through controller:
+    if (input.getOnController()) {
+        if (fabs(weaponAngle.x) < Const::CONTROLLER_DEADZONE and fabs(weaponAngle.y) < Const::CONTROLLER_DEADZONE) {
+            input.setRotate(-999);
+        }
+        else {
+            float angle = atan2(weaponAngle.y, -weaponAngle.x);
+            angle -= M_PI/2; // Adjust for in-game angle.
+            if (angle < 0) {
+                angle += 2*M_PI;
+            }
+            input.setRotate(angle);
+        }
+    }
+
     return input;
 }
 
@@ -233,18 +263,28 @@ int Client::update() {
         Input inputs = this->getInputs(mode_enable, attack_enable);
         mode_enable = inputs.getModeEnable();
         attack_enable = inputs.getAttackEnable();
-        inputs.setWpnID(this->player.wpn.getId());
 
         // Storing recent local positions to re-adjust if needed.
-        State state(clock.getElapsedTime().asMilliseconds(), getPlayer().position, getRadius(), getPlayer().mode, getPlayer().isAttacking, getPlayer().wpn.getId(), inputs);
-        inputs.setId(lastInputId);
-        inputsBuffer[lastInputId] = state;
-        lastInputId++;
+        if (player.status == Status::DONE) {
+            float radius = getRadius();
+            if (inputs.getRotate() == -999) { // If user on controller and not moving stick:
+                inputs.setRotate(player.radius); // Get last radius pos.
+            }
+            State state(clock.getElapsedTime().asMilliseconds(), getPlayer().position, inputs, radius, getPlayer().isAttacking, getPlayer().wpn.getId());
+            inputs.setId(lastInputId);
+            inputsBuffer[lastInputId] = state;
+            lastInputId++;
+        }
+        else {
+            lastInputId = 0;
+            inputsBuffer.clear();
+        }
 
         // ==========| PACKET HANDLER |========== //
         // Verifying if we should drop packet (packet loss %):
         int packetLossChance = std::experimental::randint(1, 100);
-        if (packetLossChance > network.packetLoss) {
+        if (packetLossChance > network.packetLoss[1]) {
+            // Add latest inputs to queue (for ping simulation)
             sendPacket(inputs);
         }
 
@@ -260,6 +300,11 @@ int Client::update() {
         if (getCompensationEnabled(Compensation::RECONCILIATION)) {
             compensationReconciliation();
         }
+        else { // If not reconciliation, we empty inputsBuffer to avoid SIGSEGV/huge memory alloc.:
+            inputsBuffer.clear();
+        }
+        State state(lastUpdate, getPosition(), inputs, getRadius(), getPlayer().isAttacking, getPlayer().wpn.getId());
+        inputsBuffer[lastInputId] = state; // We add the last input as it may be used for controller players. (R-stick)
         semaphore.release();
 
         lastUpdate = clock.getElapsedTime().asMilliseconds();
@@ -287,7 +332,7 @@ int Client::update() {
             }
         }
         before = lastUpdate;
-        sf::sleep(sf::Time()); // Shortest sleep possible (as update loop runs as fast as possible)
+        sf::sleep(sf::milliseconds(5)); // Small sleep to make sure everyone send same amount of inputs.
     }
 
     return Err::ERR_NONE;
@@ -363,36 +408,43 @@ int Client::sendPacket(Input inputs) {
             break;
         }
     }
-    packets.push_back(pkt); // Adds the packet to the array of packets.
-    auto packetToSend = getLatestPacket();
+    queuedPackets.push_back(pkt); // Adds the packet to the array of packets.
+    auto packetToSend = getLatestQueuedPacket();
     if (packetToSend.has_value()) {
         socket.send(packetToSend.value(), server, COMM_PORT_SERVER);
     }
-
     /*
-        if (newRound) {
-            sf::Packet packet;
-            packet << Pkt::ACK << Pkt::ROUND_START;
-
-            socket.send(packet, server, COMM_PORT_SERVER);
-
-            newRound = false;
+    sf::Packet preparedPacket;
+    switch (player.status) {
+        case Status::WAITING_FOR_ROUND_START: {
+            preparedPacket << Pkt::ACK << Pkt::ROUND_START << clock.getElapsedTime().asMilliseconds();
+            break;
         }
 
-        QueuedPacket pkt;
-        pkt.timestamp = clock.getElapsedTime();
-
-        pkt.packet << Pkt::INPUTS << pkt.timestamp.asMilliseconds() << inputs;
-        packets.push_back(pkt); // Adds the packet to the array of packets.
-
-        // If the packet isn't lost (editable through packet loss % slider):
-        auto packet = getLatestPacket(); // Get latest packet that meets ping criteria.
-
-        // Check that packet does exist:
-        if (packet.has_value()) {
-            socket.send(packet.value(), server, COMM_PORT_SERVER);
+        // Client sent waiting for round start and received answer. Waiting for other clients:
+        case Status::READY_TO_START: {
+            preparedPacket << Pkt::ACK << Pkt::ACK << clock.getElapsedTime().asMilliseconds(); // Waiting...
+            break;
         }
-        */
+
+        // Default behavior: game is playing.
+        case Status::DONE: {
+            preparedPacket << Pkt::INPUTS << clock.getElapsedTime().asMilliseconds() << inputs;
+            break;
+        }
+    }
+
+    QueuedPacket pkt;
+    pkt.timestamp = clock.getElapsedTime();
+    pkt.packet = preparedPacket;
+    queuedPackets.push_back(pkt);
+
+    auto packet = getLatestQueuedPacket();
+
+    if (packet.has_value()) {
+        socket.send(packet.value(), server, COMM_PORT_SERVER);
+    }
+    */
 
     return Err::ERR_NONE;
 }
@@ -409,200 +461,222 @@ int Client::receiveLoop() {
         packet.clear();
         sf::sleep(sf::Time()); // "empty" sleep: required for loops.
         if (socket.receive(packet, sender, port) == sf::Socket::Status::Done) {
-            if (port == COMM_PORT_SERVER) {
-                packet >> type;
-                switch (type) {
-                    case Pkt::SHUTDOWN      : {     // None                                                                         // indicate to the clients to shut down themselve
-                        std::cout << "Client " << player.name << " received shutdown packet!" << std::endl;
-                        loop = false;
-                        break;
-                    }
-                    case Pkt::ACK           : {     // Pkt << tick                                                                  // make an acknoledge
-                        packet >> typeAck;
-                        switch(typeAck) {
-                            case Pkt::NEW_PLAYER    : { // tick                                                                     // acknoledge the client that the server know he exist and have datas
-                                if(created)break;
-                                created = true;
-                                // std::cout << "Player created ! "<< std::endl;
-                                packetTypeToSend = Pkt::WAIT_START_R;
-                                break;
-                            }
-                            default                 : {
-                                std::cout << "Unrecognized acknoledge packet received in client section, please identify yourself " << typeAck << std::endl;
-                                break;
-                            }
-                        }
-                        break;
-                    }
-                    case Pkt::READY_R       : {
-                        semaphore.acquire();
-
-                        int tick;
-                        int nbPlayers;
-
-                        if (!(packet >> tick >> nbPlayers)) {
-                            std::cout << "[CLIENT " << player.name << "] ERROR reading header" << std::endl;
-                            semaphore.release();
+            int packetLossChance = std::experimental::randint(1, 100);
+            // Only executes if packet loss % is respected (randomly generated number)
+            if (packetLossChance > network.packetLoss[0]) {
+                if (port == COMM_PORT_SERVER) {
+                    packet >> type;
+                    switch (type) {
+                        case Pkt::SHUTDOWN      : {     // None                                                                         // indicate to the clients to shut down themselve
+                            std::cout << "Client " << player.name << " received shutdown packet!" << std::endl;
+                            loop = false;
                             break;
                         }
+                        case Pkt::ACK           : {     // Pkt << tick                                                                  // make an acknoledge
+                            packet >> typeAck;
+                            switch(typeAck) {
+                                case Pkt::NEW_PLAYER    : { // tick                                                                     // acknoledge the client that the server know he exist and have datas
+                                    if(created)break;
+                                    created = true;
+                                    // std::cout << "Player created ! "<< std::endl;
+                                    packetTypeToSend = Pkt::WAIT_START_R;
+                                    break;
+                                }
+                                default                 : {
+                                    std::cout << "Unrecognized acknoledge packet received in client section, please identify yourself " << typeAck << std::endl;
+                                    break;
+                                }
+                            }
+                            break;
+                        }
+                        case Pkt::READY_R       : {
+                            semaphore.acquire();
 
-                        for (int i = 0; i < nbPlayers; i++) {
-                            std::string n;
-                            State s;
-                            int r, g, b, a;
-                            int wpn_id;
+                            int tick;
+                            int nbPlayers;
 
-                            if (!(packet >> n >> r >> g >> b >> a >> wpn_id >> s)) {
-                                std::cout << "[CLIENT " << player.name << "] ERROR reading player #" << i << std::endl;
+                            if (!(packet >> tick >> nbPlayers)) {
+                                std::cout << "[CLIENT " << player.name << "] ERROR reading header" << std::endl;
+                                semaphore.release();
                                 break;
                             }
 
-                            // PLAYER LOCAL
-                            if (n == player.name) {
-                                // bufferOnReceipt.addClient(player);
-                                bufferOnReceipt.updateNextPlayerState(player, s);
-                                if (!this->getCompensations()[Compensation::RECONCILIATION]) {
-                                    this->player.position.setX(s.getPosition().getX());
-                                    this->player.position.setY(s.getPosition().getY());
-                                    this->player.radius = s.getRadius();
+                            for (int i = 0; i < nbPlayers; i++) {
+                                std::string n;
+                                State s;
+                                int r, g, b, a;
+                                int wpn_id;
+
+                                if (!(packet >> n >> r >> g >> b >> a >> wpn_id >> s)) {
+                                    std::cout << "[CLIENT " << player.name << "] ERROR reading player #" << i << std::endl;
+                                    break;
                                 }
-                                this->player.mode = s.getMode();
-                                this->player.isAttacking = s.getAttack();
-                                this->player.wpn.applyID(s.getWpn().getId());
-                                this->player.point = s.getPoint();
-                            }
-                            // OPPONENT
-                            else {
-                                if (!opponents.contains(n)) {
-                                    Player newOpponent;
-                                    newOpponent.name = n;
-                                    newOpponent.color = sf::Color(r, g, b, a);
-                                    newOpponent.wpn.applyID(wpn_id);
 
-                                    opponents[n] = newOpponent;
+                                // PLAYER LOCAL
+                                if (n == player.name) {
+                                    bufferOnReceipt.updateNextPlayerState(player, s);
+                                    if (!this->getCompensations()[Compensation::RECONCILIATION]) {
+                                        this->player.position.setX(s.getPosition().getX());
+                                        this->player.position.setY(s.getPosition().getY());
+                                        this->player.radius = s.getRadius();
+                                    }
+                                    this->player.isAttacking = s.getAttack();
+                                    this->player.wpn.applyID(s.getWpn().getId());
+                                    this->player.point = s.getPoint();
+                                }
+                                // OPPONENT
+                                else {
+                                    if (!opponents.contains(n)) {
+                                        Player newOpponent;
+                                        newOpponent.name = n;
+                                        newOpponent.color = sf::Color(r, g, b, a);
+                                        newOpponent.wpn.applyID(wpn_id);
 
-                                    bufferOnReceipt.addClient(opponents[n]);
+                                        opponents[n] = newOpponent;
+
+                                        bufferOnReceipt.addClient(opponents[n]);
+                                    }
 
                                     opponents[n].position.setX(s.getPosition().getX());
                                     opponents[n].position.setY(s.getPosition().getY());
                                     opponents[n].radius = s.getRadius();
-                                    opponents[n].mode = s.getMode();
                                     opponents[n].isAttacking = s.getAttack();
                                     opponents[n].wpn.applyID(s.getWpn().getId());
                                     opponents[n].point = s.getPoint();
+
+                                    bufferOnReceipt.updateNextPlayerState(opponents[n], s);
+                                }
+                            }
+                            bufferOnReceipt.push(tick);
+
+
+                            // ===== ACK =====
+                            packetTypeToSend = Pkt::ACK;
+                            ackToSend = Pkt::READY_R;
+
+                            semaphore.release();
+                            break;
+                        }
+                        case Pkt::START_R       : {     // tick << amtPlayer                                                            // send the signal so start the fight to the players
+                            std::cout << "Client " << getName() << " received ROUND_START" << std::endl;
+                            semaphore.acquire();
+                            packetTypeToSend = Pkt::INPUTS;
+                            semaphore.release();
+                            break;
+                        }
+                        case Pkt::GLOBAL        : {     // tick << amtPlayers << client.name << client.position << [...]                // send the position and the information about the players and it's opponent during the game
+                            int nbPlayers;
+                            int stateTick;
+                            std::string name;
+                            packet >> stateTick >> nbPlayers;
+
+                            // std::cout<<player.name << " receive a global pket " <<std::endl;
+
+                            while (nbPlayers > 0) {
+                                State state;
+                                packet >> name >> state;
+
+                                if (name == getName()) {
+                                    bufferOnReceipt.updateNextPlayerState(player, state);
+                                    if (!this->getCompensations()[Compensation::RECONCILIATION]) {
+                                        this->player.position.setX(state.getPosition().getX());
+                                        this->player.position.setY(state.getPosition().getY());
+                                        this->player.radius = state.getRadius();
+                                    }
+                                    this->player.isAttacking = state.getAttack();
+                                    this->player.wpn.applyID(state.getWpn().getId());
+                                    this->player.point = state.getPoint();
+                                }
+                                else {
+                                    opponents[name].position.setX(state.getPosition().getX());
+                                    opponents[name].position.setY(state.getPosition().getY());
+                                    opponents[name].radius = state.getRadius();
+                                    opponents[name].isAttacking = state.getAttack();
+                                    opponents[name].wpn.applyID(state.getWpn().getId());
+                                    opponents[name].point = state.getPoint();
+
+                                    bufferOnReceipt.updateNextPlayerState(opponents[name], state);
                                 }
 
-                                bufferOnReceipt.updateNextPlayerState(opponents[n], s);
-                            }
-                        }
-                        bufferOnReceipt.push(tick);
-
-
-                        // ===== ACK =====
-                        packetTypeToSend = Pkt::ACK;
-                        ackToSend = Pkt::READY_R;
-
-                        semaphore.release();
-                        break;
-                    }
-                    case Pkt::START_R       : {     // tick << amtPlayer                                                            // send the signal so start the fight to the players
-                        std::cout << "Client " << getName() << " received ROUND_START" << std::endl;
-                        semaphore.acquire();
-                        packetTypeToSend = Pkt::INPUTS;
-                        semaphore.release();
-                        break;
-                    }
-                    case Pkt::GLOBAL        : {     // tick << amtPlayers << client.name << client.position << [...]                // send the position and the information about the players and it's opponent during the game
-                        int nbPlayers;
-                        int stateTick;
-                        std::string name;
-                        packet >> stateTick >> nbPlayers;
-
-                        // std::cout<<player.name << " receive a global pket " <<std::endl;
-
-                        while (nbPlayers > 0) {
-                            State state;
-                            if(player.name == "Client B") { //TODO : Delete me soon i am not usefull on the test
-                                packet >> name >> state;
-                                std::cout<< name << " " << state.getPosition().getX() << " , " << state.getPosition().getY() << std::endl;
+                                //TODO : make something to apply the state to yhe current players
+                                // applyState(name, state);
+                                nbPlayers--;
                             }
 
-                            //TODO : make something to apply the state to yhe current players
-                            // applyState(name, state);
-                            nbPlayers--;
+                            this->bufferOnReceipt.push(stateTick);
+                            packet >> lastServerTick;
+
+                            break;
                         }
-
-                        this->bufferOnReceipt.push(stateTick);
-                        packet >> lastServerTick;
-
-                        break;
-                    }
-                    case Pkt::DEATH         : {     // tick << killerName                                                           // send the signal to a specific player that the player is dead
-                        // TODO
-                        break;
-                    }
-                    case Pkt::END_R         : {     // tick                                                                         // send the signal that the round is finished
-                        // TODO
-                        break;
-                    }
-                    default                 : {
-                        std::cout << "UNKNOWN PACKET RECEIVE CLIENT! Type: " << type << std::endl;
-                        break;
+                        case Pkt::DEATH         : {     // tick << killerName                                                           // send the signal to a specific player that the player is dead
+                            // TODO
+                            break;
+                        }
+                        case Pkt::END_R         : {     // tick                                                                         // send the signal that the round is finished
+                            // TODO
+                            break;
+                        }
+                        default                 : {
+                            std::cout << "UNKNOWN PACKET RECEIVE CLIENT! Type: " << type << std::endl;
+                            break;
+                        }
                     }
                 }
 
                 // TODO : delete the old switch
                 /*
                 switch (type) {
+                    case Pkt::ACK:
+                        break;
                     case Pkt::ROUND_START: {
+                        player.status = Status::READY_TO_START;
                         std::cout << "Client " << getName() << " received ROUND_START" << std::endl;
                         newRound = true;
                         // No break because round start has position afterwards (and therefor will execute Pkt::GLOBAL case)
                     }
                     case Pkt::GLOBAL: {
+                        player.status = Status::DONE;
                         int nbPlayers;
                         int stateTick;
                         std::string name;
                         packet >> stateTick >> nbPlayers;
 
-                        while (nbPlayers > 0) {
-                            State state;
-                            packet >> name >> state;
-                            std::unordered_map<std::string, State> currentState = bufferOnReceipt.getCurrentState();
-                            std::unordered_map<std::string, State> pastState = bufferOnReceipt.getTState(-1);
+                            while (nbPlayers > 0) {
+                                State state;
+                                packet >> name >> state;
+                                std::unordered_map<std::string, State> currentState = bufferOnReceipt.getCurrentState();
+                                std::unordered_map<std::string, State> pastState = bufferOnReceipt.getTState(-1);
 
-                            if (name == this->getName()) {
-                                this->bufferOnReceipt.updateNextPlayerState(player, state);
-                                semaphore.acquire();
-                                State currState = bufferOnReceipt.getLastState(player);
-                                semaphore.release();
+                                if (name == this->getName()) {
+                                    this->bufferOnReceipt.updateNextPlayerState(player, state);
+                                    semaphore.acquire();
+                                    State currState = bufferOnReceipt.getLastState(player);
+                                    semaphore.release();
 
-                                if (!this->getCompensations()[Compensation::RECONCILIATION]) {
-                                    this->player.position.setX(currState.getPosition().getX());
-                                    this->player.position.setY(currState.getPosition().getY());
-                                    this->player.radius = state.getRadius();
+                                    if (!this->getCompensations()[Compensation::RECONCILIATION]) {
+                                        this->player.position.setX(currState.getPosition().getX());
+                                        this->player.position.setY(currState.getPosition().getY());
+                                        this->player.radius = currState.getRadius();
+                                    }
+                                    this->player.isAttacking = state.getAttack();
+//                                    this->player.wpn = Weapon(state.getWpn().getId());
+                                    this->player.wpn.applyID(state.getWpn().getId());
+                                    this->player.point = state.getPoint();
+                                } else {
+                                    // Opponent position:
+                                    this->bufferOnReceipt.updateNextPlayerState(opponents[name], state);
+                                    opponents[name].position.setX(currentState[name].getPosition().getX());
+                                    opponents[name].position.setY(currentState[name].getPosition().getY());
+                                    opponents[name].radius = currentState[name].getRadius();
+                                    opponents[name].isAttacking = currentState[name].getAttack();
+                                    opponents[name].wpn.applyID(currentState[name].getWpn().getId());
+                                    opponents[name].point = currentState[name].getPoint();
                                 }
-                                this->player.mode = state.getMode();
-                                this->player.isAttacking = state.getAttack();
-                                this->player.wpn.applyID(state.getWpn().getId());
-                                this->player.point = state.getPoint();
+                                nbPlayers--;
                             }
-                            else {
-                                // Opponent position:
-                                this->bufferOnReceipt.updateNextPlayerState(opponents[name], state);
-                                opponents[name].position.setX(currentState[name].getPosition().getX());
-                                opponents[name].position.setY(currentState[name].getPosition().getY());
-                                opponents[name].radius = currentState[name].getRadius();
-                                opponents[name].mode = currentState[name].getMode();
-                                opponents[name].isAttacking = currentState[name].getAttack();
-                                opponents[name].wpn.applyID(currentState[name].getWpn().getId());
-                                opponents[name].point = currentState[name].getPoint();
-                            }
-                            nbPlayers--;
-                        }
 
-                        this->bufferOnReceipt.push(stateTick);
-                        packet >> lastServerTick;
+                            this->bufferOnReceipt.push(stateTick);
+                            packet >> lastServerTick;
 
                         break;
                     }
@@ -619,8 +693,9 @@ int Client::receiveLoop() {
 
                     // TODO : [delete me while previous todo done] new packet
 
-                    default:
-                        std::cout << "UNKNOWN PACKET! Type: " << type << " for client " << player.name << std::endl;
+                        default:
+                            std::cout << "UNKNOWN PACKET! Type: " << type << " for client " << player.name << std::endl;
+                    }
                 }
             */
             }
@@ -646,7 +721,6 @@ void Client::applyState(std::string name, State state){
             this->player.position.setY(currState.getPosition().getY());
             this->player.radius = state.getRadius();
         }
-        this->player.mode = state.getMode();
         this->player.isAttacking = state.getAttack();
         this->player.wpn.applyID(state.getWpn().getId());
         this->player.point = state.getPoint();
@@ -657,7 +731,6 @@ void Client::applyState(std::string name, State state){
         opponents[name].position.setX(currentState[name].getPosition().getX());
         opponents[name].position.setY(currentState[name].getPosition().getY());
         opponents[name].radius = currentState[name].getRadius();
-        opponents[name].mode = currentState[name].getMode();
         opponents[name].isAttacking = currentState[name].getAttack();
         opponents[name].wpn.applyID(currentState[name].getWpn().getId());
         opponents[name].point = currentState[name].getPoint();
@@ -674,7 +747,8 @@ Client::Client(const Client& other) : server(other.server), semaphore(1) {
     this->player.color = other.player.color;
     this->player.position = Position(other.player.position.getX(), other.player.position.getY());
     this->player.radius = other.player.radius;
-    this->player.mode = other.player.mode;
+    this->player.wpn = other.player.wpn;
+    this->player.weapons = other.player.weapons;
 }
 
 Client& Client::operator=(const Client& other) {
@@ -682,35 +756,36 @@ Client& Client::operator=(const Client& other) {
     this->clock = other.clock;
     this->player.name = other.player.name;
     this->player.radius = other.player.radius;
-    this->player.mode = other.player.mode;
+    this->player.wpn = other.player.wpn;
+    this->player.weapons = other.player.weapons;
 
     return *this;
 }
 
 /**
- * Function that returns the latest packet. This will go through the packets vector of the Client object, will check for
+ * Function that returns the latest packet. This will go through the queuedPackets vector of the Client object, will check for
  * ping value, and will return the last packet respecting the given context. If no packet matches the criteria, an
  * empty packet will be returned.
- * Please note that this will alter the packets deque!
+ * Please note that this will alter the queuedPackets deque!
  *
  * @return Latest packet respecting ping value. Empty packet if none corresponds.
  */
-std::optional<sf::Packet> Client::getLatestPacket() {
-    // Shouldn't happen: only if packets is empty.
-    if (packets.empty()) {
+std::optional<sf::Packet> Client::getLatestQueuedPacket() {
+    // Shouldn't happen: only if queuedPackets is empty.
+    if (queuedPackets.empty()) {
         return std::nullopt;
     }
 
     sf::Time now = clock.getElapsedTime();
-    sf::Time timestamp = now - sf::milliseconds(network.ping);
+    sf::Time timestamp = now - sf::milliseconds(network.ping[1]);
 
     sf::Packet toSend;
     bool found = false;
 
-    // Check in the packets until we find the right one.
-    while (!packets.empty() && packets.front().timestamp <= timestamp) {
-        toSend = packets.front().packet;
-        packets.pop_front();
+    // Check in the queuedPackets until we find the right one.
+    while (!queuedPackets.empty() && queuedPackets.front().timestamp <= timestamp) {
+        toSend = queuedPackets.front().packet;
+        queuedPackets.pop_front();
         found = true;
     }
 
@@ -723,6 +798,16 @@ std::optional<sf::Packet> Client::getLatestPacket() {
     return std::nullopt;
 }
 
+/**
+ * Function that allows the interpolation of enemies position and rotation.
+ *
+ * @details The "Interpolation" is a compensation method that allows the client to display every single opponent's position
+ * between 2 received ticks from the server. This allows the client to see the game at its local, monitor refresh rate,
+ * instead of being limited at the tickrate of the server.
+ *
+ * @attention Without this compensation method, the enemy positions might not look "sharp". This is because modern monitors
+ * have a refresh rate of 60Hz if not more. A server's tickrate is usually kept between 10 and 20.
+ */
 void Client::compensationInterpolation() {
     std::unordered_map<std::string, State> pastState = bufferOnReceipt.getTState(-1);
     std::unordered_map<std::string, State> currState = bufferOnReceipt.getCurrentState();
@@ -732,7 +817,8 @@ void Client::compensationInterpolation() {
             Position currPos = currState[name].getPosition();
 
             // Position = old one + diff. * (0 at beginning of tick, 1 at end of tick)
-            double tickProgress = (clock.getElapsedTime().asMilliseconds() - lastServerTick) / (double)Const::TICKRATE.count();
+            server;
+            double tickProgress = std::min(1.0,(clock.getElapsedTime().asMilliseconds() - lastServerTick) / (double)Const::TICKRATE.count());
             Position pos;
 
             pos.setX(pastPos.getX() + (currPos.getX() - pastPos.getX()) * tickProgress);
@@ -741,11 +827,25 @@ void Client::compensationInterpolation() {
             opponents[name].position = pos;
 
             // If the radius goes through 0, make sure we rotate correctly.
-            opponents[name].radius = pastState[name].getRadius() + (currState[name].getRadius() - pastState[name].getRadius()) * tickProgress;
+            float diff = currState[name].getRadius() - pastState[name].getRadius();
+            diff = std::fmod(diff + 3 * M_PI, 2 * M_PI) - M_PI;
+            opponents[name].radius = std::fmod(pastState[name].getRadius() + diff * tickProgress, 2*M_PI);
         }
     }
 }
 
+/**
+ * Function that allows the prediction of "future"'s local player's position and rotation.
+ *
+ * @details The "Prediction" is a compensation method that allows a client to predict its next position. For this, the
+ * user runs its own "game simulation". According to the given inputs and the last position, it will move the character
+ * to the newly established position without waiting for server confirmation.
+ *
+ * @param inputs - Inputs played by the player at that corresponding frame.
+ *
+ * @attention Depending of ping, a "rollback" might appear when enabling Prediction without Reconciliation. This is
+ * expected, and caused by the server still having the "last word" regarding the client's position.
+ */
 void Client::compensationPrediction(Input inputs) {
     int now = clock.getElapsedTime().asMilliseconds();
 
@@ -753,36 +853,53 @@ void Client::compensationPrediction(Input inputs) {
     pos.move(inputs.getMovementX(), inputs.getMovementY(), now-lastUpdate);
     setPosition(pos);
 
-    setRadius(getPlayer().radius + inputs.getRotate() * Const::PLAYER_RADIUS_SPEED * (now - lastUpdate));
-
-    State state(now, pos, getRadius(), getPlayer().mode, getPlayer().isAttacking, getPlayer().wpn.getId(), inputs);
-    inputsBuffer[lastInputId] = state;
+    if (inputs.getOnController()) {
+        setRadius(inputs.getRotate());
+    }
+    else {
+        setRadius(getPlayer().radius + inputs.getRotate() * Const::PLAYER_RADIUS_SPEED * (now - lastUpdate));
+    }
 }
 
+/**
+ * @brief Function that changes the local player's position and rotation according to the reconciliation compensation method.
+ *
+ * @details The "Reconciliation" is a compensation method that allows a client to produce its actions locally as soon as
+ * the corresponding keys are pressed. Each inputs packet have an ID, allowing the client to verify that the estimated
+ * position corresponds with the one sent back by the server. If it does, it just deletes the past states from its memory.
+ * If it doesn't, it will re-simulate the entire game state from that point up until the present, to then re-adjust to the
+ * newly estimated position.
+ *
+ * @attention Please note that the Reconciliation compensation method cannot work without the Prediction method!
+ */
 void Client::compensationReconciliation() {
     State currentState = bufferOnReceipt.getCurrentState()[getName()];
     unsigned int lastReceivedInputs = currentState.getLastInputsId();
 
-    if (inputsBuffer.begin()->first < lastReceivedInputs) {
+
+    if (inputsBuffer.begin()->first <= lastReceivedInputs) {
         // If 1st element of buffer < last state received by server. (AKA if need to check for reconciliation)
         Position p = inputsBuffer[lastReceivedInputs].getPosition();
         Position q = currentState.getPosition();
         ImVec2 diff = {p.getX() - q.getX(), p.getY() - q.getY()};
         if (sqrt(pow(diff.x, 2) + pow(diff.y, 2)) > Const::PLAYER_SPEED * 20) { // If diff. of pos > eq. of 20ms of movement:
             Position pos = getPosition();
-            pos.setX(pos.getX() - diff.x/2);
-            pos.setY(pos.getY() - diff.y/2);
+            pos.setX(pos.getX() - diff.x);
+            pos.setY(pos.getY() - diff.y);
 
-            // TODO: Find a better fix. This just sets it back to old pos. without taking into account latest inputs.
-            /* Should send a variable or something to tell that the position has been fixed, otherwise it gets fixed X times
-             * Until the server sends back a new packet, causing those large "round-like" fixes.
-            */
-//            pos.setX(q.getX());
-//            pos.setY(q.getY());
+            // Re-emulates all past positions:
+            for (auto& [tick, state] : inputsBuffer) {
+                if (tick > lastReceivedInputs) {
+                    Position pos = state.getPosition();
+                    pos.setX(pos.getX() - diff.x);
+                    pos.setY(pos.getY() - diff.y);
+                    inputsBuffer[tick].setPosition(pos);
+                }
+            }
             setPosition(pos);
         }
 
-        if (std::fmod(inputsBuffer[lastReceivedInputs].getRadius() - currentState.getRadius(), 2*std::numbers::pi) > 2*std::numbers::pi/180) { // If radius diff. > 2°
+        if (std::fmod(inputsBuffer[lastReceivedInputs].getRadius() - currentState.getRadius(), 2*std::numbers::pi) > 1*std::numbers::pi/180) { // If radius diff. > 1°
             setRadius(currentState.getRadius());
         }
 
@@ -791,6 +908,6 @@ void Client::compensationReconciliation() {
         while (it != inputsBuffer.end() and it->first <= lastReceivedInputs) {
             ++it;
         }
-        inputsBuffer.erase(inputsBuffer.begin(), it);
+        inputsBuffer.erase(inputsBuffer.begin(), ++it);
     }
 }

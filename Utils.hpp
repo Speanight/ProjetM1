@@ -19,14 +19,18 @@ namespace Const {
     constexpr auto TICKRATE = std::chrono::milliseconds(1000 / 10); // Amount of ticks in 1s (1s / tickrate)
     static const int BUFFER_SIZE = 5;
     static const int GRAPH_DISPLAY_MS = 1; // Defines how long (in ms) a "graph line" will be worth for in the server's console.
-    static const int GRAPH_DISPLAY_VALUES = 5000; // Defines how many values are displayed at the same time in server's console. This means console shows the last DISPLAY_VALUES * DISPLAY_MS milliseconds.
+    static const int GRAPH_DISPLAY_VALUES = 2000; // Defines how many values are displayed at the same time in server's console. This means console shows the last DISPLAY_VALUES * DISPLAY_MS milliseconds.
 
     static const float PLAYER_SPEED = .3f;
     static const float PLAYER_RADIUS_SPEED = .003f;
     static const float PLAYER_SIZE = 20.f;
+    static const float CONTROLLER_DEADZONE = .2f;
+    static const float WEAPON_GRACE_PERCENT = .4f; // [0-1] - Percent of "grace" for weapon hit detection. Value of .5f means hit will be considered if dist. <= 1.5x weapon size.
 
     static const float MAP_SIZE_X = 500.f;
     static const float MAP_SIZE_Y = 500.f;
+
+    static const int AMT_PLAYERS_MAX = 4;
 }
 
 namespace Err {
@@ -41,9 +45,9 @@ namespace Err {
 }
 
 namespace Pkt {
-    /////////////////////
-    // PACKETS HEADERS //
-    /////////////////////
+    /////////////////////////
+    //// PACKETS HEADERS ////
+    /////////////////////////
 
     // NULL / WAITING PACKET
     // quand il n'y a aucun paquet a envoyer
@@ -89,8 +93,10 @@ namespace Inputs {
     static constexpr int MOVEMENT_RIGHT = 3;
     static constexpr int WPN_CCW = 4;
     static constexpr int WPN_CW = 5;
-    static constexpr int WPN_CHANGE = 6;
-    static constexpr int ATTACK = 7;
+    static constexpr int WPN_ANGLE_WE = 6;
+    static constexpr int WPN_ANGLE_NS = 7;
+    static constexpr int WPN_CHANGE = 8;
+    static constexpr int ATTACK = 9;
 }
 
 namespace Compensation {
@@ -104,6 +110,21 @@ namespace Status {
     static constexpr short READY_TO_START = 1;
     static constexpr short DONE = 2;
     static constexpr short DEAD = 3;
+}
+
+namespace Screens {
+    static constexpr short TITLE_SCREEN = 0;
+    static constexpr short PLAYER_SELECT = 1;
+    static constexpr short GAME = 2;
+}
+
+namespace Weapons {
+    // Types
+    static constexpr short TRIANGLE = 0;
+    static constexpr short ARC = 1;
+
+    // Specific weapons
+    static constexpr short SHIELD = 0;
 }
 
 #endif

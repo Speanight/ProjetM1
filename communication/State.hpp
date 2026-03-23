@@ -18,7 +18,6 @@ private:
     int timestamp;
     Position position;
     float radius;
-    bool mode;
     bool attack;
     Weapon wpn;
     int point;
@@ -28,17 +27,13 @@ private:
 
 public:
     State();
-    State(int timestamp, Position position, float radius, bool mode, Input inputs);
-    State(int timestamp, Position position, float radius, bool mode, bool attack, Input inputs);
-    State(int timestamp, Position position, float radius, bool mode, bool attack, int wpn_id, Input inputs);
-    State(int timestamp, Position position, float radius, bool mode, bool attack, int wpn_id, int point, Input inputs);
+    State(int timestamp, Position position, Input inputs, float radius = 0, bool attack = false, int wpn_id = 0, int point = 0);
 
     // Getters / Setters
     int getTimestamp() const;
     Position getPosition();
     std::map<int,Input> getInputs();
     float getRadius() const;
-    bool getMode() const;
     unsigned int getLastInputsId() const;
     bool getAttack() const;
     Weapon getWpn();
@@ -47,14 +42,17 @@ public:
     void setPosition(Position position);
     void addInputs(int timestamp, Input inputs);
     void setRadius(float radius);
-    void setMode(bool mode);
+    void setTimestamp(int timestamp);
+    void setLastInputsId(unsigned int id);
+
+    Input getPercentInput(double percent);
     void setAttack(bool attack);
     void setWpn(int wpn_id);
     void setPoint(int point);
-    void setTimestamp(int timestamp);
+//    void setTimestamp(int timestamp);
 
-    void setLastInputsId(unsigned int id);
-    Input getPercentInput(double percent);
+//    void setLastInputsId(unsigned int id);
+//    Input getPercentInput(double percent);
 };
 
 sf::Packet& operator<<(sf::Packet &packet, State state);

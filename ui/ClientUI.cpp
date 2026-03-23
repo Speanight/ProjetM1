@@ -2,8 +2,7 @@
 
 #include <algorithm>
 
-ClientUI::ClientUI(const sf::Clock clock, std::string name, short controller, sf::Color color) : Client(clock, name, controller, color, 0) {}
-ClientUI::ClientUI(const sf::Clock clock, std::string name, short controller, sf::Color color, int wpn_id) : Client(clock, name, controller, color, wpn_id) {}
+ClientUI::ClientUI(const sf::Clock clock, std::string name, short controller, sf::Color color) : Client(clock, name, controller, color) {}
 
 void ClientUI::drawGame() { // Game space
     const char* title = getName().c_str();
@@ -49,6 +48,8 @@ void ClientUI::addOpponent(const std::string& name, sf::Color color) {
     Player pl;
     pl.name = name;
     pl.color = color;
+    pl.wpn = Weapon(0);
+    pl.timer_atk = -1;
     opponents.insert(std::make_pair(name, pl));
     this->bufferOnReceipt.addClient(pl);
 }
@@ -64,12 +65,20 @@ void ClientUI::drawConfig() {
     ImGui::Text("%s", title);
     ImGui::Separator();
 
-    int packetLoss = getPacketLoss();
-    int ping = getPing();
+    int packetLoss[2] = {getReceivingPacketLoss(), getSendingPacketLoss()};
+    int ping[2] = {getReceivingPing(), getSendingPing()};
     std::array<bool,3> compensations = getCompensations();
 
-    ImGui::SliderInt("Packet loss", &packetLoss, 0, 100);
-    ImGui::InputInt("Ping", &ping);
+    // Ensure the ping sliders only take available space:
+    ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x * 0.5f);
+    ImGui::SliderInt("Packet loss S -> C", &packetLoss[0], 0, 100);
+    ImGui::SliderInt("Packet loss C -> S", &packetLoss[1], 0, 100);
+    ImGui::PopItemWidth();
+//    ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x * 0.25f);
+//    ImGui::InputInt("Ping S -> C", &ping[0]);
+//    ImGui::SameLine();
+    ImGui::InputInt("Ping C -> S", &ping[1]);
+//    ImGui::PopItemWidth();
 
     ImGui::Checkbox("Interpolation", &compensations[Compensation::INTERPOLATION]);
     ImGui::SameLine();
@@ -77,8 +86,10 @@ void ClientUI::drawConfig() {
     ImGui::SameLine();
     ImGui::Checkbox("Reconciliation", &compensations[Compensation::RECONCILIATION]);
 
-    setPacketLoss(packetLoss);
-    setPing(ping);
+    setReceivingPacketLoss(packetLoss[0]);
+    setSendingPacketLoss(packetLoss[1]);
+    setReceivingPing(ping[0]);
+    setSendingPing(ping[1]);
 
     if (!compensations[Compensation::PREDICTION] and compensations[Compensation::RECONCILIATION]) {
         compensations[Compensation::PREDICTION] = true;

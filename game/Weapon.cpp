@@ -63,13 +63,23 @@ float Weapon::getTransform() const {
 }
 
 // ===== INTERNAL FUNCTION =====
-void Weapon::applyID(int id) {
+void Weapon::applyID(short id) {
+    w_id = id;
     switch (id) {
-        case 1: // weapon 1
+        case Weapons::SHIELD:
+            w_height = 20.f;
+            w_width = 8.f;
+            w_type = Weapons::ARC;
+            w_atk_speed = 0.2f;
+            w_rld = 0.4f;
+            w_range = 12.f;
+            w_transform = 0.3f;
+            break;
+        case 2: // weapon 1
             w_id = 1;
             w_height = 20.f;
             w_width = 8.f;
-            w_type = 1;
+            w_type = Weapons::TRIANGLE;
             w_atk_speed = 70.f;
             w_rld = 200.f;
             w_range = 12.f;
@@ -78,15 +88,13 @@ void Weapon::applyID(int id) {
             break;
 
         default: // Default weapon
-            w_id = 0;
             w_height = 16.f;
             w_width = 24.f;
-            w_type = 0;
+            w_type = Weapons::TRIANGLE;
             w_atk_speed = 70.f;
             w_rld = 200.f;
             w_range = 15.0f;
-            w_damage = 10;
-            w_transform = 1.f;
+            w_transform = 0.2f;
         break;
     }
 }

@@ -3,6 +3,7 @@
 
 #include <SFML/Network/Packet.hpp>
 #include "../Utils.hpp"
+#include <cmath>
 
 class Input {
 private:
@@ -11,36 +12,36 @@ private:
     float movementX;
     float movementY;
     float rotate;
-    bool mode;                  // Signal to change the mode [false = no change, true = change]
-    bool mode_enable;           // Permit to know if we can change the mode or no [false = no, true = yes]
+    bool onController;
+    bool changeWpn;             // Signal to change weapon
+    bool mode_enable;           // Permit to know if we can change the changeWpn or no [false = no, true = yes]
     bool attack;                // Signal to inform the attack
     bool attack_enable;         // Permit to know if we can attack again or not
-    int wpn_id;
 public:
     // Constructors
-    Input(unsigned int id=0, float x=0, float y=0, float r=0, bool mode=false, bool attack=false, int wpn_id=0);
+    Input(unsigned int id=0, float x=0, float y=0, float r=0, bool mode=false, bool attack=false, bool onController = false);
 
     // Getters
     unsigned int getId();
     float getMovementX();
     float getMovementY();
     float getRotate();
-    bool getMode();
+    bool getChangeWpn();
     bool getModeEnable();
     bool getAttack();
     bool getAttackEnable();
-    int getWpnID();
+    bool getOnController();
 
     // Setters
     void setId(unsigned int id);
     void setMovementX(float x);
     void setMovementY(float y);
     void setRotate(float r);
-    void setMode(bool mode);
+    void setChangeWpn(bool changeWpn);
     void setModeEnable(bool mode_enable);
     void setAttack(bool attack);
     void setAttackEnable(bool mode_enable);
-    void setWpnID(int wpn_id);
+    void setOnController(bool onController);
 
     // Functions
     void handleInput(int inputCode, float value);

@@ -18,20 +18,28 @@ private:
     std::thread thread;
     Server server;
     std::vector<ClientUI*> clients;
+    short screen = 0;
+
+    sf::Clock clock;
 
 public:
-    MainWindow(sf::Clock clock);
-    MainWindow(sf::Clock clock, int maxPlayers);
+//    sf::RenderWindow window;
+    MainWindow(sf::Clock clock, bool quickLaunch = false);
     ~MainWindow();
 
     void addClient(ClientUI* client);
     Server getServer();
 
-    void draw();
     void loop();
 
-    void createDefaultClients(int count, sf::Clock clock);
+    // Screens
+    void draw(short screen);
+    void drawTitlescreen();
+    void drawPlayerSelect();
+    void drawGame();
 
+    void quickSetup();
+//    void createDefaultClients(int count, sf::Clock clock);
 };
 
 

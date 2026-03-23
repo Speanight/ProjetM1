@@ -1,3 +1,4 @@
+#include <iostream>
 #include "ServerUI.hpp"
 
 ServerUI::ServerUI() {
@@ -30,7 +31,6 @@ void ServerUI::addLine(std::string text, sf::Color color) {
 void ServerUI::addToData(const std::string& to) {
     std::vector<float> vec(Const::GRAPH_DISPLAY_VALUES, FLT_EPSILON);
     data[to] = vec;
-    data[to] = vec;
 }
 
 void ServerUI::addLine(int timestamp, std::string from, std::string to, std::string details, sf::Color color) {
@@ -57,16 +57,12 @@ void ServerUI::addToGraph(int timestamp, const std::string& from, const std::str
                 data[f].insert(data[f].end(), toPush, FLT_EPSILON);
 
             if (data[f].size() > Const::GRAPH_DISPLAY_VALUES) {
-                data[f].erase(data[f].begin(), data[f].begin() + toPush);
-            }
-
-            if (t.size() > Const::GRAPH_DISPLAY_VALUES) {
-                data[f].erase(data[f].begin(), data[f].begin() + (t.size() - Const::GRAPH_DISPLAY_VALUES));
+                data[f].erase(data[f].begin(), data[f].begin() + toPush + 1);
             }
         }
 
         // Finally, we insert the value in last place:
-        data[from].push_back(1.0f);
+        data[from].push_back(100.0f);
         lastTimestamp = timestamp;
     }
 }
@@ -87,7 +83,9 @@ void ServerUI::draw() {
     ImGui::BeginChild("Server", ImVec2(0, 0), true);
     ImGui::Text("SERVER");
     ImGui::SameLine();
-    ImGui::Checkbox("Pause", &this->pauseConsole);
+    if (ImGui::Button("Pause")) {
+        pauseConsole = !pauseConsole;
+    }
     ImGui::Separator();
     ImGui::BeginChild("console", ImVec2(ImGui::GetContentRegionAvail().x * 0.5f, ImGui::GetContentRegionAvail().y));
     for (const auto& line : std::ranges::reverse_view(lines)) {
@@ -148,7 +146,7 @@ void ServerUI::draw() {
                     static const char* ilabels[] = {"Packet Loss", "Packet Delivered"};
 
                     ImPlot::SetupAxes("Time","Packet",ImPlotAxisFlags_NoDecorations, ImPlotAxisFlags_NoDecorations);
-                    ImPlot::PlotBarGroups(ilabels,values.data(),1,groups,1,0,{ImPlotProp_Flags, ImPlotBarGroupsFlags_Stacked});
+                    ImPlot::PlotBarGroups(ilabels,data[from].data(),1,groups,1,0,{ImPlotProp_Flags, ImPlotBarGroupsFlags_Stacked});
 
                     ImPlot::EndPlot(); // Bar Group
                 }
@@ -160,9 +158,4 @@ void ServerUI::draw() {
     }
 
     ImGui::EndChild();
-}
-
-void ServerUI::setColorMaps(ImU32 server[], ImU32 client[]) {
-    this->serverColorMap = ImPlot::AddColormap("Server packets colors", server, 2);
-    this->clientsColorMap = ImPlot::AddColormap("Client packets colors", client, 2);
 }

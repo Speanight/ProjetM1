@@ -28,8 +28,6 @@ private:
 
     // Graphs
     int lastTimestamp;
-    int serverColorMap;
-    int clientsColorMap;
 
 protected:
     // Data (graphs)
@@ -43,7 +41,6 @@ public:
     void draw();
 
     void addToData(const std::string& to);
-    void setColorMaps(ImU32 server[], ImU32 client[]);
 };
 
 #endif //PROJETM1_SERVERUI_HPP
