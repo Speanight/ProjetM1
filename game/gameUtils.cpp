@@ -3,7 +3,137 @@
 #include "../communication/Client.hpp"
 
 
+void drawErrorScreen(ImDrawList* draw_list, Player, ImVec2 min, ImVec2 max) {
+    ImVec2 center = {
+        (min.x + max.x) * 0.5f,
+        (min.y + max.y) * 0.5f
+    };
+
+    float width = max.x - min.x;
+    float height = max.y - min.y;
+
+    // ERROR TEXT
+    const char* error_text = "ERROR ON THE PLAYER !!";
+
+    float font_size = 40.0f;
+    ImFont* font = ImGui::GetFont();
+
+    ImVec2 text_size = font->CalcTextSizeA(
+        font_size,
+        FLT_MAX,
+        0.0f,
+        error_text
+    );
+
+    ImVec2 text_pos = {
+        center.x - text_size.x * 0.5f,
+        center.y - text_size.y * 1.5f
+    };
+
+    draw_list->AddText(
+        font,
+        font_size,
+        text_pos,
+        IM_COL32(255, 0, 0, 255),
+        error_text
+    );
+
+    // BUTTON
+    const char* button_text = "> CLICK HERE TO CLOSE <";
+
+    float btn_font_size = 20.0f;
+
+    ImVec2 btn_text_size = font->CalcTextSizeA(
+        btn_font_size,
+        FLT_MAX,
+        0.0f,
+        button_text
+    );
+
+    ImVec2 btn_size = {
+        btn_text_size.x + 20.0f,
+        btn_text_size.y + 10.0f
+    };
+
+    ImVec2 btn_min = {
+        center.x - btn_size.x * 0.5f,
+        center.y + 20.0f
+    };
+
+    ImVec2 btn_max = {
+        btn_min.x + btn_size.x,
+        btn_min.y + btn_size.y
+    };
+
+    // Button background
+    draw_list->AddRectFilled(
+        btn_min,
+        btn_max,
+        IM_COL32(150, 0, 0, 255),
+        5.0f
+    );
+
+    // Button border
+    draw_list->AddRect(
+        btn_min,
+        btn_max,
+        IM_COL32(255, 255, 255, 255),
+        5.0f,
+        0,
+        2.0f
+    );
+
+    // Button text
+    ImVec2 btn_text_pos = {
+        center.x - btn_text_size.x * 0.5f,
+        btn_min.y + (btn_size.y - btn_text_size.y) * 0.5f
+    };
+
+    draw_list->AddText(
+        font,
+        btn_font_size,
+        btn_text_pos,
+        IM_COL32(255, 255, 255, 255),
+        button_text
+    );
+
+    // INTERRACTION ZONE
+    ImGui::SetCursorScreenPos(btn_min);
+    if (ImGui::InvisibleButton("error_btn", btn_size)) {
+        std::cout<<"CLICK ON THE ERROR BUTTON"<<std::endl;
+        // TODO : safelly delete the element on the serv, the clients and stuff while clicking on this button
+        std::exit(0);
+    }
+}
+
+void drawSelectionScreen(ImDrawList* draw_list, ImVec2 min, ImVec2 max) {
+    // TODO : make it when the player selection menu will be over
+}
+
+void drawWaitingScreen(ImDrawList* draw_list, ImVec2 min, ImVec2 max) {
+    // TODO : maybe not usefull if we choose to draw the player :/
+}
+
+void drawFightingScreen(ImDrawList* draw_list, Player player, std::map<std::string, Player> opponents, ImVec2 min, ImVec2 max) {
+    // BACKGROUND
+    draw_list->AddRectFilled(
+        min,
+        max,
+        IM_COL32(0, 0, 0, 255)
+    );
+
+    // TODO : picture / fix the color
+
+    // PLAYERS
+    drawPlayer(draw_list,player , min, max);
+    for (auto & [name, other] : opponents) {
+        drawPlayer(draw_list, other, min, max);
+    }
+}
 void drawPlayer(ImDrawList* draw_list, Player player, ImVec2 min, ImVec2 max) {
+    if(player.status == Status::DEAD || player.point == 0) {
+        player.color = sf::Color::White;                // TODO : handle the death differently ?
+    }
     float window_size = max.x - min.x;
 
     float scale = window_size / Const::MAP_SIZE_X;
@@ -51,7 +181,6 @@ void drawPlayer(ImDrawList* draw_list, Player player, ImVec2 min, ImVec2 max) {
         points.c_str()
     );
 }
-
 void drawWeapon(Player player, ImDrawList* draw_list, ImVec2 pl_position, float scale) {
     float player_radius = Const::PLAYER_SIZE * scale;
     float distance = player_radius + 2.f * scale;
@@ -117,6 +246,136 @@ void drawWeapon(Player player, ImDrawList* draw_list, ImVec2 pl_position, float 
         default:
             std::cout << "Unknown weapon type: " << player.wpn.getType() << std::endl;
     }
+}
+
+void drawLooseScreen(ImDrawList* draw_list, Player player, ImVec2 min, ImVec2 max) {
+    ImVec2 center = {
+        (min.x + max.x) * 0.5f,
+        (min.y + max.y) * 0.5f
+    };
+
+    ImFont* font = ImGui::GetFont();
+
+    // TITLE
+    {
+        const char* title = "DOMMAGE";
+
+        float title_size = 50.0f;
+
+        ImVec2 title_dim = font->CalcTextSizeA(title_size, FLT_MAX, 0.0f, title);
+
+        ImVec2 title_pos = {
+            center.x - title_dim.x * 0.5f,
+            min.y + 40.0f
+        };
+
+        draw_list->AddText(
+            font,
+            title_size,
+            title_pos,
+            IM_COL32(player.color.r, player.color.g, player.color.b, 255),
+            title
+        );
+    }
+
+    // PLAYER INFO
+    {
+        // TODO
+    }
+
+    // RANDOM PRAISE
+    {
+        static std::vector<std::string> messages = {
+            "You can do it !* (*statement of friendship only, you may not be able to do it)",
+            "Ah pas loin!",
+            "Il a triché t'inquiète",
+            "Mais je me fait big gank là c'est quoi ça !",
+            "Blammez les JOUEURS pas le jeu...",
+            "La prochaine fois c'est la bonne",
+            "TEST 0",
+            "TEST 1"
+        };
+
+        // Ports are random so we can use them
+        static int selected = player.port % messages.size();
+
+        std::string msg = messages[selected];
+
+        float msg_size = 18.0f;
+
+        ImVec2 msg_dim = font->CalcTextSizeA(msg_size, FLT_MAX, 0.0f, msg.c_str());
+
+        ImVec2 msg_pos = {
+            center.x - msg_dim.x * 0.5f,
+            max.y - 80.0f
+        };
+
+        draw_list->AddText(
+            font,
+            msg_size,
+            msg_pos,
+            IM_COL32(200, 200, 200, 255),
+            msg.c_str()
+        );
+    }
+
+    // BUTTON RESTART
+    {
+        const char* btn_text = "RECOMMENCER";
+
+        float btn_font_size = 22.0f;
+
+        ImVec2 btn_text_dim = font->CalcTextSizeA(btn_font_size, FLT_MAX, 0.0f, btn_text);
+
+        ImVec2 btn_size = {
+            btn_text_dim.x + 30.0f,
+            btn_text_dim.y + 15.0f
+        };
+
+        ImVec2 btn_min = {
+            center.x - btn_size.x * 0.5f,
+            center.y + 40.0f
+        };
+
+        ImVec2 btn_max = {
+            btn_min.x + btn_size.x,
+            btn_min.y + btn_size.y
+        };
+
+        // Interaction
+        ImGui::SetCursorScreenPos(btn_min);
+        if (ImGui::InvisibleButton("restart_btn", btn_size)) {
+            // Putting the player back in the player selection zone
+            // player.status = Status::NOT_SET;
+            std::cout << "CLICK ON THE RESET PLAYER ZONE"<< std::endl;
+        }
+
+        // Button background
+        draw_list->AddRectFilled(
+            btn_min,
+            btn_max,
+            IM_COL32(player.color.r, player.color.g, player.color.b, 255),
+            6.0f
+        );
+
+        // Text
+        ImVec2 btn_text_pos = {
+            center.x - btn_text_dim.x * 0.5f,
+            btn_min.y + (btn_size.y - btn_text_dim.y) * 0.5f
+        };
+
+        draw_list->AddText(
+            font,
+            btn_font_size,
+            btn_text_pos,
+            IM_COL32(255, 255, 255, 255),
+            btn_text
+        );
+    }
+}
+
+void drawWinnerScreen(ImDrawList* draw_list, Player player, ImVec2 min, ImVec2 max) {
+
 }
 
 Position resolveCollision(Position player, Position opponent) {

@@ -88,13 +88,15 @@ void Weapon::applyID(short id) {
             break;
 
         default: // Default weapon
+            w_id = 1;
             w_height = 16.f;
             w_width = 24.f;
             w_type = Weapons::TRIANGLE;
             w_atk_speed = 70.f;
             w_rld = 200.f;
-            w_range = 15.0f;
-            w_transform = 0.2f;
+            w_range = 15.f;
+            w_damage = 10;
+            w_transform = 5.f;
         break;
     }
 }

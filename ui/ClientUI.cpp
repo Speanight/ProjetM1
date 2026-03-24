@@ -34,15 +34,36 @@ void ClientUI::drawGame() { // Game space
     // ========= DRAW =========
     ImDrawList* draw_list = ImGui::GetWindowDrawList();
 
-    drawPlayer(draw_list,getPlayer() , childMin, childMax);
-
-
-    for (auto & [name, other] : opponents) {
-        drawPlayer(draw_list, other, childMin, childMax);
+    auto player = getPlayer();
+    switch (player.status) {
+        case Status::NOT_SET    : {
+            std::cout<<"CREATION PLAYER PAGE"<<std::endl;
+        }
+        case Status::WAITING_FOR_ROUND_START: {
+            std::cout<<"LOADING SCREEN / TRAINING ZONE"<<std::endl;
+            break;
+        }
+        case Status::DONE   : {
+            // ALIVE SECTION
+            drawFightingScreen(draw_list, player, opponents, childMin, childMax);
+            break;
+        }
+        case Status::DEAD : {
+            drawLooseScreen(draw_list, player, childMin, childMax);
+            break;
+        }
+        case Status::WINNER : {
+            std::cout<<"WIN SCREEN"<<std::endl;
+            break;
+        }
+        default     : {
+            drawErrorScreen(draw_list, player, childMin, childMax);
+            break;
+        }
     }
+
     ImGui::EndChild();
 }
-
 
 void ClientUI::addOpponent(const std::string& name, sf::Color color) {
     Player pl;

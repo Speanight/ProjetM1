@@ -78,11 +78,6 @@ namespace Pkt {
     static const int INPUTS         = 10;   // tick << inputs << client.port                                                // send the new inputs of the player (the mooves, the radius of the weapon, if he is attacking [...]). also acknoledgge the server that they receive the signal to start the fight
     static const int END_GAME       = 11;   // tick << client.port                                                          // send the signal of the end of the game, asking the server to shutdown
 
-
-    // // TODO : delete the old package types
-    // static const int ROUND_START = 20;   // tick << amtPlayers << client.name << client.position
-    // static const int POSITION = 21;      // tick << client.position
-    // static const int NEW_GAME = 22;
 }
 
 namespace Inputs {
@@ -106,10 +101,12 @@ namespace Compensation {
 }
 
 namespace Status {
-    static constexpr short WAITING_FOR_ROUND_START = 0;
+    static constexpr short WAITING_FOR_ROUND_START = 0;     // Player creation is done  (UI = loading screen / trainig zone page)
     static constexpr short READY_TO_START = 1;
-    static constexpr short DONE = 2;
-    static constexpr short DEAD = 3;
+    static constexpr short DONE = 2;                        // Player is in the fight   (UI = fight / normal page)
+    static constexpr short DEAD = 3;                        // Player is dead           (UI = loose page)
+    static constexpr short WINNER = 4;                      // Player win               (UI = win page)
+    static constexpr short NOT_SET = 5;                     // Player is not set        (UI = creation page)
 }
 
 namespace Screens {

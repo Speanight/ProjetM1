@@ -350,68 +350,70 @@ int Client::sendPacket(Input inputs) {
     pkt.timestamp = clock.getElapsedTime();
     int tick = clock.getElapsedTime().asMilliseconds();
 
-    switch (packetTypeToSend) {
-        case Pkt::ACK               : {     // Pkt << tick
-            pkt.packet << Pkt::ACK;
+    if(packetTypeToSend != Pkt::NONE) {
+        switch (packetTypeToSend) {
+            case Pkt::ACK               : {     // Pkt << tick
+                pkt.packet << Pkt::ACK;
 
-            switch (ackToSend) {
-                case Pkt::READY_R   : {
-                    pkt.packet << Pkt::READY_R << tick;
-                    break;
-                }
+                switch (ackToSend) {
+                    case Pkt::READY_R   : {
+                        pkt.packet << Pkt::READY_R << tick;
+                        break;
+                    }
 
-                case Pkt::DEATH     : {
-                    pkt.packet << Pkt::DEATH << tick;
-                    break;
-                }
+                    case Pkt::DEATH     : {
+                        pkt.packet << Pkt::DEATH << tick;
+                        break;
+                    }
 
-                case Pkt::END_R     : {
-                    pkt.packet << Pkt::END_R << tick;
-                    break;
-                }
+                    case Pkt::END_R     : {
+                        pkt.packet << Pkt::END_R << tick;
+                        break;
+                    }
 
-                default             : {
-                    std::cout << "Unrecognized acknoledge packet send in client section, please identify yourself " << ackToSend << std::endl;
-                    break;
+                    default             : {
+                        std::cout << "Unrecognized acknoledge packet send in client section, please identify yourself " << ackToSend << std::endl;
+                        break;
+                    }
                 }
+                break;
             }
-            break;
+            case Pkt::NEW_PLAYER        : {     // tick << client.name << client.color << client.wpn << client.port
+                pkt.packet << Pkt::NEW_PLAYER;
+                short r = player.color.r;
+                short g = player.color.g;
+                short b = player.color.b;
+                short a = player.color.a;
+                pkt.packet << tick << player.name << r << g << b << a << player.wpn.getId() << player.port;
+                // std::cout << "new player request "<< player.name << std::endl;
+                break;
+            }
+            case Pkt::WAIT_START_R      : {     // tick << client.port
+                pkt.packet << Pkt::WAIT_START_R;
+                pkt.packet << tick << player.port;
+                // std::cout << "player " << player.name << " is waiting to start ! " << std::endl;
+                break;
+            }
+            case Pkt::INPUTS            : {     // tick << inputs << client.port
+                pkt.packet << Pkt::INPUTS << pkt.timestamp.asMilliseconds() << inputs << player.port;
+                break;
+            }
+            case Pkt::END_GAME          : {     // tick << client.port
+                sf::Packet packet;
+                packet << Pkt::END_GAME;
+                packet << tick << player.port;
+                break;
+            }
+            default                     : {
+                std::cout << "Unrecognized packet send in client section, please identify yourself " << packetTypeToSend << std::endl;
+                break;
+            }
         }
-        case Pkt::NEW_PLAYER        : {     // tick << client.name << client.color << client.wpn << client.port
-            pkt.packet << Pkt::NEW_PLAYER;
-            short r = player.color.r;
-            short g = player.color.g;
-            short b = player.color.b;
-            short a = player.color.a;
-            pkt.packet << tick << player.name << r << g << b << a << player.wpn.getId() << player.port;
-            // std::cout << "new player request "<< player.name << std::endl;
-            break;
+        queuedPackets.push_back(pkt); // Adds the packet to the array of packets.
+        auto packetToSend = getLatestQueuedPacket();
+        if (packetToSend.has_value()) {
+            socket.send(packetToSend.value(), server, COMM_PORT_SERVER);
         }
-        case Pkt::WAIT_START_R      : {     // tick << client.port
-            pkt.packet << Pkt::WAIT_START_R;
-            pkt.packet << tick << player.port;
-            // std::cout << "player " << player.name << " is waiting to start ! " << std::endl;
-            break;
-        }
-        case Pkt::INPUTS            : {     // tick << inputs << client.port
-            pkt.packet << Pkt::INPUTS << pkt.timestamp.asMilliseconds() << inputs << player.port;
-            break;
-        }
-        case Pkt::END_GAME          : {     // tick << client.port
-            sf::Packet packet;
-            packet << Pkt::END_GAME;
-            packet << tick << player.port;
-            break;
-        }
-        default                     : {
-            std::cout << "Unrecognized packet send in client section, please identify yourself " << packetTypeToSend << std::endl;
-            break;
-        }
-    }
-    queuedPackets.push_back(pkt); // Adds the packet to the array of packets.
-    auto packetToSend = getLatestQueuedPacket();
-    if (packetToSend.has_value()) {
-        socket.send(packetToSend.value(), server, COMM_PORT_SERVER);
     }
     /*
     sf::Packet preparedPacket;
@@ -523,6 +525,7 @@ int Client::receiveLoop() {
                                     this->player.isAttacking = s.getAttack();
                                     this->player.wpn.applyID(s.getWpn().getId());
                                     this->player.point = s.getPoint();
+                                    this->player.status = Status::DONE;
                                 }
                                 // OPPONENT
                                 else {
@@ -531,6 +534,7 @@ int Client::receiveLoop() {
                                         newOpponent.name = n;
                                         newOpponent.color = sf::Color(r, g, b, a);
                                         newOpponent.wpn.applyID(wpn_id);
+                                        newOpponent.status = Status::DONE;
 
                                         opponents[n] = newOpponent;
 
@@ -609,11 +613,22 @@ int Client::receiveLoop() {
                             break;
                         }
                         case Pkt::DEATH         : {     // tick << killerName                                                           // send the signal to a specific player that the player is dead
-                            // TODO
+                            this->player.point = 0;
+                            this->player.status = Status::DEAD;
+
+                            semaphore.acquire();
+                            packetTypeToSend = Pkt::ACK;
+                            ackToSend = Pkt::DEATH;
+                            semaphore.release();
                             break;
                         }
                         case Pkt::END_R         : {     // tick                                                                         // send the signal that the round is finished
-                            // TODO
+                            std::cout<<"receive end R packet"<<std::endl;
+                            // TODO : Deleting the actual player and opponent, putting the packetTypeToSend on "None" to wait for the new player
+                            semaphore.acquire();
+                            packetTypeToSend = Pkt::NONE;
+                            semaphore.release();
+
                             break;
                         }
                         default                 : {
@@ -622,82 +637,6 @@ int Client::receiveLoop() {
                         }
                     }
                 }
-
-                // TODO : delete the old switch
-                /*
-                switch (type) {
-                    case Pkt::ACK:
-                        break;
-                    case Pkt::ROUND_START: {
-                        player.status = Status::READY_TO_START;
-                        std::cout << "Client " << getName() << " received ROUND_START" << std::endl;
-                        newRound = true;
-                        // No break because round start has position afterwards (and therefor will execute Pkt::GLOBAL case)
-                    }
-                    case Pkt::GLOBAL: {
-                        player.status = Status::DONE;
-                        int nbPlayers;
-                        int stateTick;
-                        std::string name;
-                        packet >> stateTick >> nbPlayers;
-
-                            while (nbPlayers > 0) {
-                                State state;
-                                packet >> name >> state;
-                                std::unordered_map<std::string, State> currentState = bufferOnReceipt.getCurrentState();
-                                std::unordered_map<std::string, State> pastState = bufferOnReceipt.getTState(-1);
-
-                                if (name == this->getName()) {
-                                    this->bufferOnReceipt.updateNextPlayerState(player, state);
-                                    semaphore.acquire();
-                                    State currState = bufferOnReceipt.getLastState(player);
-                                    semaphore.release();
-
-                                    if (!this->getCompensations()[Compensation::RECONCILIATION]) {
-                                        this->player.position.setX(currState.getPosition().getX());
-                                        this->player.position.setY(currState.getPosition().getY());
-                                        this->player.radius = currState.getRadius();
-                                    }
-                                    this->player.isAttacking = state.getAttack();
-//                                    this->player.wpn = Weapon(state.getWpn().getId());
-                                    this->player.wpn.applyID(state.getWpn().getId());
-                                    this->player.point = state.getPoint();
-                                } else {
-                                    // Opponent position:
-                                    this->bufferOnReceipt.updateNextPlayerState(opponents[name], state);
-                                    opponents[name].position.setX(currentState[name].getPosition().getX());
-                                    opponents[name].position.setY(currentState[name].getPosition().getY());
-                                    opponents[name].radius = currentState[name].getRadius();
-                                    opponents[name].isAttacking = currentState[name].getAttack();
-                                    opponents[name].wpn.applyID(currentState[name].getWpn().getId());
-                                    opponents[name].point = currentState[name].getPoint();
-                                }
-                                nbPlayers--;
-                            }
-
-                            this->bufferOnReceipt.push(stateTick);
-                            packet >> lastServerTick;
-
-                        break;
-                    }
-                    case Pkt::POSITION: {
-                        Position tempPos;
-                        packet >> tempPos;
-                        break;
-                    }
-                    case Pkt::SHUTDOWN: {
-                        std::cout << "Client " << player.name << " received shutdown packet!" << std::endl;
-                        loop = false;
-                        break;
-                    }
-
-                    // TODO : [delete me while previous todo done] new packet
-
-                        default:
-                            std::cout << "UNKNOWN PACKET! Type: " << type << " for client " << player.name << std::endl;
-                    }
-                }
-            */
             }
         }
     }
