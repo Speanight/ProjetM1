@@ -37,7 +37,7 @@ private:
     int packetTypeToSend    = Pkt::NONE;
     int ackToSend           = Pkt::NONE;
 
-    int maxPlayers = 2;     // TODO : make something better to handle how many players we want before starting the game
+    int amtPlayers = 2;     // TODO : make something better to handle how many players we want before starting the game
 
     bool loop = true;
     bool newGame = false;
@@ -46,7 +46,6 @@ private:
 
 public:
     Server(sf::Clock clock);
-    Server(sf::Clock clock, int maxPlayers);
     ~Server();
 
     // Getters / Setters
@@ -57,8 +56,6 @@ public:
     int sendLoop();
     int receiveLoop();
     int shutdown();
-
-    int getMaxPlayers();
 };
 
 

@@ -31,15 +31,15 @@ public:
     Weapon(const Weapon& other);
 
     // ===== GETTERS =====
-    int     getId() const;
+    short  getId() const;
     float  getHeight() const;
     float  getWidth() const;
     int    getType() const;
     float  getAttackSpeed() const;
     float  getReload() const;
     float  getRange() const;
-    int getDamage() const;
-    float getTransform() const;
+    int    getDamage() const;
+    float  getTransform() const;
 
     // ===== INTERNAL FUNCTION =====
     void applyID(short id);

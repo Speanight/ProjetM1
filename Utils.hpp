@@ -41,6 +41,7 @@ namespace Err {
     static constexpr int ERR_SERVER_INIT = 1;
     static constexpr int ERR_CLIENT_INIT = 2;
     static constexpr int ERR_SERVER_SHUTDOWN = 3;
+    static constexpr int PLAYER_STATUS_UNSYNCED = 4;
     // ...
 }
 
@@ -74,9 +75,10 @@ namespace Pkt {
 
     /// CLIENT PACKAGES (what the clients send to the server)
     static const int NEW_PLAYER     = 8;    // tick << client.name << client.color << client.wpn << client.port             // add the new player datas to the server
-    static const int WAIT_START_R   = 9;    // tick << client.port                                                          // acknoledge the server that the client is waiting for the round to start
-    static const int INPUTS         = 10;   // tick << inputs << client.port                                                // send the new inputs of the player (the mooves, the radius of the weapon, if he is attacking [...]). also acknoledgge the server that they receive the signal to start the fight
-    static const int END_GAME       = 11;   // tick << client.port                                                          // send the signal of the end of the game, asking the server to shutdown
+    static const int WAIT_OPPONENTS = 9;
+    static const int WAIT_START_R   = 10;    // tick << client.port                                                          // acknoledge the server that the client is waiting for the round to start
+    static const int INPUTS         = 11;   // tick << inputs << client.port                                                // send the new inputs of the player (the mooves, the radius of the weapon, if he is attacking [...]). also acknoledgge the server that they receive the signal to start the fight
+    static const int END_GAME       = 12;   // tick << client.port                                                          // send the signal of the end of the game, asking the server to shutdown
 
 
     // // TODO : delete the old package types
@@ -106,10 +108,11 @@ namespace Compensation {
 }
 
 namespace Status {
-    static constexpr short WAITING_FOR_ROUND_START = 0;
-    static constexpr short READY_TO_START = 1;
-    static constexpr short DONE = 2;
-    static constexpr short DEAD = 3;
+    static constexpr short WAITING_FOR_INIT = 0; // Waiting for server to acknowledge client.
+    static constexpr short WAITING_FOR_OPPONENTS = 1; // Waiting for opponents info.
+    static constexpr short READY_TO_START = 2; // Received all opponents info.
+    static constexpr short DONE = 3; // Ready and playing.
+    static constexpr short DEAD = 4;
 }
 
 namespace Screens {

@@ -26,7 +26,7 @@ Weapon::Weapon(const Weapon& other)
 
 // ===== GETTERS =====
 
-int Weapon::getId() const {
+short Weapon::getId() const {
     return w_id;
 }
 

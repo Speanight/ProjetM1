@@ -93,8 +93,6 @@ void ServerUI::draw() {
     }
     ImGui::EndChild(); // "console" child
 
-    // TODO: Create graph to visualize sending/reception of data from server.
-    // Resource (used here, in the comments): https://github.com/epezent/implot?tab=readme-ov-file
     /////////////
     //  GRAPH  //
     /////////////
