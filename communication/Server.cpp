@@ -95,15 +95,12 @@ int Server::receiveLoop() {
         if (socket.receive(packet, sender, port) == sf::Socket::Status::Done) {
             packet >> type;
             if (type == Pkt::NEW_PLAYER) {
-                // tick << name << r g b a << wpn
-                int tick;
+                // name << r g b a << wpn
                 std::string pname;
-                short r, g, b, a;
+                std::uint8_t r, g, b, a;
                 int wpn_id;
 
                 packet >> pname >> r >> g >> b >> a >> wpn_id;
-
-                a = 255;
 
                 sf::Color color(r, g, b, a);
 
@@ -117,28 +114,9 @@ int Server::receiveLoop() {
                     infos["wpn_id"] = wpn_id;
 
                     addClient(infos);
-
-                    // ===== INIT STATE =====
-                    int time = clock.getElapsedTime().asMilliseconds();
-
-                    Input defaultInput(0, 0.f, 0.f, 0.f, false, false, wpn_id);
-
-                    State initialState(
-                        time,
-                        Position(0, 0),
-                        defaultInput,
-                        0.f,
-                        true,
-                        wpn_id,
-                        100
-                    );
                 }
 
                 clients[pname].status = Status::WAITING_FOR_INIT;
-
-                // ===== ACK =====
-                packetTypeToSend = Pkt::ACK;
-                ackToSend = Pkt::NEW_PLAYER;
             }
             else if (port == COMM_PORT_SERVER) {
                 switch (type) {
@@ -166,7 +144,16 @@ int Server::receiveLoop() {
 
                                     // User received opponents info and is waiting for the start signal:
                                     case Pkt::READY_R: {
-                                        clients[name].status = Status::READY_TO_START;
+                                        int nbOpp;
+                                        packet >> nbOpp;
+
+                                        if (nbOpp == clients.size() - 1) {
+                                            clients[name].status = Status::READY_TO_START;
+                                        }
+                                        else {
+                                            std::cout << name << " is missing one (or more) opponents!" << std::endl;
+                                            clients[name].status = Status::WAITING_FOR_OPPONENTS;
+                                        }
                                         break;
                                     }
 
@@ -201,11 +188,11 @@ int Server::receiveLoop() {
                                 pings[player.name] = clock.getElapsedTime().asMilliseconds() - time;
 
                                 // Get the current server state AND last player state (which might be the next server state!)
-                                semaphore.acquire();
                                 currentState = buffer.getCurrentState();
+                                semaphore.acquire();
                                 playerState = buffer.getLastState(player);
-                                buffer.addInputsToLastState(player, clock.getElapsedTime().asMilliseconds(), inputs);
                                 semaphore.release();
+                                buffer.addInputsToLastState(player, clock.getElapsedTime().asMilliseconds(), inputs);
 
                                 // ====== POSITION ======
                                 position = playerState.getPosition();
@@ -301,9 +288,6 @@ int Server::receiveLoop() {
                                     buffer.updateNextPlayerState(player, s);
                                     semaphore.release();
                                 }
-                                semaphore.acquire();
-                                packetTypeToSend = Pkt::GLOBAL;
-                                semaphore.release();
                                 break;
                             }
                             case Pkt::END_GAME: {
@@ -348,7 +332,7 @@ int Server::sendLoop() {
         int tick = clock.getElapsedTime().asMilliseconds();
 
         for (auto & [name, player] : clients) {
-            sf::Packet packet;
+            packet.clear();
             switch (player.status) {
                 // If user has been created but didn't receive confirmation yet:
                 case Status::WAITING_FOR_INIT: {
@@ -366,8 +350,7 @@ int Server::sendLoop() {
                         int nb = 1;
                         for (auto &[n, p] : clients) {
                             // Check that everyone know they've been ACKd by server:
-                            ready = ready and p.status == Status::WAITING_FOR_OPPONENTS;
-
+                            ready = ready and (p.status == Status::WAITING_FOR_OPPONENTS or p.status == Status::READY_TO_START);
                             // Set position of clients:
                             Position pos;
                             pos.setX(Const::MAP_SIZE_X / 2 + (Const::MAP_SIZE_X / 4) * std::cos(nb*(2*M_PI / clients.size())));
@@ -379,7 +362,7 @@ int Server::sendLoop() {
                             buffer.updateNextPlayerState(p, s);
 
                             // Add everything in packet:
-                            packet << p.name << p.color.r << p.color.g << p.color.b << p.color.a << s;
+                            packet << p.name << p.color.r << p.color.g << p.color.b << p.color.a;
                             nb++;
                         }
                     }
@@ -417,16 +400,28 @@ int Server::sendLoop() {
                 }
 
                 case Status::DONE: {
-                    packet << Pkt::GLOBAL << clock.getElapsedTime().asMilliseconds();
+                    packet << Pkt::GLOBAL << int(clock.getElapsedTime().asMilliseconds());
                     for (auto & [n, state] : currentState) {
                         packet << n << state;
                     }
-                    buffer.push(clock.getElapsedTime().asMilliseconds());
+
+                    semaphore.acquire();
+                    addLine(
+                    "Server >>> " + name
+                    + " position: (" + std::to_string(currentState[name].getPosition().getY())
+                    + ", " + std::to_string(currentState[name].getPosition().getY())
+                    + ") ; radius : " + std::to_string(currentState[name].getRadius())
+                    + " attack : " + std::to_string(currentState[name].getAttack())
+                    , sf::Color::White);
+                    addToGraph(clock.getElapsedTime().asMilliseconds(), "Server", "clients");
+                    semaphore.release();
+
+                    break;
                 }
             }
-
             socket.send(packet, sender.value(), player.port);
         }
+        buffer.push(clock.getElapsedTime().asMilliseconds());
     }
     receiveThread.join();
     return Err::ERR_NONE;

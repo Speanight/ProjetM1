@@ -237,10 +237,6 @@ void MainWindow::quickSetup() {
          });
     }
 
-    clientA->addOpponent(clientB->getName(), clientB->getColor());
-    clientB->addOpponent(clientA->getName(), clientA->getColor());
-
-
     addClient(clientA);
     addClient(clientB);
 

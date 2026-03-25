@@ -128,7 +128,8 @@ void Input::handleInput(int inputCode, float value) {
 }
 
 sf::Packet& operator<<(sf::Packet &packet, Input inputs) {
-    return packet << inputs.getId() << inputs.getMovementX() << inputs.getMovementY() << inputs.getRotate() << inputs.getChangeWpn() << inputs.getAttack() << inputs.getOnController();
+    return packet << inputs.getId() << inputs.getMovementX() << inputs.getMovementY()
+    << inputs.getRotate() << inputs.getChangeWpn() << inputs.getAttack() << inputs.getOnController();
 }
 
 sf::Packet& operator>>(sf::Packet &packet, Input& inputs) {

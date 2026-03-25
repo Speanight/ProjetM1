@@ -34,9 +34,6 @@ private:
     std::unordered_map<std::string, Player> clients;
     std::unordered_map<std::string, int> pings;
 
-    int packetTypeToSend    = Pkt::NONE;
-    int ackToSend           = Pkt::NONE;
-
     int amtPlayers = 2;     // TODO : make something better to handle how many players we want before starting the game
 
     bool loop = true;

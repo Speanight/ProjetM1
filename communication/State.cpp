@@ -134,7 +134,7 @@ sf::Packet& operator>>(sf::Packet &packet, State& state) {
     Position pos;
     float radius;
     bool attack;
-    int wpnId;
+    short wpnId;
     int size;
     int point;
     int timestamp;

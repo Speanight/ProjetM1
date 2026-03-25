@@ -82,9 +82,9 @@ namespace Pkt {
 
 
     // // TODO : delete the old package types
-    // static const int ROUND_START = 20;   // tick << amtPlayers << client.name << client.position
-    // static const int POSITION = 21;      // tick << client.position
-    // static const int NEW_GAME = 22;
+     static const int ROUND_START = 20;   // tick << amtPlayers << client.name << client.position
+     static const int POSITION = 21;      // tick << client.position
+     static const int NEW_GAME = 22;
 }
 
 namespace Inputs {
@@ -113,6 +113,7 @@ namespace Status {
     static constexpr short READY_TO_START = 2; // Received all opponents info.
     static constexpr short DONE = 3; // Ready and playing.
     static constexpr short DEAD = 4;
+    static constexpr short WAITING_FOR_ROUND_START = 5;
 }
 
 namespace Screens {
