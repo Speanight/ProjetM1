@@ -248,6 +248,8 @@ void drawWeapon(Player player, ImDrawList* draw_list, ImVec2 pl_position, float 
     }
 }
 
+
+
 void drawEndScreen(ImDrawList* draw_list, Player player, ImVec2 min, ImVec2 max, bool victory) {
     ImVec2 center = {
         (min.x + max.x) * 0.5f,

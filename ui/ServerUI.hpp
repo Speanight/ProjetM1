@@ -24,7 +24,7 @@ private:
     sf::Font font;
     sf::Vector2f position;
     int size = 32;
-    bool pauseConsole = false;
+    bool pauseConsole = true;   //TODO : put it back to false when doneee
 
     // Graphs
     int lastTimestamp;

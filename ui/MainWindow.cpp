@@ -33,26 +33,90 @@ void MainWindow::addClient(ClientUI* client) {
 /**
  * Draw the main window
  */
+// void MainWindow::drawGame() {
+//     /// Game size will be determine with the basic size of the window (1280, 850)
+//     /// minimum + maximum height for the server is 300px
+//     /// minimum + maximum height for the config is 100px
+//     /// minimum height for the game is 400px (can get bigger)
+//     ///
+//
+//     // Calculating all position :
+//
+//
+//     // CONFIG PART
+//     {
+//
+//     }
+//
+//     ImGui::Columns(clients.size());
+//
+//      for (auto & client : clients) {
+//          client->drawGame();
+//          ImGui::NextColumn();
+//      }
+//
+//     ImGui::Separator();
+//     ImGui::Columns(2, nullptr, false);
+//
+//     for (auto & client : clients) {
+//         client->drawConfig();
+//         ImGui::NextColumn();
+//     }
+//
+//     ImGui::Columns(1);
+//     ImGui::Separator();
+//     server.draw();
+//     ImGui::End();
+// }
+
 void MainWindow::drawGame() {
 
-    ImGui::Columns(clients.size());
+    ImVec2 avail = ImGui::GetContentRegionAvail();
 
-     for (auto & client : clients) {
-         client->drawGame();
-         ImGui::NextColumn();
-     }
+    float gap = avail.y * 0.01f;
 
-    ImGui::Separator();
-    ImGui::Columns(2, nullptr, false);
+    // ===== SERVER ZONE =====
+    float server_h = std::max(300.0f, avail.y * 0.3f);
+
+    // ===== GAME ZONE =====
+    float game_h = avail.y - server_h - gap;
+
+    // =========================================================
+    // ===================== GAME AREA ==========================
+    // =========================================================
+    ImGui::BeginChild("GameArea", ImVec2(0, game_h), false);
+
+    ImVec2 gameAvail = ImGui::GetContentRegionAvail();
+    float col_gap = gameAvail.x * 0.01f;
+
+    ImGui::Columns(clients.size(), nullptr, false);
 
     for (auto & client : clients) {
-        client->drawConfig();
+
+        ImVec2 colAvail = ImGui::GetContentRegionAvail();
+
+        // ===== CONFIG =====
+        client->drawConfig(); // 130px fixe
+
+        // ===== GAME =====
+        client->drawGame(); // prend le reste
+
         ImGui::NextColumn();
     }
 
     ImGui::Columns(1);
-    ImGui::Separator();
+    ImGui::EndChild();
+
+    // GAP entre game et server
+    ImGui::Dummy(ImVec2(0, gap));
+
+    // =========================================================
+    // ===================== SERVER AREA ========================
+    // =========================================================
+    ImGui::BeginChild("ServerArea", ImVec2(0, server_h), true);
     server.draw();
+    ImGui::EndChild();
+
     ImGui::End();
 }
 
@@ -99,7 +163,7 @@ void MainWindow::drawPlayerSelect() {
 }
 
 void MainWindow::loop() {
-    sf::RenderWindow window(sf::VideoMode({1280, 850}), "Projet M1");
+    sf::RenderWindow window(sf::VideoMode({1280, 880}), "Projet M1");
     window.setPosition({0,0});
 
     // check imgui OK
