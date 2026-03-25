@@ -98,6 +98,7 @@ public:
     bool getCompensationEnabled(int compensation);
     float getRadius() const;
     Position getPosition() const;
+    int getStatus() const;
 
     Input getInputs(bool mode_enable=false, bool attack_enable=true);
 
@@ -108,6 +109,7 @@ public:
     void setKeybinds(std::unordered_map<int, std::variant<sf::Keyboard::Key, sf::Joystick::Axis, int>> keybinds);
     void setPosition(Position p);
     void setRadius(float radius);
+    void setStatus(int status);
     void setCompensations(std::array<bool,3> compensations);
     void setController(short controller);
 

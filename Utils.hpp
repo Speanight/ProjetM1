@@ -101,12 +101,12 @@ namespace Compensation {
 }
 
 namespace Status {
-    static constexpr short WAITING_FOR_ROUND_START = 0;     // Player creation is done  (UI = loading screen / trainig zone page)
-    static constexpr short READY_TO_START = 1;
-    static constexpr short DONE = 2;                        // Player is in the fight   (UI = fight / normal page)
-    static constexpr short DEAD = 3;                        // Player is dead           (UI = loose page)
-    static constexpr short WINNER = 4;                      // Player win               (UI = win page)
-    static constexpr short NOT_SET = 5;                     // Player is not set        (UI = creation page)
+    static constexpr short WAITING_FOR_INIT = 0;        // Waiting for server to acknowledge client                     UI = setting player screen
+    static constexpr short WAITING_FOR_OPPONENTS = 1;   // Waiting for opponents info (the player is set but alone)     UI = loading screen
+    static constexpr short READY_TO_START = 2;          // Received all opponents info                                  UI = loading screen (waiting for start round)
+    static constexpr short DONE = 3;                    // Ready and playing                                            UI = fighting screen
+    static constexpr short DEAD = 4;                    // Player dead                                                  UI = loose screen
+    static constexpr short WIN  = 5;                    // PLayer win                                                   UI = win screen
 }
 
 namespace Screens {

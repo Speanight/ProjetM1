@@ -248,7 +248,7 @@ void drawWeapon(Player player, ImDrawList* draw_list, ImVec2 pl_position, float 
     }
 }
 
-void drawLooseScreen(ImDrawList* draw_list, Player player, ImVec2 min, ImVec2 max) {
+void drawEndScreen(ImDrawList* draw_list, Player player, ImVec2 min, ImVec2 max, bool victory) {
     ImVec2 center = {
         (min.x + max.x) * 0.5f,
         (min.y + max.y) * 0.5f
@@ -256,17 +256,53 @@ void drawLooseScreen(ImDrawList* draw_list, Player player, ImVec2 min, ImVec2 ma
 
     ImFont* font = ImGui::GetFont();
 
+    float total_height = max.y - min.y;
+    float zone_h = total_height / 3.0f;
+
+    float y_title = min.y;
+    float y_msg   = min.y + zone_h;
+    float y_btn   = min.y + 2.0f * zone_h;
+
+    // SETTING
+    const char* title;
+    static std::vector<std::string> messages;
+
+    if(victory) {
+        title = "VICTOIRE";
+        messages = {
+            "HONORRRR ! ",
+            "La dibidjiii",
+            "BOMBE THERMONUCLEAIRE vs BEBE QUI TOUSSE",
+            "EPIC WIN",
+            "Hehe bah alors, c'est qui le meilleur ?",
+            "Wahhh gg bro",
+            "TEST 0",
+            "TEST 1"
+        };
+    }
+    else {
+        title = "DOMMAGE";
+        messages = {
+            "You can do it !* (*statement of friendship only, you may not be able to do it)",
+            "Ah pas loin!",
+            "Il a triché t'inquiète",
+            "Mais je me fait big gank là c'est quoi ça !",
+            "Blammez les JOUEURS pas le jeu...",
+            "La prochaine fois c'est la bonne",
+            "TEST 0",
+            "TEST 1"
+        };
+    }
+
     // TITLE
     {
-        const char* title = "DOMMAGE";
-
         float title_size = 50.0f;
 
         ImVec2 title_dim = font->CalcTextSizeA(title_size, FLT_MAX, 0.0f, title);
 
         ImVec2 title_pos = {
             center.x - title_dim.x * 0.5f,
-            min.y + 40.0f
+            y_title + (zone_h - title_dim.y) * 0.5f
         };
 
         draw_list->AddText(
@@ -285,20 +321,7 @@ void drawLooseScreen(ImDrawList* draw_list, Player player, ImVec2 min, ImVec2 ma
 
     // RANDOM PRAISE
     {
-        static std::vector<std::string> messages = {
-            "You can do it !* (*statement of friendship only, you may not be able to do it)",
-            "Ah pas loin!",
-            "Il a triché t'inquiète",
-            "Mais je me fait big gank là c'est quoi ça !",
-            "Blammez les JOUEURS pas le jeu...",
-            "La prochaine fois c'est la bonne",
-            "TEST 0",
-            "TEST 1"
-        };
-
-        // Ports are random so we can use them
         static int selected = player.port % messages.size();
-
         std::string msg = messages[selected];
 
         float msg_size = 18.0f;
@@ -307,7 +330,7 @@ void drawLooseScreen(ImDrawList* draw_list, Player player, ImVec2 min, ImVec2 ma
 
         ImVec2 msg_pos = {
             center.x - msg_dim.x * 0.5f,
-            max.y - 80.0f
+            y_msg + (zone_h - msg_dim.y) * 0.5f
         };
 
         draw_list->AddText(
@@ -319,63 +342,103 @@ void drawLooseScreen(ImDrawList* draw_list, Player player, ImVec2 min, ImVec2 ma
         );
     }
 
-    // BUTTON RESTART
+    // BUTTONS
     {
-        const char* btn_text = "RECOMMENCER";
+    float btn_font_size = 22.0f;
 
-        float btn_font_size = 22.0f;
+    int nb_buttons = 3;
+    float gap = 15.0f;
 
-        ImVec2 btn_text_dim = font->CalcTextSizeA(btn_font_size, FLT_MAX, 0.0f, btn_text);
+    float total_width = max.x - min.x;
 
-        ImVec2 btn_size = {
-            btn_text_dim.x + 30.0f,
-            btn_text_dim.y + 15.0f
-        };
+    // largeur boutons
+    float usable_width = total_width - (gap * (nb_buttons - 1));
+    float btn_width = usable_width / nb_buttons;
 
-        ImVec2 btn_min = {
-            center.x - btn_size.x * 0.5f,
-            center.y + 40.0f
-        };
+    // hauteur basée sur la zone
+    float btn_height = 60.0f;
 
-        ImVec2 btn_max = {
-            btn_min.x + btn_size.x,
-            btn_min.y + btn_size.y
-        };
+    ImVec2 btn_size = { btn_width, btn_height };
 
-        // Interaction
+    // centré verticalement dans la zone bouton
+    float y = y_btn + (zone_h - btn_height) * 0.5f;
+
+    float start_x = min.x;
+
+    // ===== RETRY =====
+    {
+        std::string btn_text = "RETRY";
+
+        ImVec2 btn_min = { start_x, y };
+        ImVec2 btn_max = { btn_min.x + btn_size.x, btn_min.y + btn_size.y };
+
         ImGui::SetCursorScreenPos(btn_min);
-        if (ImGui::InvisibleButton("restart_btn", btn_size)) {
-            // Putting the player back in the player selection zone
-            // player.status = Status::NOT_SET;
-            std::cout << "CLICK ON THE RESET PLAYER ZONE"<< std::endl;
+        if (ImGui::InvisibleButton("btn_retry", btn_size)) {
+            player.status = Status::WAITING_FOR_OPPONENTS;
+            std::cout<<"CLICK ON "<< btn_text <<std::endl;
         }
 
-        // Button background
-        draw_list->AddRectFilled(
-            btn_min,
-            btn_max,
-            IM_COL32(player.color.r, player.color.g, player.color.b, 255),
-            6.0f
-        );
+        draw_list->AddRectFilled(btn_min, btn_max, IM_COL32(180,180,180,255), 6.0f);
+        draw_list->AddRect(btn_min, btn_max, IM_COL32(255,255,255,255), 6.0f, 0, 2.0f);
 
-        // Text
-        ImVec2 btn_text_pos = {
-            center.x - btn_text_dim.x * 0.5f,
-            btn_min.y + (btn_size.y - btn_text_dim.y) * 0.5f
+        ImVec2 text_dim = font->CalcTextSizeA(btn_font_size, FLT_MAX, 0.0f, btn_text.c_str());
+        ImVec2 text_pos = {
+            btn_min.x + (btn_size.x - text_dim.x) * 0.5f,
+            btn_min.y + (btn_size.y - text_dim.y) * 0.5f
         };
 
-        draw_list->AddText(
-            font,
-            btn_font_size,
-            btn_text_pos,
-            IM_COL32(255, 255, 255, 255),
-            btn_text
-        );
+        draw_list->AddText(font, btn_font_size, text_pos, IM_COL32(255,255,255,255), btn_text.c_str());
+    }
+
+    // ===== CHANGE PLAYER =====
+    {
+        std::string btn_text = "CHANGE PLAYER";
+
+        ImVec2 btn_min = { start_x + (btn_width + gap), y };
+        ImVec2 btn_max = { btn_min.x + btn_size.x, btn_min.y + btn_size.y };
+
+        ImGui::SetCursorScreenPos(btn_min);
+        if (ImGui::InvisibleButton("btn_change", btn_size)) {
+            player.status = Status::WAITING_FOR_INIT;
+            std::cout<<"CLICK ON "<< btn_text <<std::endl;
+        }
+
+        draw_list->AddRectFilled(btn_min, btn_max, IM_COL32(180,180,180,255), 6.0f);
+        draw_list->AddRect(btn_min, btn_max, IM_COL32(255,255,255,255), 6.0f, 0, 2.0f);
+
+        ImVec2 text_dim = font->CalcTextSizeA(btn_font_size, FLT_MAX, 0.0f, btn_text.c_str());
+        ImVec2 text_pos = {
+            btn_min.x + (btn_size.x - text_dim.x) * 0.5f,
+            btn_min.y + (btn_size.y - text_dim.y) * 0.5f
+        };
+
+        draw_list->AddText(font, btn_font_size, text_pos, IM_COL32(255,255,255,255), btn_text.c_str());
+    }
+
+    // ===== MENU =====
+    {
+        std::string btn_text = "MENU";
+
+        ImVec2 btn_min = { start_x + 2 * (btn_width + gap), y };
+        ImVec2 btn_max = { btn_min.x + btn_size.x, btn_min.y + btn_size.y };
+
+        ImGui::SetCursorScreenPos(btn_min);
+        if (ImGui::InvisibleButton("btn_menu", btn_size)) {
+            std::cout<<"CLICK ON "<< btn_text <<std::endl;
+        }
+
+        draw_list->AddRectFilled(btn_min, btn_max, IM_COL32(150,0,0,255), 6.0f);
+        draw_list->AddRect(btn_min, btn_max, IM_COL32(255,255,255,255), 6.0f, 0, 2.0f);
+
+        ImVec2 text_dim = font->CalcTextSizeA(btn_font_size, FLT_MAX, 0.0f, btn_text.c_str());
+        ImVec2 text_pos = {
+            btn_min.x + (btn_size.x - text_dim.x) * 0.5f,
+            btn_min.y + (btn_size.y - text_dim.y) * 0.5f
+        };
+
+        draw_list->AddText(font, btn_font_size, text_pos, IM_COL32(255,255,255,255), btn_text.c_str());
     }
 }
-
-void drawWinnerScreen(ImDrawList* draw_list, Player player, ImVec2 min, ImVec2 max) {
-
 }
 
 Position resolveCollision(Position player, Position opponent) {

@@ -101,6 +101,11 @@ Position Client::getPosition() const {
     return this->player.position;
 }
 
+int Client::getStatus() const {
+    return this->player.status;
+}
+
+
 std::array<bool,3> Client::getCompensations() const {
     return network.compensations;
 }
@@ -116,6 +121,11 @@ void Client::setPosition(Position p) {
     this->player.position.setX(p.getX());
     this->player.position.setY(p.getY());
 }
+
+void Client::setStatus(int status) {
+    this->player.status = status;
+}
+
 
 void Client::setRadius(float radius) {
     this->player.radius = std::fmod(radius, 2.f * std::numbers::pi);

@@ -99,7 +99,7 @@ void MainWindow::drawPlayerSelect() {
 }
 
 void MainWindow::loop() {
-    sf::RenderWindow window(sf::VideoMode({1280, 720}), "Projet M1");
+    sf::RenderWindow window(sf::VideoMode({1280, 850}), "Projet M1");
     window.setPosition({0,0});
 
     // check imgui OK

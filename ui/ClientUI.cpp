@@ -36,10 +36,10 @@ void ClientUI::drawGame() { // Game space
 
     auto player = getPlayer();
     switch (player.status) {
-        case Status::NOT_SET    : {
+        case Status::WAITING_FOR_INIT    : {
             std::cout<<"CREATION PLAYER PAGE"<<std::endl;
         }
-        case Status::WAITING_FOR_ROUND_START: {
+        case Status::WAITING_FOR_OPPONENTS or Status::READY_TO_START : {
             std::cout<<"LOADING SCREEN / TRAINING ZONE"<<std::endl;
             break;
         }
@@ -49,14 +49,15 @@ void ClientUI::drawGame() { // Game space
             break;
         }
         case Status::DEAD : {
-            drawLooseScreen(draw_list, player, childMin, childMax);
+            drawEndScreen(draw_list, player, childMin, childMax, false);
             break;
         }
-        case Status::WINNER : {
-            std::cout<<"WIN SCREEN"<<std::endl;
+        case Status::WIN : {
+            // TODO [delete me in future merge] - will be triggered with the "WIN" status
+            drawEndScreen(draw_list, player, childMin, childMax, true);
             break;
         }
-        default     : {
+        default         : {
             drawErrorScreen(draw_list, player, childMin, childMax);
             break;
         }

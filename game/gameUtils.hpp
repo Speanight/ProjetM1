@@ -18,9 +18,8 @@ void drawFightingScreen(ImDrawList* draw_list, Player player, std::map<std::stri
 void drawPlayer(ImDrawList* draw_list, Player player, ImVec2 min, ImVec2 max);
 void drawWeapon(Player player, ImDrawList* draw_list, ImVec2 pl_position, float scale);
 
-void drawLooseScreen(ImDrawList* draw_list, Player player, ImVec2 min, ImVec2 max);
+void drawEndScreen(ImDrawList* draw_list, Player player, ImVec2 min, ImVec2 max, bool victory);
 
-void drawWinnerScreen(ImDrawList* draw_list, Player player, ImVec2 min, ImVec2 max);
 
 Position resolveCollision(Position player, Position opponent);
 
