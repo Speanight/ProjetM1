@@ -49,16 +49,11 @@ namespace Pkt {
     /////////////////////////
     //// PACKETS HEADERS ////
     /////////////////////////
-
-    // NULL / WAITING PACKET
-    // quand il n'y a aucun paquet a envoyer
-    static const int NONE           = 0;
-
     // SHUTDOWN
-    static const int SHUTDOWN       = 1;    // None                                                                         // indicate to the clients to shut down themselve
+    static const short SHUTDOWN       = 1;    // None                                                                         // indicate to the clients to shut down themselve
 
     // ACKNOLEDGE
-    static const int ACK            = 2;    // Pkt << tick                                                                  // make an acknoledge
+    static const short ACK            = 2;    // Pkt << tick                                                                  // make an acknoledge
     // ACK << READY_R                       // tick                                                                         // acknoledge the server that the client know he can start
     // ACK << DEATH                         // tick                                                                         // acknoledge the server that the client know he is dead
     // ACK << END_R                         // tick                                                                         // acknoledge the server that the client know the round is finished
@@ -67,18 +62,19 @@ namespace Pkt {
 
 
     /// SERVER PACKAGES (what the server send to the clients)
-    static const int READY_R        = 3;    // tick << client.[info client 1] << client.[info client2] << [...]             // put the player in position for the round to start
-    static const int START_R        = 4;    // tick << amtPlayer                                                            // send the signal so start the fight to the players
-    static const int GLOBAL         = 5;    // tick << amtPlayers << client.name << client.position << [...]                // send the position and the information about the players and it's opponent during the game
-    static const int DEATH          = 6;    // tick << killerName                                                           // send the signal to a specific player that the player is dead
-    static const int END_R          = 7;    // tick                                                                         // send the signal that the round is finished
+    static const short READY_R        = 3;    // tick << client.[info client 1] << client.[info client2] << [...]             // put the player in position for the round to start
+    static const short START_R        = 4;    // tick << amtPlayer                                                            // send the signal so start the fight to the players
+    static const short GLOBAL         = 5;    // tick << amtPlayers << client.name << client.position << [...]                // send the position and the information about the players and it's opponent during the game
+    static const short DEATH          = 6;    // tick << killerName                                                           // send the signal to a specific player that the player is dead
+    static const short WIN            = 7;
+    static const short END_R          = 8;    // tick                                                                         // send the signal that the round is finished
 
     /// CLIENT PACKAGES (what the clients send to the server)
-    static const int NEW_PLAYER     = 8;    // tick << client.name << client.color << client.wpn << client.port             // add the new player datas to the server
-    static const int WAIT_OPPONENTS = 9;
-    static const int WAIT_START_R   = 10;    // tick << client.port                                                          // acknoledge the server that the client is waiting for the round to start
-    static const int INPUTS         = 11;   // tick << inputs << client.port                                                // send the new inputs of the player (the mooves, the radius of the weapon, if he is attacking [...]). also acknoledgge the server that they receive the signal to start the fight
-    static const int END_GAME       = 12;   // tick << client.port                                                          // send the signal of the end of the game, asking the server to shutdown
+    static const short NEW_PLAYER     = 9;    // tick << client.name << client.color << client.wpn << client.port             // add the new player datas to the server
+    static const short WAIT_OPPONENTS = 10;
+    static const short WAIT_START_R   = 11;    // tick << client.port                                                          // acknoledge the server that the client is waiting for the round to start
+    static const short INPUTS         = 12;   // tick << inputs << client.port                                                // send the new inputs of the player (the mooves, the radius of the weapon, if he is attacking [...]). also acknoledgge the server that they receive the signal to start the fight
+    static const short END_GAME       = 13;   // tick << client.port                                                          // send the signal of the end of the game, asking the server to shutdown
 
 }
 

@@ -384,6 +384,10 @@ int Client::sendPacket(Input inputs) {
             pkt.packet << Pkt::END_R;
             break;
         }
+        case Status::WIN: {
+            pkt.packet << Pkt::END_R;
+            break;
+        }
         // Unrecognized player status.
         default: {
             std::cout << "Unhandled player status: status #" << player.status << std::endl;
@@ -402,8 +406,8 @@ int Client::sendPacket(Input inputs) {
 int Client::receiveLoop() {
     std::optional<sf::IpAddress> sender = sf::IpAddress::resolve(SERVER_IP);
     sf::Packet packet;
-    int type;
-    int typeAck;
+    short type;
+    short typeAck;
     const sf::Time tickrate = std::chrono::milliseconds(TICKRATE);
     short unsigned int port;
 
@@ -514,6 +518,10 @@ int Client::receiveLoop() {
                         case Pkt::DEATH: {     // tick << killerName                                                           // send the signal to a specific player that the player is dead
                             this->player.point = 0;
                             this->player.status = Status::DEAD;
+                            break;
+                        }
+                        case Pkt::WIN: {
+                            player.status = Status::WIN;
                             break;
                         }
                         case Pkt::END_R: {     // tick                                                                         // send the signal that the round is finished

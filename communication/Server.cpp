@@ -79,7 +79,7 @@ int Server::receiveLoop() {
     std::optional<sf::IpAddress> sender = sf::IpAddress::resolve("127.0.0.1");
     sf::Packet packet;
     short unsigned int port;
-    int type;
+    short type;
     Position position;
     Input inputs;
     const sf::Time tickrate = std::chrono::milliseconds(TICKRATE);
@@ -132,7 +132,7 @@ int Server::receiveLoop() {
                     if (player.port == port) { // Check if ports corresponds (AKA the expected client)
                         switch (type) {
                             case Pkt::ACK: {
-                                int typeAck;
+                                short typeAck;
                                 packet >> typeAck;
 
                                 switch (typeAck) {
@@ -271,7 +271,6 @@ int Server::receiveLoop() {
                                                 if (attackResult == 0) {
                                                     // HIT SECTION
                                                     // TODO : section that choose how the point react depending on the game type we are
-                                                    bool demo_mode = false;
                                                     semaphore.acquire();
                                                     auto opponent = buffer.getLastState(clients[n]);
                                                     semaphore.release();
@@ -372,6 +371,20 @@ int Server::sendLoop() {
 
         int tick = clock.getElapsedTime().asMilliseconds();
 
+        // Check if a player won:
+        unsigned short playersDead = 0;
+        for (auto &[name, player] : clients) {
+            playersDead += player.status == Status::DEAD;
+        }
+
+        if (playersDead+1 == clients.size()) {
+            for (auto &[name, player] : clients) {
+                if (player.status != Status::DEAD) {
+                    clients[name].status = Status::WIN;
+                }
+            }
+        }
+
         for (auto & [name, player] : clients) {
             packet.clear();
             switch (player.status) {
@@ -462,6 +475,10 @@ int Server::sendLoop() {
                 case Status::DEAD: {
                     packet << Pkt::DEATH;
                     break;
+                }
+
+                case Status::WIN: {
+                    packet << Pkt::WIN;
                 }
             }
             socket.send(packet, sender.value(), player.port);

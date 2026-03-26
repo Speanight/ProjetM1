@@ -36,6 +36,7 @@ private:
 
     int maxPlayers = 2;     // TODO : make something better to handle how many players we want before starting the game
 
+    bool demo_mode = false;
     bool loop = true;
     bool newGame = false;
     bool newRound = true;   // TODO : put to false at the begining and changing
