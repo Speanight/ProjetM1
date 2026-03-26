@@ -70,53 +70,56 @@ void MainWindow::addClient(ClientUI* client) {
 // }
 
 void MainWindow::drawGame() {
-
+    // SIZE CONFIGURATION
     ImVec2 avail = ImGui::GetContentRegionAvail();
-
     float gap = avail.y * 0.01f;
-
-    // ===== SERVER ZONE =====
     float server_h = std::max(300.0f, avail.y * 0.3f);
-
-    // ===== GAME ZONE =====
     float game_h = avail.y - server_h - gap;
 
-    // =========================================================
-    // ===================== GAME AREA ==========================
-    // =========================================================
-    ImGui::BeginChild("GameArea", ImVec2(0, game_h), false);
+    // GAME AREA
+    {
+        ImGui::BeginChild("GameArea", ImVec2(0, game_h), false);
+        // Separation between players
+        ImVec2 start = ImGui::GetWindowPos();
+        ImVec2 size  = ImGui::GetWindowSize();
+        ImVec2 end   = ImVec2(start.x + size.x, start.y + size.y);
 
-    ImVec2 gameAvail = ImGui::GetContentRegionAvail();
-    float col_gap = gameAvail.x * 0.01f;
+        ImDrawList* draw_list = ImGui::GetWindowDrawList();
 
-    ImGui::Columns(clients.size(), nullptr, false);
+        float totalWidth = size.x;
+        float colWidth = totalWidth / clients.size();
 
-    for (auto & client : clients) {
+        for (int i = 1; i < clients.size(); i++) {
+            float x = start.x + colWidth * i;
 
-        ImVec2 colAvail = ImGui::GetContentRegionAvail();
+            draw_list->AddLine(
+                ImVec2(x, start.y),
+                ImVec2(x, end.y),
+                IM_COL32(255, 255, 255, 80),
+                1.0f
+            );
+        }
 
-        // ===== CONFIG =====
-        client->drawConfig(); // 130px fixe
+        // adding game and config
+        ImGui::Columns(clients.size(), nullptr, false);
 
-        // ===== GAME =====
-        client->drawGame(); // prend le reste
+        for (auto & client : clients) {
+            client->drawConfig();
+            client->drawGame();
+            ImGui::NextColumn();
+        }
 
-        ImGui::NextColumn();
+        ImGui::Columns(clients.size(), nullptr, false);
+        ImGui::Columns(1);
+        ImGui::EndChild();
     }
 
-    ImGui::Columns(1);
-    ImGui::EndChild();
-
-    // GAP entre game et server
-    ImGui::Dummy(ImVec2(0, gap));
-
-    // =========================================================
-    // ===================== SERVER AREA ========================
-    // =========================================================
-    ImGui::BeginChild("ServerArea", ImVec2(0, server_h), true);
-    server.draw();
-    ImGui::EndChild();
-
+    // SERVER
+    {
+        ImGui::BeginChild("ServerArea", ImVec2(0, server_h), true);
+        server.draw();
+        ImGui::EndChild();
+    }
     ImGui::End();
 }
 

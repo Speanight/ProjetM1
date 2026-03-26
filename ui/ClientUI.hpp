@@ -19,8 +19,19 @@ public:
 
     void addOpponent(const std::string& name, sf::Color color);
 
+    // Draw functions
     void drawGame();
     void drawConfig();
+
+    void drawSelectionScreen(ImDrawList* draw_list, ImVec2 min, ImVec2 max);
+
+    void drawWaitingScreen(ImDrawList* draw_list, ImVec2 min, ImVec2 max);
+
+    void drawFightingScreen(ImDrawList* draw_list, const Player player, std::map<std::string, Player> opponents, ImVec2 min, ImVec2 max);
+    void drawPlayer(ImDrawList* draw_list, const Player player, ImVec2 min, ImVec2 max);
+    void drawWeapon(Player player, ImDrawList* draw_list, ImVec2 pl_position, float scale);
+
+    void drawEndScreen(ImDrawList* draw_list, ImVec2 min, ImVec2 max, bool victory);
 };
 
 

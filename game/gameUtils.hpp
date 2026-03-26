@@ -10,17 +10,6 @@
 
 void drawErrorScreen(ImDrawList* draw_list, Player, ImVec2 min, ImVec2 max);
 
-void drawSelectionScreen(ImDrawList* draw_list, ImVec2 min, ImVec2 max);
-
-void drawWaitingScreen(ImDrawList* draw_list, ImVec2 min, ImVec2 max);
-
-void drawFightingScreen(ImDrawList* draw_list, Player player, std::map<std::string, Player> opponents, ImVec2 min, ImVec2 max);
-void drawPlayer(ImDrawList* draw_list, Player player, ImVec2 min, ImVec2 max);
-void drawWeapon(Player player, ImDrawList* draw_list, ImVec2 pl_position, float scale);
-
-void drawEndScreen(ImDrawList* draw_list, Player player, ImVec2 min, ImVec2 max, bool victory);
-
-
 Position resolveCollision(Position player, Position opponent);
 
 short resolveAttacks(State attacker, State opponent);
