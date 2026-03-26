@@ -24,7 +24,9 @@ Client::Client(const sf::Clock clock, std::string name, short controller, sf::Co
     this->player.timer_atk = -1;
     this->controllerNumber = controller;
 
-    Weapon wpn (player.weapons[0]);                         // ID of the default wpn
+    this->player.status = Status::WAITING_FOR_INIT;
+
+    Weapon wpn (player.weapons[0]); // ID of the default wpn
     this->player.wpn = wpn;
 }
 
@@ -258,11 +260,6 @@ Input Client::getInputs(bool mode_enable, bool attack_enable) {
  * @return - Error code. (Const. Err:: in Utils.hpp)
  */
 int Client::update() {
-    // Init with a round start:
-    packetTypeToSend = Pkt::NEW_PLAYER;  // TODO : while the main is not creating the player directly in the server, un-comment this
-    // packetTypeToSend = Pkt::WAIT_START_R;
-    sendPacket(this->getInputs());
-
     bool mode_enable = true;    // set the ability to change the weapon to true at the beginning
     bool attack_enable = true;  // set the ability to attack at true at the beginning
 
@@ -354,109 +351,50 @@ int Client::update() {
  * executing.
  */
 int Client::sendPacket(Input inputs) {
-    // QueuedPacket pkt;
-    // pkt.timestamp = clock.getElapsedTime();
     QueuedPacket pkt;
     pkt.timestamp = clock.getElapsedTime();
-    int tick = clock.getElapsedTime().asMilliseconds();
 
-    if(packetTypeToSend != Pkt::NONE) {
-        switch (packetTypeToSend) {
-            case Pkt::ACK               : {     // Pkt << tick
-                pkt.packet << Pkt::ACK;
-
-                switch (ackToSend) {
-                    case Pkt::READY_R   : {
-                        pkt.packet << Pkt::READY_R << tick;
-                        break;
-                    }
-
-                    case Pkt::DEATH     : {
-                        pkt.packet << Pkt::DEATH << tick;
-                        break;
-                    }
-
-                    case Pkt::END_R     : {
-                        pkt.packet << Pkt::END_R << tick;
-                        break;
-                    }
-
-                    default             : {
-                        std::cout << "Unrecognized acknoledge packet send in client section, please identify yourself " << ackToSend << std::endl;
-                        break;
-                    }
-                }
-                break;
-            }
-            case Pkt::NEW_PLAYER        : {     // tick << client.name << client.color << client.wpn << client.port
-                pkt.packet << Pkt::NEW_PLAYER;
-                short r = player.color.r;
-                short g = player.color.g;
-                short b = player.color.b;
-                short a = player.color.a;
-                pkt.packet << tick << player.name << r << g << b << a << player.wpn.getId() << player.port;
-                // std::cout << "new player request "<< player.name << std::endl;
-                break;
-            }
-            case Pkt::WAIT_START_R      : {     // tick << client.port
-                pkt.packet << Pkt::WAIT_START_R;
-                pkt.packet << tick << player.port;
-                // std::cout << "player " << player.name << " is waiting to start ! " << std::endl;
-                break;
-            }
-            case Pkt::INPUTS            : {     // tick << inputs << client.port
-                pkt.packet << Pkt::INPUTS << pkt.timestamp.asMilliseconds() << inputs << player.port;
-                break;
-            }
-            case Pkt::END_GAME          : {     // tick << client.port
-                sf::Packet packet;
-                packet << Pkt::END_GAME;
-                packet << tick << player.port;
-                break;
-            }
-            default                     : {
-                std::cout << "Unrecognized packet send in client section, please identify yourself " << packetTypeToSend << std::endl;
-                break;
-            }
-        }
-        queuedPackets.push_back(pkt); // Adds the packet to the array of packets.
-        auto packetToSend = getLatestQueuedPacket();
-        if (packetToSend.has_value()) {
-            socket.send(packetToSend.value(), server, COMM_PORT_SERVER);
-        }
-    }
-    /*
-    sf::Packet preparedPacket;
     switch (player.status) {
-        case Status::WAITING_FOR_ROUND_START: {
-            preparedPacket << Pkt::ACK << Pkt::ROUND_START << clock.getElapsedTime().asMilliseconds();
+        // Player sends their data to the server, waiting for ACK:
+        case Status::WAITING_FOR_INIT: {
+            pkt.packet << Pkt::NEW_PLAYER;
+            pkt.packet << player.name << player.color.r << player.color.g << player.color.b << player.color.a;
+            pkt.packet << player.wpn.getId();
             break;
         }
 
-        // Client sent waiting for round start and received answer. Waiting for other clients:
+        // Player is waiting for data of their opponents:
+        case Status::WAITING_FOR_OPPONENTS: {
+            // Tells the server it ACKd that it has been added to the players pool.
+            pkt.packet << Pkt::ACK << Pkt::NEW_PLAYER;
+            break;
+        }
+
+        // Player is ready to start and gives the info to the server:
         case Status::READY_TO_START: {
-            preparedPacket << Pkt::ACK << Pkt::ACK << clock.getElapsedTime().asMilliseconds(); // Waiting...
+            pkt.packet << Pkt::ACK << Pkt::READY_R << int(opponents.size());
             break;
         }
-
-        // Default behavior: game is playing.
+        // Game has been started:
         case Status::DONE: {
-            preparedPacket << Pkt::INPUTS << clock.getElapsedTime().asMilliseconds() << inputs;
+            pkt.packet << Pkt::INPUTS << int(pkt.timestamp.asMilliseconds()) << inputs << player.port;
             break;
         }
+        case Status::DEAD: {
+            pkt.packet << Pkt::END_R;
+            break;
+        }
+        // Unrecognized player status.
+        default: {
+            std::cout << "Unhandled player status: status #" << player.status << std::endl;
+            return Err::PLAYER_STATUS_UNSYNCED;
+        }
     }
-
-    QueuedPacket pkt;
-    pkt.timestamp = clock.getElapsedTime();
-    pkt.packet = preparedPacket;
-    queuedPackets.push_back(pkt);
-
-    auto packet = getLatestQueuedPacket();
-
-    if (packet.has_value()) {
-        socket.send(packet.value(), server, COMM_PORT_SERVER);
+    queuedPackets.push_back(pkt); // Adds the packet to the array of packets.
+    auto packetToSend = getLatestQueuedPacket();
+    if (packetToSend.has_value()) {
+        socket.send(packetToSend.value(), server, COMM_PORT_SERVER);
     }
-    */
 
     return Err::ERR_NONE;
 }
@@ -479,169 +417,111 @@ int Client::receiveLoop() {
                 if (port == COMM_PORT_SERVER) {
                     packet >> type;
                     switch (type) {
-                        case Pkt::SHUTDOWN      : {     // None                                                                         // indicate to the clients to shut down themselve
-                            std::cout << "Client " << player.name << " received shutdown packet!" << std::endl;
-                            loop = false;
-                            break;
-                        }
-                        case Pkt::ACK           : {     // Pkt << tick                                                                  // make an acknoledge
+                        case Pkt::ACK: {
                             packet >> typeAck;
                             switch(typeAck) {
-                                case Pkt::NEW_PLAYER    : { // tick                                                                     // acknoledge the client that the server know he exist and have datas
-                                    if(created)break;
-                                    created = true;
-                                    // std::cout << "Player created ! "<< std::endl;
-                                    packetTypeToSend = Pkt::WAIT_START_R;
+                                // Server ACKd player:
+                                case Pkt::NEW_PLAYER: {
+                                    player.status = Status::WAITING_FOR_OPPONENTS;
                                     break;
                                 }
-                                default                 : {
-                                    std::cout << "Unrecognized acknoledge packet received in client section, please identify yourself " << typeAck << std::endl;
+
+                                // All users are added, server is waiting for everyone to receive all data:
+                                case Pkt::WAIT_START_R: {
+                                    player.status = Status::READY_TO_START;
+                                    break;
+                                }
+
+                                case Pkt::WAIT_OPPONENTS: {
+                                    std::cout << "Not everyone is ready!" << std::endl;
+                                    player.status = Status::WAITING_FOR_OPPONENTS;
+                                    break;
+                                }
+
+                                default: {
+                                    std::cout << "Unrecognized acknowledge packet received in client section, please identify yourself " << typeAck << std::endl;
                                     break;
                                 }
                             }
                             break;
                         }
-                        case Pkt::READY_R       : {
-                            semaphore.acquire();
 
-                            int tick;
-                            int nbPlayers;
-
-                            if (!(packet >> tick >> nbPlayers)) {
-                                std::cout << "[CLIENT " << player.name << "] ERROR reading header" << std::endl;
-                                semaphore.release();
-                                break;
-                            }
-
-                            for (int i = 0; i < nbPlayers; i++) {
-                                std::string n;
-                                State s;
-                                int r, g, b, a;
-                                int wpn_id;
-
-                                if (!(packet >> n >> r >> g >> b >> a >> wpn_id >> s)) {
-                                    std::cout << "[CLIENT " << player.name << "] ERROR reading player #" << i << std::endl;
-                                    break;
-                                }
-
-                                // PLAYER LOCAL
-                                if (n == player.name) {
-                                    bufferOnReceipt.updateNextPlayerState(player, s);
-                                    if (!this->getCompensations()[Compensation::RECONCILIATION]) {
-                                        this->player.position.setX(s.getPosition().getX());
-                                        this->player.position.setY(s.getPosition().getY());
-                                        this->player.radius = s.getRadius();
-                                    }
-                                    this->player.isAttacking = s.getAttack();
-                                    this->player.wpn.applyID(s.getWpn().getId());
-                                    this->player.point = s.getPoint();
-                                    this->player.status = Status::DONE;
-                                }
-                                // OPPONENT
-                                else {
-                                    if (!opponents.contains(n)) {
-                                        Player newOpponent;
-                                        newOpponent.name = n;
-                                        newOpponent.color = sf::Color(r, g, b, a);
-                                        newOpponent.wpn.applyID(wpn_id);
-                                        newOpponent.status = Status::DONE;
-
-                                        opponents[n] = newOpponent;
-
-                                        bufferOnReceipt.addClient(opponents[n]);
-                                    }
-
-                                    opponents[n].position.setX(s.getPosition().getX());
-                                    opponents[n].position.setY(s.getPosition().getY());
-                                    opponents[n].radius = s.getRadius();
-                                    opponents[n].isAttacking = s.getAttack();
-                                    opponents[n].wpn.applyID(s.getWpn().getId());
-                                    opponents[n].point = s.getPoint();
-
-                                    bufferOnReceipt.updateNextPlayerState(opponents[n], s);
-                                }
-                            }
-                            bufferOnReceipt.push(tick);
-
-
-                            // ===== ACK =====
-                            packetTypeToSend = Pkt::ACK;
-                            ackToSend = Pkt::READY_R;
-
-                            semaphore.release();
-                            break;
-                        }
-                        case Pkt::START_R       : {     // tick << amtPlayer                                                            // send the signal so start the fight to the players
-                            std::cout << "Client " << getName() << " received ROUND_START" << std::endl;
-                            semaphore.acquire();
-                            packetTypeToSend = Pkt::INPUTS;
-                            semaphore.release();
-                            break;
-                        }
-                        case Pkt::GLOBAL        : {     // tick << amtPlayers << client.name << client.position << [...]                // send the position and the information about the players and it's opponent during the game
-                            int nbPlayers;
-                            int stateTick;
+                        // Server is ready and sends the data and position of each client:
+                        case Pkt::READY_R: {
                             std::string name;
-                            packet >> stateTick >> nbPlayers;
+                            std::uint8_t r, g, b, a;
 
-                            // std::cout<<player.name << " receive a global pket " <<std::endl;
+                            // Loops while we have more opponents to unpack:
+                            while (packet >> name >> r >> g >> b >> a) {
+                                // Drop if represents local instance:
+                                if (name != getName()) {
+                                    // Otherwise, add the new player in opponents list:
+                                    Player pl;
+                                    pl.name = name;
+                                    pl.color = sf::Color(r, g, b, a);
+                                    opponents[name] = pl;
 
-                            while (nbPlayers > 0) {
-                                State state;
-                                packet >> name >> state;
+                                    std::cout << "Adding opponent: " << name << std::endl;
+                                }
+                            }
 
-                                if (name == getName()) {
-                                    bufferOnReceipt.updateNextPlayerState(player, state);
+                            player.status = Status::READY_TO_START;
+
+                            break;
+                        }
+
+                        case Pkt::GLOBAL: {
+                            player.status = Status::DONE;
+                            int tick;
+                            std::string name;
+                            State state;
+
+                            packet >> tick >> lastServerTick;
+
+                            while (packet >> name >> state) {
+                                std::unordered_map<std::string, State> currentState = bufferOnReceipt.getCurrentState();
+                                std::unordered_map<std::string, State> pastState = bufferOnReceipt.getTState(-1);
+
+                                if (name == this->getName()) {
+                                    this->bufferOnReceipt.updateNextPlayerState(player, state);
+                                    semaphore.acquire();
+                                    State currState = bufferOnReceipt.getLastState(player);
+                                    semaphore.release();
+
                                     if (!this->getCompensations()[Compensation::RECONCILIATION]) {
-                                        this->player.position.setX(state.getPosition().getX());
-                                        this->player.position.setY(state.getPosition().getY());
-                                        this->player.radius = state.getRadius();
+                                        this->player.position.setX(currState.getPosition().getX());
+                                        this->player.position.setY(currState.getPosition().getY());
+                                        this->player.radius = currState.getRadius();
                                     }
+                                    this->player.isAttacking = state.getAttack();
                                     this->player.isAttacking = state.getAttack();
                                     this->player.wpn.applyID(state.getWpn().getId());
                                     this->player.point = state.getPoint();
+                                } else {
+                                    // Opponent position:
+                                    this->bufferOnReceipt.updateNextPlayerState(opponents[name], state);
+                                    opponents[name].position.setX(currentState[name].getPosition().getX());
+                                    opponents[name].position.setY(currentState[name].getPosition().getY());
+                                    opponents[name].radius = currentState[name].getRadius();
+                                    opponents[name].isAttacking = currentState[name].getAttack();
+                                    opponents[name].wpn.applyID(currentState[name].getWpn().getId());
+                                    opponents[name].point = currentState[name].getPoint();
                                 }
-                                else {
-                                    opponents[name].position.setX(state.getPosition().getX());
-                                    opponents[name].position.setY(state.getPosition().getY());
-                                    opponents[name].radius = state.getRadius();
-                                    opponents[name].isAttacking = state.getAttack();
-                                    opponents[name].wpn.applyID(state.getWpn().getId());
-                                    opponents[name].point = state.getPoint();
-
-                                    bufferOnReceipt.updateNextPlayerState(opponents[name], state);
-                                }
-
-                                //TODO : make something to apply the state to yhe current players
-                                // applyState(name, state);
-                                nbPlayers--;
                             }
-
-                            this->bufferOnReceipt.push(stateTick);
-                            packet >> lastServerTick;
-
+                            this->bufferOnReceipt.push(tick);
                             break;
                         }
-                        case Pkt::DEATH         : {     // tick << killerName                                                           // send the signal to a specific player that the player is dead
+                        case Pkt::DEATH: {     // tick << killerName                                                           // send the signal to a specific player that the player is dead
                             this->player.point = 0;
                             this->player.status = Status::DEAD;
-
-                            semaphore.acquire();
-                            packetTypeToSend = Pkt::ACK;
-                            ackToSend = Pkt::DEATH;
-                            semaphore.release();
                             break;
                         }
-                        case Pkt::END_R         : {     // tick                                                                         // send the signal that the round is finished
+                        case Pkt::END_R: {     // tick                                                                         // send the signal that the round is finished
                             std::cout<<"receive end R packet"<<std::endl;
                             // TODO : Deleting the actual player and opponent, putting the packetTypeToSend on "None" to wait for the new player
-                            semaphore.acquire();
-                            packetTypeToSend = Pkt::NONE;
-                            semaphore.release();
-
                             break;
                         }
-                        default                 : {
+                        default: {
                             std::cout << "UNKNOWN PACKET RECEIVE CLIENT! Type: " << type << std::endl;
                             break;
                         }

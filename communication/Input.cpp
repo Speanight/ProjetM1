@@ -13,39 +13,39 @@ Input::Input(unsigned int id, float x, float y, float r, bool mode, bool attack,
 }
 
 // Getters
-unsigned int Input::getId() {
+unsigned int Input::getId() const {
     return id;
 }
 
-float Input::getMovementX() {
+float Input::getMovementX() const {
     return movementX;
 }
 
-float Input::getMovementY() {
+float Input::getMovementY() const {
     return movementY;
 }
 
-float Input::getRotate() {
+float Input::getRotate() const {
     return rotate;
 }
 
-bool Input::getChangeWpn() {
+bool Input::getChangeWpn() const {
     return changeWpn;
 }
 
-bool Input::getModeEnable() {
+bool Input::getModeEnable() const {
     return mode_enable;
 }
 
-bool Input::getAttack() {
+bool Input::getAttack() const {
     return attack;
 }
 
-bool Input::getAttackEnable() {
+bool Input::getAttackEnable() const {
     return attack_enable;
 }
 
-bool Input::getOnController() {
+bool Input::getOnController() const {
     return onController;
 }
 
@@ -128,7 +128,8 @@ void Input::handleInput(int inputCode, float value) {
 }
 
 sf::Packet& operator<<(sf::Packet &packet, Input inputs) {
-    return packet << inputs.getId() << inputs.getMovementX() << inputs.getMovementY() << inputs.getRotate() << inputs.getChangeWpn() << inputs.getAttack() << inputs.getOnController();
+    return packet << inputs.getId() << inputs.getMovementX() << inputs.getMovementY()
+    << inputs.getRotate() << inputs.getChangeWpn() << inputs.getAttack() << inputs.getOnController();
 }
 
 sf::Packet& operator>>(sf::Packet &packet, Input& inputs) {
@@ -150,4 +151,8 @@ sf::Packet& operator>>(sf::Packet &packet, Input& inputs) {
     inputs.setOnController(onController);
 
     return packet;
+}
+
+std::ostream &operator<<(std::ostream& os, const Input& inputs) {
+    return os << "#" << inputs.getId() << " x=" << inputs.getMovementX() << "; y=" << inputs.getMovementY() << " ATK=" << inputs.getAttack() << " " << inputs.getRotate() << "°";
 }

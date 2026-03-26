@@ -77,3 +77,7 @@ sf::Packet& operator>>(sf::Packet &packet, Position& position) {
 bool Position::operator==(const Position& other) const {
     return this->getX() == other.getX() and this->getY() == other.getY();
 }
+
+std::ostream &operator<<(std::ostream& os, const Position& position) {
+    return os << "(" << position.getX() << ", " << position.getY() << ")";
+}

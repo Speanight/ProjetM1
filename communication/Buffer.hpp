@@ -21,7 +21,7 @@ struct Player {
     Position position = Position();
 
     // ====== WEAPON ======
-    float radius;               // must be saved as radiant so degree * ~1.111111 = radiant
+    float radius = 0;               // must be saved as radiant so degree * ~1.111111 = radiant
     std::vector<short> weapons = {1, Weapons::SHIELD};
     short weapon = 0; // Index of weapons, points to which weapon is being used right now.
     Weapon wpn;

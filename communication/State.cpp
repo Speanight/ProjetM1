@@ -19,7 +19,7 @@ int State::getTimestamp() const {
     return timestamp;
 }
 
-Position State::getPosition() {
+Position State::getPosition() const {
     return position;
 }
 
@@ -31,7 +31,7 @@ bool State::getAttack() const {
     return attack;
 }
 
-Weapon State::getWpn() {
+Weapon State::getWpn() const {
     return wpn;
 }
 
@@ -40,7 +40,7 @@ int State::getPoint() const {
 }
 
 
-std::map<int,Input> State::getInputs() {
+std::map<int,Input> State::getInputs() const {
     return inputs;
 }
 
@@ -134,7 +134,7 @@ sf::Packet& operator>>(sf::Packet &packet, State& state) {
     Position pos;
     float radius;
     bool attack;
-    int wpnId;
+    short wpnId;
     int size;
     int point;
     int timestamp;
@@ -168,4 +168,8 @@ sf::Packet& operator>>(sf::Packet &packet, State& state) {
 //    }
 
     return packet;
+}
+
+std::ostream &operator<<(std::ostream& os, const State& state) {
+    return os << "@" << state.getTimestamp() << " " << state.getPosition() << " ATK? = " << state.getAttack() << " " << state.getRadius() << "°";
 }

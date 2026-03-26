@@ -8,7 +8,7 @@ MainWindow::MainWindow(sf::Clock clock, bool quickLaunch) : server(clock) {
     thread = std::thread(&MainWindow::loop, this);
 }
 
-//MainWindow::MainWindow(sf::Clock clock, int maxPlayers) : server(clock, maxPlayers) {
+//MainWindow::MainWindow(sf::Clock clock, int amtPlayers) : server(clock, amtPlayers) {
 //    thread = std::thread(&MainWindow::loop, this);
 //}
 
@@ -303,10 +303,6 @@ void MainWindow::quickSetup() {
              {Inputs::ATTACK, sf::Keyboard::Key::O}
          });
     }
-
-    clientA->addOpponent(clientB->getName(), clientB->getColor());
-    clientB->addOpponent(clientA->getName(), clientA->getColor());
-
 
     addClient(clientA);
     addClient(clientB);
