@@ -358,7 +358,7 @@ int Server::sendLoop() {
 
                             Input inputs;
 
-                            State s(tick, pos, inputs, std::numbers::pi/2, true, 0, 100);
+                            State s(tick, pos, inputs, std::numbers::pi/2, false, 0, 100);
                             buffer.updateNextPlayerState(p, s);
 
                             // Add everything in packet:
@@ -400,7 +400,7 @@ int Server::sendLoop() {
                 }
 
                 case Status::DONE: {
-                    packet << Pkt::GLOBAL << int(clock.getElapsedTime().asMilliseconds());
+                    packet << Pkt::GLOBAL << int(buffer.getCurrentTick()) << clock.getElapsedTime().asMilliseconds();
                     for (auto & [n, state] : currentState) {
                         packet << n << state;
                     }
@@ -415,13 +415,22 @@ int Server::sendLoop() {
                     , sf::Color::White);
                     addToGraph(clock.getElapsedTime().asMilliseconds(), "Server", "clients");
                     semaphore.release();
-
                     break;
                 }
             }
             socket.send(packet, sender.value(), player.port);
         }
+        semaphore.acquire();
         buffer.push(clock.getElapsedTime().asMilliseconds());
+        semaphore.release();
+        // POST MAJ
+        for (auto & [name, player] : clients) {
+            State last = buffer.getLastState(player);
+            if(last.getAttack()) {          // setting the attack save into false one so we don't keep the attack signal
+                last.setAttack(false);
+                buffer.updateNextPlayerState(player, last);
+            }
+        }
     }
     receiveThread.join();
     return Err::ERR_NONE;

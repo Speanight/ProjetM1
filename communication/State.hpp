@@ -31,12 +31,12 @@ public:
 
     // Getters / Setters
     int getTimestamp() const;
-    Position getPosition();
-    std::map<int,Input> getInputs();
+    Position getPosition() const;
+    std::map<int,Input> getInputs() const;
     float getRadius() const;
     unsigned int getLastInputsId() const;
     bool getAttack() const;
-    Weapon getWpn();
+    Weapon getWpn() const;
     int getPoint() const;
 
     void setPosition(Position position);
@@ -58,5 +58,6 @@ public:
 sf::Packet& operator<<(sf::Packet &packet, State state);
 sf::Packet& operator>>(sf::Packet &packet, State& state);
 
+std::ostream &operator<<(std::ostream& os, const State& state);
 
 #endif //PROJETM1_STATE_HPP

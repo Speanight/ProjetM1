@@ -4,6 +4,7 @@
 #include <SFML/Network/Packet.hpp>
 #include <unordered_map>
 #include "../Utils.hpp"
+#include <iostream>
 
 class Position {
 private:
@@ -31,5 +32,7 @@ public:
 
 sf::Packet& operator<<(sf::Packet& packet, const Position& position);
 sf::Packet& operator>>(sf::Packet& packet, Position& position);
+
+std::ostream& operator<<(std::ostream& os, const Position& position);
 
 #endif //PROJETM1_POSITION_HPP

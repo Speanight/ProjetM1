@@ -443,6 +443,7 @@ int Client::receiveLoop() {
                                 if (name != getName()) {
                                     // Otherwise, add the new player in opponents list:
                                     Player pl;
+                                    pl.name = name;
                                     pl.color = sf::Color(r, g, b, a);
                                     opponents[name] = pl;
 
@@ -461,7 +462,7 @@ int Client::receiveLoop() {
                             std::string name;
                             State state;
 
-                            packet >> tick;
+                            packet >> tick >> lastServerTick;
 
                             while (packet >> name >> state) {
                                 std::unordered_map<std::string, State> currentState = bufferOnReceipt.getCurrentState();

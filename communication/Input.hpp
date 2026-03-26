@@ -4,6 +4,7 @@
 #include <SFML/Network/Packet.hpp>
 #include "../Utils.hpp"
 #include <cmath>
+#include <iostream>
 
 class Input {
 private:
@@ -22,15 +23,15 @@ public:
     Input(unsigned int id=0, float x=0, float y=0, float r=0, bool mode=false, bool attack=false, bool onController = false);
 
     // Getters
-    unsigned int getId();
-    float getMovementX();
-    float getMovementY();
-    float getRotate();
-    bool getChangeWpn();
-    bool getModeEnable();
-    bool getAttack();
-    bool getAttackEnable();
-    bool getOnController();
+    unsigned int getId() const;
+    float getMovementX() const;
+    float getMovementY() const;
+    float getRotate() const;
+    bool getChangeWpn() const;
+    bool getModeEnable() const;
+    bool getAttack() const;
+    bool getAttackEnable() const;
+    bool getOnController() const;
 
     // Setters
     void setId(unsigned int id);
@@ -50,6 +51,6 @@ public:
 sf::Packet& operator<<(sf::Packet& packet, Input inputs);
 sf::Packet& operator>>(sf::Packet& packet, Input& inputs);
 
-
+std::ostream &operator<<(std::ostream& os, const Input& inputs);
 
 #endif //PROJETM1_INPUT_HPP
