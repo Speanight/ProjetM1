@@ -107,6 +107,10 @@ int Client::getStatus() const {
     return this->player.status;
 }
 
+bool Client::getLoop() const {
+    return this->loop;
+}
+
 
 std::array<bool,3> Client::getCompensations() const {
     return network.compensations;
@@ -128,6 +132,9 @@ void Client::setStatus(int status) {
     this->player.status = status;
 }
 
+void Client::setLoop(bool loop) {
+    this->loop = loop;
+}
 
 void Client::setRadius(float radius) {
     this->player.radius = std::fmod(radius, 2.f * std::numbers::pi);

@@ -103,28 +103,39 @@ namespace Compensation {
 }
 
 namespace Status {
-    static constexpr short WAITING_FOR_INIT = 0; // Waiting for server to acknowledge client.
-    static constexpr short WAITING_FOR_OPPONENTS = 1; // Waiting for opponents info.
-    static constexpr short READY_TO_START = 2; // Received all opponents info.
-    static constexpr short DONE = 3; // Ready and playing.
+    static constexpr short WAITING_FOR_INIT = 0;        // Waiting for server to acknowledge client.
+    static constexpr short WAITING_FOR_OPPONENTS = 1;   // Waiting for opponents info.
+    static constexpr short READY_TO_START = 2;          // Received all opponents info.
+    static constexpr short DONE = 3;                    // Ready and playing.
     static constexpr short DEAD = 4;
-    static constexpr short WAITING_FOR_ROUND_START = 5;
-    static constexpr short WIN  = 6;                    // PLayer win                                                   UI = win screen
+    static constexpr short WIN  = 5;                    // PLayer win
+    static constexpr short END_R = 6;
 }
 
 namespace Screens {
-    static constexpr short TITLE_SCREEN = 0;
-    static constexpr short PLAYER_SELECT = 1;
-    static constexpr short GAME = 2;
+    static constexpr short ERROR_SCREEN         = 0;
+
+    static constexpr short TITLE_SCREEN         = 1;
+
+    // Client UI to print
+    static constexpr short PLAYER_SELECT        = 2;
+    static constexpr short LOADING_SCREEN       = 3;
+    static constexpr short GAME                 = 4;
+    static constexpr short GAME_WIN             = 5;
+    static constexpr short GAME_LOSE            = 6;
+
+
 }
 
 namespace Weapons {
-    // Types
-    static constexpr short TRIANGLE = 0;
-    static constexpr short ARC = 1;
-
     // Specific weapons
     static constexpr short SHIELD = 0;
+
+    // Types
+    static constexpr short TRIANGLE = 1;
+    static constexpr short RECTANGLE = 2;
+    static constexpr short CIRCLE = 3;
+
 }
 
 #endif

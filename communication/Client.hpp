@@ -96,6 +96,8 @@ public:
     float getRadius() const;
     Position getPosition() const;
     int getStatus() const;
+    bool getLoop() const;
+
 
     Input getInputs(bool mode_enable=false, bool attack_enable=true);
 
@@ -107,6 +109,7 @@ public:
     void setPosition(Position p);
     void setRadius(float radius);
     void setStatus(int status);
+    void setLoop(bool loop);
     void setCompensations(std::array<bool,3> compensations);
     void setController(short controller);
 

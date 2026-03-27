@@ -8,6 +8,12 @@
 #include <imgui.h>
 #include "../communication/Client.hpp"
 
+struct Preset {
+    std::string name;
+    int color;
+    int weapon;
+};
+
 void drawErrorScreen(ImDrawList* draw_list, Player, ImVec2 min, ImVec2 max);
 
 Position resolveCollision(Position player, Position opponent);
