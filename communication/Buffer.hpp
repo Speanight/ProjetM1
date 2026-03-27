@@ -8,29 +8,7 @@
 #include "../Utils.hpp"
 #include "../game/Weapon.hpp"
 #include <queue>
-
-struct Player {
-    // ====== SERVER ======
-    unsigned short port;        // NEVER MOOVE THIS [use to create the client on the server and must be here
-    unsigned short status = Status::WAITING_FOR_INIT;
-    unsigned int clockSync;
-
-    // ====== BASIC ======
-    std::string name;
-    sf::Color color;
-    Position position = Position();
-
-    // ====== WEAPON ======
-    float radius = 0;               // must be saved as radiant so degree * ~1.111111 = radiant
-    std::vector<short> weapons = {1, Weapons::SHIELD};
-    short weapon = 0; // Index of weapons, points to which weapon is being used right now.
-    Weapon wpn;
-
-    // ====== ATTACK ======
-    bool isAttacking;           // indicate if the player is attacking or not
-    int timer_atk = -1;         // timer that indicate where we are in the animation, -1 stand for no animation
-    int point;
-};
+#include "../game/Player.hpp"
 
 class Buffer {
 private:

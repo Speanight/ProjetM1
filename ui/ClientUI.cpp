@@ -1,7 +1,5 @@
 #include "ClientUI.hpp"
 
-#include <algorithm>
-
 ClientUI::ClientUI(const sf::Clock clock, std::string name, short controller, sf::Color color) : Client(clock, name, controller, color) {}
 
 void ClientUI::drawGame() { // Game space
@@ -28,7 +26,7 @@ void ClientUI::drawGame() { // Game space
     ImDrawList* draw_list = ImGui::GetWindowDrawList();
 
     auto player = getPlayer();
-    switch (player.status) {
+    switch (player.getStatus()) {
         case Status::WAITING_FOR_INIT    : {
             std::cout<<"CREATION PLAYER PAGE"<<std::endl;
         }
@@ -108,10 +106,8 @@ void ClientUI::drawConfig() {
 
 void ClientUI::addOpponent(const std::string& name, sf::Color color) {
     Player pl;
-    pl.name = name;
-    pl.color = color;
-    pl.wpn = Weapon(0);
-    pl.timer_atk = -1;
+    pl.setName(name);
+    pl.setColor(color);
     opponents.insert(std::make_pair(name, pl));
     this->bufferOnReceipt.addClient(pl);
 }
@@ -141,16 +137,16 @@ void ClientUI::drawFightingScreen(ImDrawList* draw_list, Player player, std::map
     }
 }
 void ClientUI::drawPlayer(ImDrawList* draw_list, Player player, ImVec2 min, ImVec2 max) {
-    if(player.status == Status::DEAD || player.point == 0) {
-        player.color = sf::Color::White;                // TODO : handle the death differently ?
+    if(player.getStatus() == Status::DEAD || player.getPoint() == 0) {
+        player.setColor(sf::Color::White);                // TODO : handle the death differently ?
     }
     float window_size = max.x - min.x;
 
     float scale = window_size / Const::MAP_SIZE_X;
 
     ImVec2 pl_position = {
-        player.position.getX() * scale + min.x,
-        player.position.getY() * scale + min.y
+        player.getPosition().getX() * scale + min.x,
+        player.getPosition().getY() * scale + min.y
     };
 
     float player_radius = Const::PLAYER_SIZE * scale;
@@ -159,13 +155,13 @@ void ClientUI::drawPlayer(ImDrawList* draw_list, Player player, ImVec2 min, ImVe
     draw_list->AddCircleFilled(
         pl_position,
         player_radius,
-        IM_COL32(player.color.r, player.color.g, player.color.b, player.color.a)
+        IM_COL32(player.getColor().r, player.getColor().g, player.getColor().b, player.getColor().a)
     );
 
     drawWeapon(player, draw_list, pl_position, scale);
 
     // ========= POINT =========
-    std::string points = std::to_string(player.point);
+    std::string points = std::to_string(player.getPoint());
 
     float font_size = 16.0f * scale;
 
@@ -194,29 +190,29 @@ void ClientUI::drawPlayer(ImDrawList* draw_list, Player player, ImVec2 min, ImVe
 void ClientUI::drawWeapon(Player player, ImDrawList* draw_list, ImVec2 pl_position, float scale) {
     float player_radius = Const::PLAYER_SIZE * scale;
     float distance = player_radius + 2.f * scale;
-    switch (player.wpn.getType()) {
+    switch (player.getWpn().getType()) {
         case Weapons::TRIANGLE: {
-            ImVec2 dir = {cosf(player.radius), sinf(player.radius)};
-            float height = player.wpn.getHeight() * scale;
-            float width = player.wpn.getWidth() * scale;
+            ImVec2 dir = {cosf(player.getRadius()), sinf(player.getRadius())};
+            float height = player.getWpn().getHeight() * scale;
+            float width = player.getWpn().getWidth() * scale;
 
             // ======== ATTACK ANIMATION ========
             float offset = 0;
-            if (player.timer_atk != -1) {
-                if (player.timer_atk <= player.wpn.getAttackSpeed()) {
-                    offset = player.timer_atk / player.wpn.getAttackSpeed();
-                } else if (player.timer_atk <= player.wpn.getAttackSpeed() + player.wpn.getReload()) {
-                    offset = 1 - player.timer_atk / (player.wpn.getAttackSpeed() + player.wpn.getReload());
+            if (player.getTimer_atk() != -1) {
+                if (player.getTimer_atk() <= player.getWpn().getAttackSpeed()) {
+                    offset = player.getTimer_atk() / player.getWpn().getAttackSpeed();
+                } else if (player.getTimer_atk() <= player.getWpn().getAttackSpeed() + player.getWpn().getReload()) {
+                    offset = 1 - player.getTimer_atk() / (player.getWpn().getAttackSpeed() + player.getWpn().getReload());
                 }
             }
 
             ImVec2 bottom = {
-                    pl_position.x + dir.x * (distance + (offset * player.wpn.getRange()) * scale),
-                    pl_position.y + dir.y * (distance + (offset * player.wpn.getRange()) * scale)
+                    pl_position.x + dir.x * (distance + (offset * player.getWpn().getRange()) * scale),
+                    pl_position.y + dir.y * (distance + (offset * player.getWpn().getRange()) * scale)
             };
             ImVec2 top = {
-                    pl_position.x + dir.x * (distance + (offset * player.wpn.getRange()) * scale + height),
-                    pl_position.y + dir.y * (distance + (offset * player.wpn.getRange()) * scale + height)
+                    pl_position.x + dir.x * (distance + (offset * player.getWpn().getRange()) * scale + height),
+                    pl_position.y + dir.y * (distance + (offset * player.getWpn().getRange()) * scale + height)
             };
 
             ImVec2 perp = {-dir.y, dir.x};
@@ -227,15 +223,15 @@ void ClientUI::drawWeapon(Player player, ImDrawList* draw_list, ImVec2 pl_positi
                     top,
                     left,
                     right,
-                    IM_COL32(player.color.r, player.color.g, player.color.b, player.color.a)
+                    IM_COL32(player.getColor().r, player.getColor().g, player.getColor().b, player.getColor().a)
             );
             break;
         }
 
         case Weapons::ARC: {
             float arcWidth = 0.8f;
-            float a_min = player.radius - arcWidth;
-            float a_max = player.radius + arcWidth;
+            float a_min = player.getRadius() - arcWidth;
+            float a_max = player.getRadius() + arcWidth;
 
             draw_list->PathArcTo(
                     pl_position,
@@ -246,7 +242,7 @@ void ClientUI::drawWeapon(Player player, ImDrawList* draw_list, ImVec2 pl_positi
             );
 
             draw_list->PathStroke(
-                    IM_COL32(player.color.r, player.color.g, player.color.b, player.color.a),
+                    IM_COL32(player.getColor().r, player.getColor().g, player.getColor().b, player.getColor().a),
                     false,
                     4.f * scale
             );
@@ -254,7 +250,7 @@ void ClientUI::drawWeapon(Player player, ImDrawList* draw_list, ImVec2 pl_positi
         }
 
         default:
-            std::cout << "Unknown weapon type: " << player.wpn.getType() << std::endl;
+            std::cout << "Unknown weapon type: " << player.getWpn().getType() << std::endl;
     }
 }
 
@@ -331,7 +327,7 @@ void ClientUI::drawEndScreen(ImDrawList* draw_list, ImVec2 min, ImVec2 max, bool
 
     // RANDOM PRAISE
     {
-        static int selected = this->getPlayer().port % messages.size();
+        static int selected = this->getPlayer().getPort() % messages.size();
         std::string msg = messages[selected];
 
         float msg_size = 18.0f;

@@ -72,8 +72,36 @@ void ServerUI::draw() {
     // SETTINGS //
     //////////////
 
-    // .count converts it to a long value. 1000/ticks gives tickrate, and convert it back to an int to avoid digits.
-    ImGui::Text("Tickrate: %d", int(1000 / Const::TICKRATE.count()));
+    ImGui::Text("Tickrate: ");
+    ImGui::SameLine();
+    int tick = tickrate;
+    ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x * 0.2f);
+    if (ImGui::InputInt("##tickRate", &tick, 1, 100)) {
+        // Check value is correct:
+        if (tick < 1) {
+            tick = 1;
+        }
+        if (tick > 100) {
+            tick = 100;
+        }
+        tickrate = tick;
+    }
+    ImGui::SameLine();
+    ImGui::Text("Client send rate: ");
+    ImGui::SameLine();
+    tick = clientRefreshRate;
+    if (ImGui::InputInt("##clientSendRate", &tick, 1, 250)) {
+        // Check value is correct:
+        if (tick < 1) {
+            tick = 1;
+        }
+        if (tick > 250) {
+            tick = 250;
+        }
+        clientRefreshRate = tick;
+    }
+    ImGui::SameLine();
+    ImGui::Checkbox("Server Rewind (hit validation)", &rewind);
     ImGui::Separator();
 
     /////////////
@@ -86,6 +114,7 @@ void ServerUI::draw() {
     if (ImGui::Button("Pause")) {
         pauseConsole = !pauseConsole;
     }
+    ImGui::SameLine();
     ImGui::Separator();
     ImGui::BeginChild("console", ImVec2(ImGui::GetContentRegionAvail().x * 0.5f, ImGui::GetContentRegionAvail().y));
     for (const auto& line : std::ranges::reverse_view(lines)) {

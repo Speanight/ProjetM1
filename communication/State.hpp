@@ -19,6 +19,7 @@ private:
     Position position;
     float radius;
     bool attack;
+    int attackTimestamp;
     Weapon wpn;
     int point;
     unsigned int lastInputsId;
@@ -38,12 +39,14 @@ public:
     bool getAttack() const;
     Weapon getWpn() const;
     int getPoint() const;
+    int getAttackTimestamp() const;
 
     void setPosition(Position position);
     void addInputs(int timestamp, Input inputs);
     void setRadius(float radius);
     void setTimestamp(int timestamp);
     void setLastInputsId(unsigned int id);
+    void setAttackTimestamp(int timestamp);
 
     Input getPercentInput(double percent);
     void setAttack(bool attack);

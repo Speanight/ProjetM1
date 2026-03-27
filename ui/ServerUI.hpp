@@ -32,6 +32,7 @@ private:
 protected:
     // Data (graphs)
     std::unordered_map<std::string, std::vector<float>> data;
+    bool rewind = true; // Compensation method.
 
 public:
     ServerUI();
