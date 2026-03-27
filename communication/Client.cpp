@@ -153,6 +153,10 @@ void Client::setController(short controller) {
     this->controllerNumber = controller;
 }
 
+void Client::setPlayer(Player player) {
+    this->player = player;
+}
+
 
 /**
  * Function that recovers all the users inputs. This uses user's defined keybinds and iterates
@@ -243,13 +247,14 @@ Input Client::getInputs(bool mode_enable, bool attack_enable) {
  * @brief Loops that executes at every frame. Gather inputs, send packet and applies compensations.
  * @return - Error code. (Const. Err:: in Utils.hpp)
  */
-int Client::update() {
+[[noreturn]] void Client::update() {
     bool mode_enable = true;    // set the ability to change the weapon to true at the beginning
     bool attack_enable = true;  // set the ability to attack at true at the beginning
 
     int before = 0;
 
-    while (loop) {
+    while (true) {
+        while (!loop) {sf::sleep(sf::Time());} // Pause if needed
         // ==========| INPUTS |========== //
         Input inputs = this->getInputs(mode_enable, attack_enable);
         mode_enable = inputs.getModeEnable();
@@ -308,8 +313,6 @@ int Client::update() {
         before = lastUpdate;
         sf::sleep(sf::milliseconds(1000/clientRefreshRate)); // Small sleep to make sure everyone send same amount of inputs.
     }
-
-    return Err::ERR_NONE;
 }
 
 /**
@@ -370,14 +373,15 @@ int Client::sendPacket(Input inputs) {
     return Err::ERR_NONE;
 }
 
-int Client::receiveLoop() {
+[[noreturn]] void Client::receiveLoop() {
     std::optional<sf::IpAddress> sender = sf::IpAddress::resolve(SERVER_IP);
     sf::Packet packet;
     short type;
     short typeAck;
     short unsigned int port;
 
-    while (loop) {
+    while (true) {
+        while (!loop) {sf::sleep(sf::Time());} // Pause if needed
         packet.clear();
         sf::sleep(sf::Time()); // "empty" sleep: required for loops.
         if (socket.receive(packet, sender, port) == sf::Socket::Status::Done) {
@@ -477,11 +481,15 @@ int Client::receiveLoop() {
                         }
                         case Pkt::DEATH: {     // tick << killerName                                                           // send the signal to a specific player that the player is dead
                             this->player.setPoint(0);
-                            this->player.setStatus(Status::DEAD);
+                            if (player.getStatus() == Status::DONE) {
+                                this->player.setStatus(Status::DEAD);
+                            }
                             break;
                         }
                         case Pkt::WIN: {
-                            player.setStatus(Status::WIN);
+                            if (player.getStatus() == Status::DONE) {
+                                player.setStatus(Status::WIN);
+                            }
                             break;
                         }
                         case Pkt::END_R: {     // tick                                                                         // send the signal that the round is finished
@@ -498,10 +506,6 @@ int Client::receiveLoop() {
             }
         }
     }
-
-    sendThread.join();
-
-    return Err::ERR_NONE;
 }
 
 void Client::applyState(std::string name, State state){
@@ -707,4 +711,11 @@ void Client::compensationReconciliation() {
 
 void Client::setLoop(bool loop) {
     this->loop = loop;
+
+    // If we stopped our last game, empty opponents:
+    if (loop) {
+        opponents.clear();
+        lastInputId = 0;
+        inputsBuffer.clear();
+    }
 }

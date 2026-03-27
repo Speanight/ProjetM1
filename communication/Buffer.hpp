@@ -29,6 +29,8 @@ public:
     std::unordered_map<std::string, State> getCurrentState();
 
     // Functions
+    void removeFromPlayerList(const Player& player);
+    void addToPlayerList(const Player& player);
     std::unordered_map<std::string, State> getTState(int t);
     State getLastState(const Player& player);
     void updateNextPlayerState(const Player& player, State state);

@@ -5,6 +5,9 @@
 #include <chrono>
 #include <any>
 #include <typeindex>
+#include <SFML/Graphics/Color.hpp>
+#include <imgui.h>
+#include <imgui-SFML.h>
 
 extern unsigned short tickrate;
 extern unsigned short clientRefreshRate;
@@ -136,5 +139,7 @@ namespace Weapons {
     static constexpr short CIRCLE = 3;
 
 }
+
+sf::Color convertImUToSfColor(ImU32 im_color);
 
 #endif

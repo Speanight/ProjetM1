@@ -53,8 +53,8 @@ void ClientUI::drawGame() { // Game space
                 // screenToShow remain the same;
                 break;
             }
-            default         : {
-                std::cout<<"Unknown player status to show"<<std::endl;
+            default: {
+                std::cout<<"Unknown player status to show: #"<<player.getStatus()<<std::endl;
                 drawErrorScreen(draw_list, player, childMin, childMax);
                 break;
             }
@@ -198,7 +198,7 @@ void ClientUI::drawSelectionScreen(ImDrawList* draw_list, ImVec2 min, ImVec2 max
         IM_COL32(255, 127, 0, 255),             // orange
 
         IM_COL32(255, 0, 127, 255),             // pink
-        IM_COL32(158, 72, 203, 255)             // pony purple
+        IM_COL32(165, 71, 193, 255)             // pony purple
     };
 
     // Presets
@@ -410,6 +410,18 @@ void ClientUI::drawSelectionScreen(ImDrawList* draw_list, ImVec2 min, ImVec2 max
             }
 
             // TODO : make this so the player is
+            Player pl = getPlayer();
+
+            pl.setName(finalName);
+            pl.setColor(convertImUToSfColor(colors[selectedColor]));
+            pl.setWeapons({short(selectedWeapon), Weapons::SHIELD});
+
+            setPlayer(pl);
+            screenToShow = Screens::LOADING_SCREEN;
+            setStatus(Status::WAITING_FOR_INIT);
+            setLoop(true);
+
+            std::cout << "New player name: " << getPlayer().getName();
             std::cout << "=>PLAYER CONFIG<=" << std::endl;
             std::cout << "Name: " << finalName << std::endl;
             std::cout << "Color ID: " << selectedColor << std::endl;
@@ -820,7 +832,8 @@ void ClientUI::drawEndScreen(ImDrawList* draw_list, ImVec2 min, ImVec2 max, bool
             if (ImGui::InvisibleButton("btn_retry", btn_size)) {
                 std::cout<<"CLICK ON "<< btn_text <<std::endl;
                 screenToShow = Screens::LOADING_SCREEN;
-                setStatus(Status::WAITING_FOR_INIT);
+                setLoop(true);
+                setStatus(Status::WAITING_FOR_OPPONENTS);
 
                 // TODO : sending new players packet to the server with the actual player values
                 // TODO : protecting the server so he don't stop the game while playing on retry

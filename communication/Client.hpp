@@ -112,13 +112,15 @@ public:
     void setLoop(bool loop);
     void setCompensations(std::array<bool,3> compensations);
     void setController(short controller);
+    void setPlayer(Player player);
 
     // Functions
     std::unordered_map<std::string, std::any> init();
 
-    int update();
+    [[noreturn]] void update();
     int sendPacket(Input inputs);
-    int receiveLoop();
+
+    [[noreturn]] void receiveLoop();
     std::optional<sf::Packet> getLatestQueuedPacket();
 
     void applyState(std::string name, State state);

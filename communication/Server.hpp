@@ -31,7 +31,7 @@ private:
     std::thread receiveThread;
     std::binary_semaphore semaphore;
 
-    std::unordered_map<std::string, Player> clients;
+    std::unordered_map<unsigned short, Player> clients;
     std::unordered_map<std::string, int> pings;
 
     int maxPlayers = 2;     // TODO : make something better to handle how many players we want before starting the game
@@ -46,13 +46,10 @@ public:
     Server(sf::Clock clock);
     ~Server();
 
-    // Getters / Setters
-    std::unordered_map<std::string, Player> getClients();
-
     // Functions
     int addClient(std::unordered_map<std::string, std::any> infos);
-    int sendLoop();
-    int receiveLoop();
+    [[noreturn]] void sendLoop();
+    [[noreturn]] void receiveLoop();
     int shutdown();
 };
 

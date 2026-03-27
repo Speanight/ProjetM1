@@ -36,7 +36,6 @@ find_package(X11 REQUIRED)
 # =========================
 add_executable(ProjetM1
         main.cpp
-        Utils.hpp
         communication/Server.cpp
         game/Position.cpp
         game/Weapon.cpp
@@ -53,6 +52,7 @@ add_executable(ProjetM1
         src/implot.cpp
         src/implot_items.cpp
         game/Player.cpp
+        Utils.cpp
 )
 # =========================
 # Link libraries
