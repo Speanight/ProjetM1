@@ -10,6 +10,7 @@ State::State(int timestamp, Position position, Input inputs, float radius, bool 
     this->radius = radius;
     this->inputs[timestamp] = inputs;
     this->attack = attack;
+    this->attackTimestamp = -1;
     this->wpn = Weapon(wpn_id);
     this->point = point;
 }
@@ -29,6 +30,10 @@ float State::getRadius() const {
 
 bool State::getAttack() const {
     return attack;
+}
+
+int State::getAttackTimestamp() const {
+    return attackTimestamp;
 }
 
 Weapon State::getWpn() const {
@@ -81,6 +86,10 @@ void State::setTimestamp(int timestamp) {
 
 void State::setLastInputsId(unsigned int id) {
     this->lastInputsId = id;
+}
+
+void State::setAttackTimestamp(int timestamp) {
+    this->attackTimestamp = timestamp;
 }
 
 void State::addInputs(int timestamp, Input inputs) {

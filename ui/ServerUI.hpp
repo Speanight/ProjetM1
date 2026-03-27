@@ -24,7 +24,7 @@ private:
     sf::Font font;
     sf::Vector2f position;
     int size = 32;
-    bool pauseConsole = true;   //TODO : put it back to false when doneee
+    bool pauseConsole = false;
 
     // Graphs
     int lastTimestamp;
@@ -32,6 +32,7 @@ private:
 protected:
     // Data (graphs)
     std::unordered_map<std::string, std::vector<float>> data;
+    bool rewind = true; // Compensation method.
 
 public:
     ServerUI();

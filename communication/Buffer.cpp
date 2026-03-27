@@ -1,9 +1,10 @@
 #include <iostream>
+#include <utility>
 #include "Buffer.hpp"
 
 // Constructors
 Buffer::Buffer(std::vector<Player> playerList) {
-    this->playerList = playerList;
+    this->playerList = std::move(playerList);
 }
 
 // Getters / Setters
@@ -16,7 +17,7 @@ std::unordered_map<std::string, State> Buffer::getCurrentState() {
 }
 
 void Buffer::updateNextPlayerState(const Player& player, State state) {
-    nextState[player.name] = state;
+    nextState[player.getName()] = std::move(state);
 }
 
 // Functions
@@ -36,9 +37,9 @@ void Buffer::updateNextPlayerState(const Player& player, State state) {
  */
 void Buffer::push(int clockState) {
     for (auto & player : playerList) {
-        if (auto search = nextState.find(player.name); search == nextState.end()) {
+        if (auto search = nextState.find(player.getName()); search == nextState.end()) {
             // If a player isn't find in the next "current state"...
-            nextState[player.name] = currentState[player.name]; // Roll backs to previously known pos.
+            nextState[player.getName()] = currentState[player.getName()]; // Roll backs to previously known pos.
         }
     }
 
@@ -91,14 +92,14 @@ State Buffer::getStateAtTimestamp(Player player, int timestamp) {
     State state;
     bool found = false;
 
-    if (auto search = nextState.find(player.name); search != nextState.end()) {
-        if (nextState[player.name].getTimestamp() <= timestamp) {
-            state = nextState[player.name];
+    if (auto search = nextState.find(player.getName()); search != nextState.end()) {
+        if (nextState[player.getName()].getTimestamp() <= timestamp) {
+            state = nextState[player.getName()];
             found = true;
         }
     }
     if (!found and timestamp >= currentTick) {
-        state = currentState[player.name];
+        state = currentState[player.getName()];
         found = true;
     }
 
@@ -106,7 +107,7 @@ State Buffer::getStateAtTimestamp(Player player, int timestamp) {
         for (auto& n : pastStates) {
             if (!found and state.getTimestamp() <= timestamp) {
                 found = true;
-                state = n[player.name];
+                state = n[player.getName()];
             }
         }
     }
@@ -121,7 +122,7 @@ State Buffer::getStateAtTimestamp(Player player, int timestamp) {
     Position p;
     p = state.getPosition();
 
-    if (player.name == "Client B") {
+    if (player.getName() == "Client B") {
         std::cout << "";
     }
 
@@ -150,22 +151,22 @@ State Buffer::getStateAtTimestamp(Player player, int timestamp) {
  */
 State Buffer::getLastState(const Player& player) {
     if (!nextState.empty()) {
-        if (auto search = nextState.find(player.name); search != nextState.end()) {
+        if (auto search = nextState.find(player.getName()); search != nextState.end()) {
             return search->second;
         }
     }
-    if (auto search = currentState.find(player.name); search != currentState.end()) {
+    if (auto search = currentState.find(player.getName()); search != currentState.end()) {
         return search->second;
     }
     return {};
 }
 
 void Buffer::addInputsToLastState(const Player& player, int timestamp, Input inputs) {
-    if (auto search = nextState.find(player.name); search != nextState.end()) {
-        nextState[player.name].addInputs(timestamp, inputs);
+    if (auto search = nextState.find(player.getName()); search != nextState.end()) {
+        nextState[player.getName()].addInputs(timestamp, inputs);
     }
-    else if (auto search = currentState.find(player.name); search != currentState.end()) {
-        currentState[player.name].addInputs(timestamp, inputs);
+    else if (auto search = currentState.find(player.getName()); search != currentState.end()) {
+        currentState[player.getName()].addInputs(timestamp, inputs);
     }
 }
 

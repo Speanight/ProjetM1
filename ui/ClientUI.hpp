@@ -5,12 +5,14 @@
 #include <imgui-SFML.h>
 #include "../communication/Client.hpp"
 #include "../game/gameUtils.hpp"
+#include "../game/Player.hpp"
 
 #include <SFML/Graphics/RenderWindow.hpp>
 #include <SFML/Graphics/Sprite.hpp>
 #include <SFML/Graphics/Texture.hpp>
 #include <SFML/Window/VideoMode.hpp>
 #include <SFML/Graphics/Color.hpp>
+#include <algorithm>
 
 class ClientUI : public Client {
 protected :
