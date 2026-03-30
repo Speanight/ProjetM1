@@ -421,9 +421,22 @@ int Server::sendLoop() {
                             pos.setX(Const::MAP_SIZE_X / 2 + (Const::MAP_SIZE_X / 4) * std::cos(nb*(2*M_PI / clients.size())));
                             pos.setY(Const::MAP_SIZE_Y / 2 + (Const::MAP_SIZE_Y / 4) * std::sin(nb*(2*M_PI / clients.size())));
 
+                            // Set radius of clients:
+                            float centerX = Const::MAP_SIZE_X / 2.0f;
+                            float centerY = Const::MAP_SIZE_Y / 2.0f;
+
+                            float dx = centerX - pos.getX();
+                            float dy = centerY - pos.getY();
+
+                            float angleToCenter = std::atan2(dy, dx);
+
+                            if(p.getWpn().getType() == Weapons::RECTANGLE) {
+                                angleToCenter = angleToCenter - p.getWpn().getRange()/2.f;
+                            }
+
                             Input inputs;
 
-                            State s(tick, pos, inputs, std::numbers::pi/2, false, 0, 100);
+                            State s(tick, pos, inputs, angleToCenter, false, 0, 100);
                             buffer.updateNextPlayerState(p, s);
 
                             // Add everything in packet:

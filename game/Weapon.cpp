@@ -120,7 +120,7 @@ void Weapon::applyID(short id) {
             w_type = Weapons::RECTANGLE;
             w_atk_speed = 70.f;
             w_rld = 100.f;
-            w_range = 10.f;
+            w_range = std::numbers::pi/2;
             w_damage = 10;
             w_transform = 5.f;
             break;
@@ -132,7 +132,7 @@ void Weapon::applyID(short id) {
             w_type = Weapons::RECTANGLE;
             w_atk_speed = 50.f;
             w_rld = 300.f;
-            w_range = 20.f;
+            w_range = std::numbers::pi/2;
             w_damage = 15;
             w_transform = 5.f;
             break;
@@ -164,12 +164,12 @@ void Weapon::applyID(short id) {
         }
         case 12: {      // SUPER WEAPON FOR BESCHER
             w_id = 12;
-            w_height = 50.f;
+            w_height = 5000.f;
             w_width = 5.f;
             w_type = Weapons::RECTANGLE;
             w_atk_speed = 1.f;
             w_rld = 1.f;
-            w_range = 5000.f;
+            w_range = std::numbers::pi;
             w_damage = 1000;
             w_transform = 5.f;
             break;
@@ -179,7 +179,7 @@ void Weapon::applyID(short id) {
             w_id = 1;
             w_height = 16.f;
             w_width = 24.f;
-            w_type = Weapons::TRIANGLE;
+            w_type = Weapons::RECTANGLE;
             w_atk_speed = 70.f;
             w_rld = 200.f;
             w_range = 15.f;

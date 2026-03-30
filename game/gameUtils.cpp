@@ -131,49 +131,122 @@ Position resolveCollision(Position player, Position opponent) {
     return opponent;
 }
 
+
 short resolveAttacks(State attacker, State opponent) {
     if (attacker.getWpn().getId() == Weapons::SHIELD) {
         return -1;
     }
+    // distance between the players weapon and the surface of the opponent
     ImVec2 dir = {std::cos(attacker.getRadius()), std::sin(attacker.getRadius())};
 
-    // distance between the players weapon and the surface of the opponent
-    float attackReach = PLAYER_SIZE + attacker.getWpn().getHeight() + attacker.getWpn().getRange();
+    switch (attacker.getWpn().getType()) {
+        case Weapons::TRIANGLE : {
+            float attackReach = PLAYER_SIZE + attacker.getWpn().getHeight() + attacker.getWpn().getRange();
 
-    ImVec2 d2 = {opponent.getPosition().getX() - attacker.getPosition().getX() - dir.x * attackReach,
-                 opponent.getPosition().getY() - attacker.getPosition().getY() - dir.y * attackReach};
+            ImVec2 d2 = {opponent.getPosition().getX() - attacker.getPosition().getX() - dir.x * attackReach,
+                         opponent.getPosition().getY() - attacker.getPosition().getY() - dir.y * attackReach};
 
-    float distTop = std::sqrt(pow(d2.x, 2) + pow(d2.y, 2));
+            float distTop = std::sqrt(pow(d2.x, 2) + pow(d2.y, 2));
 
-    if (distTop <= PLAYER_SIZE * (1+WEAPON_GRACE_PERCENT)) {        // if the weapon can enter the opponent perimeters, then it's a touch
-        bool blocked = false;
+            if (distTop <= PLAYER_SIZE * (1+WEAPON_GRACE_PERCENT)) {        // if the weapon can enter the opponent perimeters, then it's a touch
+                bool blocked = false;
 
-        if (opponent.getWpn().getId() == Weapons::SHIELD) {
-            // looking for the angle between the player and it's opponent
-            float angleToAttacker = std::atan2(
-                    attacker.getPosition().getY() - opponent.getPosition().getY(),
-                    attacker.getPosition().getX() - opponent.getPosition().getX()
-            );
+                if (opponent.getWpn().getId() == Weapons::SHIELD) {
+                    // looking for the angle between the player and it's opponent
+                    float angleToAttacker = std::atan2(
+                            attacker.getPosition().getY() - opponent.getPosition().getY(),
+                            attacker.getPosition().getX() - opponent.getPosition().getX()
+                    );
 
-            auto normalize = [&](float a) {
+                    auto normalize = [&](float a) {
+                        a = std::fmod(a, 2 * std::numbers::pi);
+                        if (a < 0) a += 2 * std::numbers::pi;
+                        return a;
+                    };
+
+                    angleToAttacker = normalize(angleToAttacker);
+                    float opponentRadius = normalize(opponent.getRadius());
+
+                    float shieldStart = normalize(opponentRadius - 0.8f);
+                    float shieldEnd = normalize(opponentRadius + 0.8f);
+
+                    if (shieldStart < shieldEnd)
+                        blocked = (angleToAttacker >= shieldStart && angleToAttacker <= shieldEnd);
+                    else
+                        blocked = (angleToAttacker >= shieldStart || angleToAttacker <= shieldEnd);
+                }
+
+                return blocked;
+            }
+        }
+        case Weapons::RECTANGLE : {
+            ImVec2 attackerPos = {
+                attacker.getPosition().getX(),
+                attacker.getPosition().getY()
+            };
+
+            ImVec2 opponentPos = {
+                opponent.getPosition().getX(),
+                opponent.getPosition().getY()
+            };
+
+            auto normalize = [](float a) {
                 a = std::fmod(a, 2 * std::numbers::pi);
                 if (a < 0) a += 2 * std::numbers::pi;
                 return a;
             };
 
-            angleToAttacker = normalize(angleToAttacker);
-            float opponentRadius = normalize(opponent.getRadius());
+            // ======== DISTANCE CHECK ========
+            float dx = opponentPos.x - attackerPos.x;
+            float dy = opponentPos.y - attackerPos.y;
+            float distance = std::sqrt(dx*dx + dy*dy);
 
-            float shieldStart = normalize(opponentRadius - 0.8f);
-            float shieldEnd = normalize(opponentRadius + 0.8f);
+            float maxReach = PLAYER_SIZE + attacker.getWpn().getHeight();
 
-            if (shieldStart < shieldEnd)
-                blocked = (angleToAttacker >= shieldStart && angleToAttacker <= shieldEnd);
+            if (distance > maxReach + PLAYER_SIZE * 0.8f) {
+                return -1;
+            }
+
+            // ======== ANGLE CHECK (ANTI-HORAIRE) ========
+            float angleToOpponent = normalize(std::atan2(dy, dx));
+
+            float start = normalize(attacker.getRadius());
+            float end   = normalize(attacker.getRadius() + attacker.getWpn().getRange());
+            bool inArc = false;
+
+            if (start < end)
+                inArc = (angleToOpponent >= start && angleToOpponent <= end);
             else
-                blocked = (angleToAttacker >= shieldStart || angleToAttacker <= shieldEnd);
-        }
+                inArc = (angleToOpponent >= start || angleToOpponent <= end);
 
-        return blocked;
+            if (!inArc) {
+                return -1;
+            }
+            // ======== SHIELD CHECK ========
+            if (opponent.getWpn().getId() == Weapons::SHIELD) {
+                float opponentRadius = normalize(opponent.getRadius());
+
+                float diff = std::fabs(angleToOpponent - opponentRadius);
+
+                // wrap propre
+                diff = std::fmod(diff, 2 * std::numbers::pi);
+                if (diff > std::numbers::pi)
+                    diff = 2 * std::numbers::pi - diff;
+
+                // angle proche de 90°
+                if (std::fabs(diff - std::numbers::pi/2) <= 0.8f) {
+                    return 1; // bloqué
+                }
+            }
+
+            return 0; // touche
+        }
+        default : {
+            std::cout<<"weapond not recognized of type ="<<attacker.getWpn().getType()<<std::endl;
+        }
     }
+
     return -1;
 }
+
+

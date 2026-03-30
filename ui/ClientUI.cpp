@@ -148,6 +148,7 @@ void ClientUI::addOpponent(const std::string& name, sf::Color color) {
     this->bufferOnReceipt.addClient(pl);
 }
 
+// put the value to print to 2 digits
 auto form1 = [](float v) {
     char buf[16];
     snprintf(buf, sizeof(buf), "%.1f", v);
@@ -679,13 +680,13 @@ void ClientUI::drawWeapon(Player player, ImDrawList* draw_list, ImVec2 pl_positi
             break;
         }
         case Weapons::RECTANGLE : {
+
             float baseAngle = player.getRadius();
 
             float height = player.getWpn().getHeight() * scale;
             float width  = player.getWpn().getWidth() * scale;
-            float range  = player.getWpn().getRange() * scale;
+            float range  = player.getWpn().getRange();
 
-            // ======== ATTACK ANIMATION ========
             float offset = 0.f;
 
             if (player.getTimer_atk() != -1) {
@@ -693,27 +694,23 @@ void ClientUI::drawWeapon(Player player, ImDrawList* draw_list, ImVec2 pl_positi
                 float reload = player.getWpn().getReload();
 
                 if (player.getTimer_atk() <= atk) {
-                    offset = player.getTimer_atk() / atk; // 0 → 1
+                    offset = player.getTimer_atk() / atk;
                 } else if (player.getTimer_atk() <= atk + reload) {
-                    offset = 1.f - (player.getTimer_atk() - atk) / reload; // 1 → 0
+                    offset = 1.f - (player.getTimer_atk() - atk) / reload;
                 }
             }
 
-            // ======== ROTATION ANGLE ========
-            float maxAngle = std::numbers::pi / 3.f; // angle du swing (60°)
-            float angle = baseAngle + (offset - 0.5f) * 2.f * maxAngle;
-            // offset=0 → -maxAngle | offset=1 → +maxAngle
+            float angle = baseAngle + offset * range;
 
             ImVec2 dir = { cosf(angle), sinf(angle) };
+
             ImVec2 perp = { -dir.y, dir.x };
 
-            // ======== POSITION DU CENTRE DE L'ARME ========
             ImVec2 center = {
-                pl_position.x + dir.x * (distance + range),
-                pl_position.y + dir.y * (distance + range)
+                pl_position.x + dir.x * distance,
+                pl_position.y + dir.y * distance
             };
 
-            // ======== CONSTRUCTION DU RECTANGLE ========
             ImVec2 p1 = { center.x + perp.x * (width * 0.5f), center.y + perp.y * (width * 0.5f) };
             ImVec2 p2 = { center.x - perp.x * (width * 0.5f), center.y - perp.y * (width * 0.5f) };
 
