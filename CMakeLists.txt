@@ -53,6 +53,7 @@ add_executable(ProjetM1
         src/implot_items.cpp
         game/Player.cpp
         Utils.cpp
+        ui/Console.cpp
 )
 # =========================
 # Link libraries

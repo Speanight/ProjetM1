@@ -24,6 +24,7 @@
 #include "../game/Weapon.hpp"
 #include "../communication/Buffer.hpp"
 #include <cmath>
+#include "../ui/Console.hpp"
 
 using namespace Const;
 
@@ -55,6 +56,8 @@ private:
     std::thread sendThread;
     std::thread receiveThread;
 
+    Console console;
+
     NetworkState network;
 
     bool newGame = false;
@@ -76,7 +79,7 @@ protected:
     int lastUpdate;
 
 public:
-    Client(sf::Clock clock, std::string name, short controller = -1, sf::Color color = sf::Color::Red);
+    Client(sf::Clock clock, Console console, std::string name, short controller = -1, sf::Color color = sf::Color::Red);
     ~Client();
 
     // Copy constructors
@@ -121,7 +124,7 @@ public:
     int sendPacket(Input inputs);
 
     [[noreturn]] void receiveLoop();
-    std::optional<sf::Packet> getLatestQueuedPacket();
+    std::optional<QueuedPacket> getLatestQueuedPacket();
 
     void applyState(std::string name, State state);
 

@@ -1,6 +1,6 @@
 #include "ClientUI.hpp"
 
-ClientUI::ClientUI(const sf::Clock clock, std::string name, short controller, sf::Color color) : Client(clock, name, controller, color) {}
+ClientUI::ClientUI(const sf::Clock clock, Console console, std::string name, short controller, sf::Color color) : Client(clock, console, name, controller, color) {}
 
 void ClientUI::drawGame() { // Game space
     const char* title = getName().c_str();
@@ -26,14 +26,16 @@ void ClientUI::drawGame() { // Game space
     ImDrawList* draw_list = ImGui::GetWindowDrawList();
 
     // TODO : => mooving this switch case in an other loop ? <=
-    if(getLoop() == false) {
+    if(!getLoop()) {
         screenToShow = Screens::PLAYER_SELECT;
     }
     else {
         auto player = getPlayer();
         // Switching the screen to show depending on the player status
         switch (player.getStatus()) {
-            case Status::WAITING_FOR_OPPONENTS or Status::READY_TO_START or Status::WAITING_FOR_INIT: {
+            case Status::WAITING_FOR_OPPONENTS:
+            case Status::READY_TO_START:
+            case Status::WAITING_FOR_INIT: {
                 screenToShow = Screens::LOADING_SCREEN;
                 break;
             }
@@ -409,13 +411,11 @@ void ClientUI::drawSelectionScreen(ImDrawList* draw_list, ImVec2 min, ImVec2 max
                 finalName = nameBuffer;
             }
 
-            // TODO : make this so the player is
             Player pl = getPlayer();
 
             pl.setName(finalName);
             pl.setColor(convertImUToSfColor(colors[selectedColor]));
-            pl.setWeapons({short(selectedWeapon), Weapons::SHIELD});
-
+            pl.setWeapons({Weapons::SHIELD, short(selectedWeapon)});
             setPlayer(pl);
             screenToShow = Screens::LOADING_SCREEN;
             setStatus(Status::WAITING_FOR_INIT);

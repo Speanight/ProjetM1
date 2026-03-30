@@ -11,6 +11,7 @@
 #include "../src/implot_internal.h"
 #include <list>
 
+#include "../ui/Console.hpp"
 #include "../Utils.hpp"
 
 struct ConsoleLine {
@@ -32,7 +33,8 @@ private:
 protected:
     // Data (graphs)
     std::unordered_map<std::string, std::vector<float>> data;
-    bool rewind = true; // Compensation method.
+    bool rewind = false; // Compensation method.
+    Console console;
 
 public:
     ServerUI();
@@ -42,6 +44,7 @@ public:
     void draw();
 
     void addToData(const std::string& to);
+    void removeToData(const std::string& to);
 };
 
 #endif //PROJETM1_SERVERUI_HPP

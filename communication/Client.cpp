@@ -13,9 +13,10 @@
  * @param name Name given to the client. Can be any string, must be unique!
  * @param color Color given to the client in the Server's console.
  */
-Client::Client(const sf::Clock clock, std::string name, short controller, sf::Color color) :
+Client::Client(sf::Clock clock, Console console, std::string name, short controller, sf::Color color) :
     server(SERVER_IP_BYTE1, SERVER_IP_BYTE2, SERVER_IP_BYTE3, SERVER_IP_BYTE4), semaphore(1),
-    player(std::move(name), color, 0, {1, 0}) {
+    player(std::move(name), color, 0) {
+    this->console = std::move(console);
     this->clock = clock;
     this->bufferOnReceipt.addClient(player);
     this->controllerNumber = controller;
@@ -322,19 +323,22 @@ Input Client::getInputs(bool mode_enable, bool attack_enable) {
  */
 int Client::sendPacket(Input inputs) {
     QueuedPacket pkt;
+    short type;
     pkt.timestamp = clock.getElapsedTime();
 
     switch (player.getStatus()) {
         // Player sends their data to the server, waiting for ACK:
         case Status::WAITING_FOR_INIT: {
+            type = Pkt::NEW_PLAYER;
             pkt.packet << Pkt::NEW_PLAYER;
             pkt.packet << player.getName() << player.getColor().r << player.getColor().g << player.getColor().b << player.getColor().a;
-            pkt.packet << player.getWpn().getId();
+            pkt.packet << player.getWeapons()[1]; // Add current weapon as well.
             break;
         }
 
         // Player is waiting for data of their opponents:
         case Status::WAITING_FOR_OPPONENTS: {
+            type = Pkt::ACK;
             // Tells the server it ACKd that it has been added to the players pool.
             pkt.packet << Pkt::ACK << Pkt::NEW_PLAYER;
             break;
@@ -342,19 +346,23 @@ int Client::sendPacket(Input inputs) {
 
         // Player is ready to start and gives the info to the server:
         case Status::READY_TO_START: {
+            type = Pkt::ACK;
             pkt.packet << Pkt::ACK << Pkt::READY_R << int(opponents.size());
             break;
         }
         // Game has been started:
         case Status::DONE: {
+            type = Pkt::INPUTS;
             pkt.packet << Pkt::INPUTS << int(pkt.timestamp.asMilliseconds()) << inputs << player.getPort();
             break;
         }
         case Status::DEAD: {
+            type = Pkt::END_R;
             pkt.packet << Pkt::END_R;
             break;
         }
         case Status::WIN: {
+            type = Pkt::END_R;
             pkt.packet << Pkt::END_R;
             break;
         }
@@ -364,11 +372,18 @@ int Client::sendPacket(Input inputs) {
             return Err::PLAYER_STATUS_UNSYNCED;
         }
     }
+
+    int sentTime = pkt.timestamp.asMilliseconds();
+    pkt.packet << sentTime;
     queuedPackets.push_back(pkt); // Adds the packet to the array of packets.
     auto packetToSend = getLatestQueuedPacket();
+    semaphore.acquire();
     if (packetToSend.has_value()) {
-        socket.send(packetToSend.value(), server, COMM_PORT_SERVER);
+        socket.send(packetToSend.value().packet, server, COMM_PORT_SERVER);
     }
+    console.addPacket(sentTime, type, player.getPort());
+
+    semaphore.release();
 
     return Err::ERR_NONE;
 }
@@ -424,13 +439,15 @@ int Client::sendPacket(Input inputs) {
                         case Pkt::READY_R: {
                             std::string name;
                             std::uint8_t r, g, b, a;
+                            short weapon;
 
                             // Loops while we have more opponents to unpack:
-                            while (packet >> name >> r >> g >> b >> a) {
+                            while (packet >> name >> r >> g >> b >> a >> weapon) {
                                 // Drop if represents local instance:
                                 if (name != getName()) {
                                     // Otherwise, add the new player in opponents list:
                                     opponents[name] = Player(name, sf::Color(r,g,b,a));
+                                    opponents[name].setWeapons({Weapons::SHIELD, weapon});
 
                                     std::cout << "Adding opponent: " << name << std::endl;
                                 }
@@ -452,6 +469,8 @@ int Client::sendPacket(Input inputs) {
                             while (packet >> name >> state) {
                                 std::unordered_map<std::string, State> currentState = bufferOnReceipt.getCurrentState();
                                 std::unordered_map<std::string, State> pastState = bufferOnReceipt.getTState(-1);
+
+                                //std::cout << "Received weapon #" << state.getWpn().getId() << " for " << name << std::endl;
 
                                 if (name == this->getName()) {
                                     this->bufferOnReceipt.updateNextPlayerState(player, state);
@@ -502,6 +521,12 @@ int Client::sendPacket(Input inputs) {
                             break;
                         }
                     }
+
+                    int currTime;
+                    packet >> currTime;
+                    int time = clock.getElapsedTime().asMilliseconds();
+
+                    console.addPacket(currTime, type, this->player.getPort(), time);
                 }
             }
         }
@@ -568,7 +593,7 @@ Client& Client::operator=(const Client& other) {
  *
  * @return Latest packet respecting ping value. Empty packet if none corresponds.
  */
-std::optional<sf::Packet> Client::getLatestQueuedPacket() {
+std::optional<QueuedPacket> Client::getLatestQueuedPacket() {
     // Shouldn't happen: only if queuedPackets is empty.
     if (queuedPackets.empty()) {
         return std::nullopt;
@@ -577,12 +602,12 @@ std::optional<sf::Packet> Client::getLatestQueuedPacket() {
     sf::Time now = clock.getElapsedTime();
     sf::Time timestamp = now - sf::milliseconds(network.ping[1]);
 
-    sf::Packet toSend;
+    QueuedPacket toSend;
     bool found = false;
 
     // Check in the queuedPackets until we find the right one.
     while (!queuedPackets.empty() && queuedPackets.front().timestamp <= timestamp) {
-        toSend = queuedPackets.front().packet;
+        toSend = queuedPackets.front();
         queuedPackets.pop_front();
         found = true;
     }

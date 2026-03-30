@@ -33,6 +33,10 @@ void ServerUI::addToData(const std::string& to) {
     data[to] = vec;
 }
 
+void ServerUI::removeToData(const std::string& to) {
+    data.erase(to);
+}
+
 void ServerUI::addLine(int timestamp, std::string from, std::string to, std::string details, sf::Color color) {
     if (!pauseConsole) {
         // Generate the console line:
@@ -127,6 +131,41 @@ void ServerUI::draw() {
     /////////////
     ImGui::SameLine();
 
+
+    // TODO: new plot: displays packets in real time:
+    static ImPlotSpec spec(ImPlotProp_Marker, ImPlotMarker_Auto);
+    spec.MarkerSize = 5.f;
+    spec.LineWeight = 2.f;
+
+//    if (ImPlot::BeginPlot("##MarkerStyles", ImVec2(-1,0), ImPlotFlags_CanvasOnly)) {
+//
+//        ImPlot::SetupAxes(nullptr, nullptr, ImPlotAxisFlags_NoDecorations, ImPlotAxisFlags_NoDecorations);
+//        ImPlot::SetupAxesLimits(0, 10, 0, 12);
+//
+//        int xs[2] = {1,4};
+//        int ys[2] = {10,11};
+//
+//        // filled markers
+//        for (int m = 0; m < ImPlotMarker_COUNT; ++m) {
+//            ImGui::PushID(m);
+//            spec.FillAlpha = 1.0f;
+//            ImPlot::PlotLine("##Filled", xs, ys, 2, spec);
+////            ImPlot::PlotLine("##Filled", {1}, {10}, 2, spec);
+//            ImGui::PopID();
+//            ys[0]--; ys[1]--;
+//        }
+//
+//        ImPlot::PushStyleColor(ImPlotCol_InlayText, ImVec4(1,0,1,1));
+//        ImPlot::PlotText("Vertical Text", 5.0f, 6.0f, ImVec2(0,0), {ImPlotProp_Flags, ImPlotTextFlags_Vertical});
+//        ImPlot::PopStyleColor();
+//
+//        ImPlot::EndPlot();
+//    }
+
+    console.draw();
+
+
+    /* // OLD PLOT: DISPLAYS PACKETS RECEIVED/SENT TO SERVER
     if (ImGui::BeginTable("##table", 2)) {
         // Table headers:
         ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_WidthFixed, 75.0f);
@@ -183,6 +222,7 @@ void ServerUI::draw() {
         }
         ImGui::EndTable();
     }
+    */
 
     ImGui::EndChild();
 }

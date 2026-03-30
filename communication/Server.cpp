@@ -1,4 +1,5 @@
 #include "Server.hpp"
+#include <utility>
 
 /**
  * A server is being initialized with MainWindow. It's a needed component to ensure communication between the different
@@ -13,10 +14,15 @@ Server::Server(const sf::Clock clock) : semaphore(1) {
         std::cout << "Error: port isn't available?" << std::endl;
     }
     else {
+        console.addClient(COMM_PORT_SERVER);
         socket.setBlocking(true);
         sendThread = std::thread(&Server::sendLoop, this);
         receiveThread = std::thread(&Server::receiveLoop, this);
     }
+}
+
+void Server::setConsole(Console console) {
+    this->console = std::move(console);
 }
 
 Server::~Server() {
@@ -36,23 +42,19 @@ Server::~Server() {
  * @param infos map of infos, usually returned by Client::init().
  * @return Error code
  */
-int Server::addClient(std::unordered_map<std::string, std::any> infos) {
-    if (std::any_cast<bool>(infos["error"])) {
-        std::cout << "Error initializing client " << std::any_cast<std::string>(infos["name"]) << std::endl;
-        return Err::ERR_CLIENT_INIT;
-    }
+int Server::addClient(const std::string& name, unsigned short port, sf::Color color, short weapon) {
     Player player;
-    player.setPort(std::any_cast<unsigned short>(infos["port"]));
-    player.setName(std::any_cast<std::string>(infos["name"]));
-    player.setColor(std::any_cast<sf::Color>(infos["color"]));
-    player.setWeapons({1, Weapons::SHIELD});
-    player.setWpn(std::any_cast<short>(infos["wpn_id"]));
+    player.setPort(port);
+    player.setName(name);
+    player.setColor(color);
+    player.setWeapons({Weapons::SHIELD, weapon});
 
-    clients[std::any_cast<unsigned short>(infos["port"])] = player;
-    pings[std::any_cast<std::string>(infos["name"])] = 0;
+    clients[port] = player;
+    pings[name] = 0;
     buffer.addClient(player);
-    std::cout << "Added client " << std::any_cast<std::string>(infos["name"]) << " on port " << std::any_cast<unsigned short>(infos["port"]) << std::endl;
-    addToData(std::any_cast<std::string>(infos["name"]));
+    console.addClient(port);
+    std::cout << "Added client " << name << " on port " << port << std::endl;
+    addToData(name);
     return Err::ERR_NONE;
 }
 
@@ -73,6 +75,7 @@ int Server::addClient(std::unordered_map<std::string, std::any> infos) {
     std::unordered_map<std::string, State> currentState;
     State playerState;
     float radius;
+    int receivedAt;
 
     while (true) {
         while (!loop) {sf::sleep(sf::Time());} // Pause if needed
@@ -91,15 +94,6 @@ int Server::addClient(std::unordered_map<std::string, std::any> infos) {
 
                 sf::Color color(r, g, b, a);
 
-                // ===== PREPARE DATA FOR addClient =====
-                std::unordered_map<std::string, std::any> infos;
-                infos["error"] = false;
-                infos["name"]  = pname;
-                infos["port"] = port;
-                infos["color"] = color;
-                infos["wpn_id"] = wpn_id;
-
-
                 // Check if player exists:
                 semaphore.acquire();
                 if (!clients.empty()) {
@@ -107,13 +101,14 @@ int Server::addClient(std::unordered_map<std::string, std::any> infos) {
                         // If port corresponds (aka same client:)
                         if (playerPort == port and player.getStatus() != Status::WAITING_FOR_INIT) {
                             buffer.removeFromPlayerList(player);
+                            removeToData(player.getName());
                             clients.erase(playerPort); // Delete it.
                             break;
                         }
                     }
                 }
 
-                addClient(infos);
+                addClient(pname, port, color, wpn_id);
 
                 clients[port].setStatus(Status::WAITING_FOR_INIT);
                 semaphore.release();
@@ -235,7 +230,7 @@ int Server::addClient(std::unordered_map<std::string, std::any> infos) {
 
                         // ====== WEAPON DATAS CHANGE ======
                         if (inputs.getChangeWpn()) {
-                            player.switchWeapon();
+                            clients[port].switchWeapon();
                         }
                         currentState[player.getName()].setWpn(player.getWpn().getId());
 
@@ -336,16 +331,16 @@ int Server::addClient(std::unordered_map<std::string, std::any> infos) {
                         }
                         break;
                     }
-                    case Pkt::END_GAME: {
-                        int tick;
-                        short clientPort;
-
-                        packet >> tick >> clientPort;
-
-                        std::cout << "END GAME received" << std::endl;
-                        loop = false;
-                        break;
-                    }
+//                    case Pkt::END_GAME: {
+//                        int tick;
+//                        short clientPort;
+//
+//                        packet >> tick >> clientPort;
+//
+//                        std::cout << "END GAME received" << std::endl;
+//                        loop = false;
+//                        break;
+//                    }
 
                     case Pkt::END_R: {
                         // TODO: Handle end round packet.
@@ -357,6 +352,9 @@ int Server::addClient(std::unordered_map<std::string, std::any> infos) {
                     }
                 }
             }
+            packet >> receivedAt;
+
+            console.addPacket(receivedAt, type, COMM_PORT_SERVER, clock.getElapsedTime().asMilliseconds());
         }
     }
 }
@@ -369,6 +367,7 @@ int Server::addClient(std::unordered_map<std::string, std::any> infos) {
 [[noreturn]] void Server::sendLoop() {
     std::optional<sf::IpAddress> sender = sf::IpAddress::resolve("127.0.0.1");
     sf::Packet packet;
+    short type;
 
     while (true) {
         while (!loop) {sf::sleep(sf::Time());} // Pause if needed
@@ -397,6 +396,7 @@ int Server::addClient(std::unordered_map<std::string, std::any> infos) {
             switch (player.getStatus()) {
                 // If user has been created but didn't receive confirmation yet:
                 case Status::WAITING_FOR_INIT: {
+                    type = Pkt::ACK;
                     packet << Pkt::ACK << Pkt::NEW_PLAYER;
                     break;
                 }
@@ -407,6 +407,7 @@ int Server::addClient(std::unordered_map<std::string, std::any> infos) {
                     // Check if everyone is ready first:
                     if (clients.size() == maxPlayers) {
                         ready = true;
+                        type = Pkt::READY_R;
                         packet << Pkt::READY_R;
                         int nb = 1;
                         for (auto &[n, p] : clients) {
@@ -424,6 +425,7 @@ int Server::addClient(std::unordered_map<std::string, std::any> infos) {
 
                             // Add everything in packet:
                             packet << p.getName() << p.getColor().r << p.getColor().g << p.getColor().b << p.getColor().a;
+                            packet << p.getWeapons()[1];
                             nb++;
                         }
                     }
@@ -434,6 +436,7 @@ int Server::addClient(std::unordered_map<std::string, std::any> infos) {
                     // If not ready, send an ACK that client is waiting:
                     if (!ready) {
                         packet.clear();
+                        type = Pkt::ACK;
                         packet << Pkt::ACK << Pkt::WAIT_OPPONENTS;
                     }
                     break;
@@ -448,6 +451,7 @@ int Server::addClient(std::unordered_map<std::string, std::any> infos) {
                     }
 
                     if (ready) {
+                        type = Pkt::GLOBAL;
                         packet << Pkt::GLOBAL << int(buffer.getCurrentTick());
 
                         for (auto & [n, state] : currentState) {
@@ -455,12 +459,14 @@ int Server::addClient(std::unordered_map<std::string, std::any> infos) {
                         }
                     }
                     else {
+                        type = Pkt::ACK;
                         packet << Pkt::ACK << Pkt::WAIT_START_R;
                     }
                     break;
                 }
 
                 case Status::DONE: {
+                    type = Pkt::GLOBAL;
                     packet << Pkt::GLOBAL << int(buffer.getCurrentTick()) << clock.getElapsedTime().asMilliseconds();
                     for (auto & [n, state] : currentState) {
                         packet << n << state;
@@ -480,15 +486,22 @@ int Server::addClient(std::unordered_map<std::string, std::any> infos) {
                 }
 
                 case Status::DEAD: {
+                    type = Pkt::DEATH;
                     packet << Pkt::DEATH;
                     break;
                 }
 
                 case Status::WIN: {
+                    type = Pkt::WIN;
                     packet << Pkt::WIN;
                 }
             }
+            int currTime = clock.getElapsedTime().asMilliseconds();
+            packet << currTime;
+            semaphore.acquire();
             socket.send(packet, sender.value(), player.getPort());
+            console.addPacket(currTime, type, COMM_PORT_SERVER);
+            semaphore.release();
         }
         semaphore.acquire();
         buffer.push(clock.getElapsedTime().asMilliseconds());

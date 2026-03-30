@@ -10,8 +10,8 @@ int main() {
     XInitThreads(); // Needed for multi-threading.
     sf::Clock clock;
 
-    tickrate = 10;
-    clientRefreshRate = 200;
+    tickrate = 1;
+    clientRefreshRate = 1;
 
     std::cout << "Tickrate changes " << tickrate << " times per second." << std::endl;
     std::cout << "Starting server on Network: " << SERVER_IP << ":" << COMM_PORT_SERVER << std::endl;

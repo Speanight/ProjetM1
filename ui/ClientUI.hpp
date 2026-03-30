@@ -18,7 +18,7 @@ class ClientUI : public Client {
 protected :
     short screenToShow;
 public:
-    ClientUI(sf::Clock clock, std::string name, short controller = -1, sf::Color color = sf::Color::Red);
+    ClientUI(sf::Clock clock, Console console, std::string name, short controller = -1, sf::Color color = sf::Color::Red);
     // ClientUI(sf::Clock clock, std::string name, sf::Color color = sf::Color::Red, float radius = 0);
 
     void addOpponent(const std::string& name, sf::Color color);

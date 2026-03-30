@@ -9,6 +9,7 @@
 #include <vector>
 #include <thread>
 
+#include "Console.hpp"
 #include "ClientUI.hpp"
 #include "../communication/Server.hpp"
 
@@ -19,6 +20,7 @@ private:
     Server server;
     std::vector<ClientUI*> clients;
     short screen = 0;
+    Console console;
 
     sf::Clock clock;
 

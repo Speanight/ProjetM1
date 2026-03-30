@@ -18,6 +18,7 @@
 #include "../ui/ClientUI.hpp"
 #include "State.hpp"
 #include "Buffer.hpp"
+#include "../ui/Console.hpp"
 
 using namespace Const;
 
@@ -38,16 +39,15 @@ private:
 
     bool demo_mode = false;
     bool loop = true;
-    bool newGame = false;
-    bool newRound = true;   // TODO : put to false at the begining and changing
-    bool endGame = false;
 
 public:
     Server(sf::Clock clock);
     ~Server();
 
+    void setConsole(Console console);
+
     // Functions
-    int addClient(std::unordered_map<std::string, std::any> infos);
+    int addClient(const std::string& name, unsigned short port, sf::Color color, short weapon);
     [[noreturn]] void sendLoop();
     [[noreturn]] void receiveLoop();
     int shutdown();
