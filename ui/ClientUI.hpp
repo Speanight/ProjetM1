@@ -14,6 +14,13 @@
 #include <SFML/Graphics/Color.hpp>
 #include <algorithm>
 
+struct UISelect {
+    char nameBuffer[31] = "";
+    int selectedPreset = -1;
+    int selectedColor = 0;
+    int selectedWeapon = 1;
+};
+
 class ClientUI : public Client {
 protected :
     short screenToShow;

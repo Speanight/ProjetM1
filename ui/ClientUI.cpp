@@ -33,7 +33,7 @@ void ClientUI::drawGame() { // Game space
         auto player = getPlayer();
         // Switching the screen to show depending on the player status
         switch (player.getStatus()) {
-            case Status::WAITING_FOR_OPPONENTS or Status::READY_TO_START or Status::WAITING_FOR_INIT: {
+            case Status::WAITING_FOR_INIT or Status::WAITING_FOR_OPPONENTS or Status::READY_TO_START: {
                 screenToShow = Screens::LOADING_SCREEN;
                 break;
             }
@@ -54,7 +54,7 @@ void ClientUI::drawGame() { // Game space
                 break;
             }
             default         : {
-                std::cout<<"Unknown player status to show"<<std::endl;
+                std::cout<<"Unknown player status to show " << player.getStatus() <<std::endl;
                 drawErrorScreen(draw_list, player, childMin, childMax);
                 break;
             }
@@ -155,13 +155,18 @@ auto form1 = [](float v) {
 };
 
 void ClientUI::drawSelectionScreen(ImDrawList* draw_list, ImVec2 min, ImVec2 max) {
+    float window_size = max.x - min.x;
+    float scale = window_size / Const::MAP_SIZE_X;
+
     ImVec2 size = ImVec2(max.x - min.x, max.y - min.y);
     float zoneHeight = size.y / 5.0f;
 
     ImVec2 screenCenter = ImVec2(
     min.x + size.x * 0.5f,
     min.y + size.y * 0.5f
-);
+    );
+
+    std::string port = std::to_string(int(getPlayer().getPort()));
 
     // Zones
     ImVec2 z0_min = ImVec2(min.x, min.y);
@@ -171,11 +176,8 @@ void ClientUI::drawSelectionScreen(ImDrawList* draw_list, ImVec2 min, ImVec2 max
     ImVec2 z4_min = ImVec2(min.x, min.y + zoneHeight * 4);
 
     // Persistant variables
-    static char nameBuffer[31] = "";
-    static int selectedPreset = -1;
-    static int selectedColor = 0;
-    static int selectedWeapon = 1;          // id weapon = [1 -> 5]
-
+    static std::unordered_map<int, UISelect> selects;
+    UISelect& select = selects[getPlayer().getPort()];
 
     // button color definition
     ImGui::PushStyleColor(ImGuiCol_FrameBg, IM_COL32(255, 255, 255, 130));
@@ -212,7 +214,7 @@ void ClientUI::drawSelectionScreen(ImDrawList* draw_list, ImVec2 min, ImVec2 max
 
     // Weapon
     static Weapon demoWeapon;
-    demoWeapon.applyID(selectedWeapon);
+    demoWeapon.applyID(select.selectedWeapon);
 
     float buttonSize = ImGui::GetFrameHeight();
     float spacing = ImGui::GetStyle().ItemSpacing.x;
@@ -224,8 +226,8 @@ void ClientUI::drawSelectionScreen(ImDrawList* draw_list, ImVec2 min, ImVec2 max
 
         draw_list->AddText(
             ImVec2(
-                screenCenter.x - text_size.x * 0.5f,
-                z0_min.y + (zoneHeight - text_size.y) * 0.5f
+                screenCenter.x - text_size.x * 0.5f * scale,
+                z0_min.y + (zoneHeight - text_size.y) * 0.5f * scale
                 ),
             IM_COL32(255,255,255,255),
             title.c_str()
@@ -237,48 +239,48 @@ void ClientUI::drawSelectionScreen(ImDrawList* draw_list, ImVec2 min, ImVec2 max
         // insertion zone
         float inputWidth = 200.f;
         ImGui::SetCursorScreenPos(ImVec2(
-            screenCenter.x - inputWidth * 0.5f,
-            z1_min.y + 10
+            screenCenter.x - inputWidth * 0.5f * scale,
+            z1_min.y *scale + 10
         ));
 
         ImGui::PushItemWidth(inputWidth);
-        if (ImGui::InputText("##name", nameBuffer, 31)) {
-            selectedPreset = -1;
+        if (ImGui::InputText(("##name"+port).c_str(), select.nameBuffer, 31)) {
+            select.selectedPreset = -1;
         }
         ImGui::PopItemWidth();
 
         // Buttons
         float totalWidth = buttonSize * 2 + spacing;
         ImGui::SetCursorScreenPos(ImVec2(
-            screenCenter.x - totalWidth * 0.5f,
-            z1_min.y + 50
+            screenCenter.x - totalWidth * 0.5f * scale,
+            z1_min.y * scale + 50
         ));
-        if (ImGui::ArrowButton("##left_name", ImGuiDir_Left)) {
-            selectedPreset = (selectedPreset - 1 + presets.size()) % presets.size();
-            strcpy(nameBuffer, presets[selectedPreset].name.c_str());
-            selectedColor = presets[selectedPreset].color;
-            selectedWeapon = presets[selectedPreset].weapon;
+        if (ImGui::ArrowButton(("##left_name"+port).c_str(), ImGuiDir_Left)) {
+            select.selectedPreset = (select.selectedPreset - 1 + presets.size()) % presets.size();
+            strcpy(select.nameBuffer, presets[select.selectedPreset].name.c_str());
+            select.selectedColor = presets[select.selectedPreset].color;
+            select.selectedWeapon = presets[select.selectedPreset].weapon;
         }
 
         ImGui::SameLine(0, spacing);
 
-        if (ImGui::ArrowButton("##right_name", ImGuiDir_Right)) {
-            selectedPreset = (selectedPreset + 1) % presets.size();
-            strcpy(nameBuffer, presets[selectedPreset].name.c_str());
-            selectedColor = presets[selectedPreset].color;
-            selectedWeapon = presets[selectedPreset].weapon;
+        if (ImGui::ArrowButton(("##right_name"+port).c_str(), ImGuiDir_Right)) {
+            select.selectedPreset = (select.selectedPreset + 1) % presets.size();
+            strcpy(select.nameBuffer, presets[select.selectedPreset].name.c_str());
+            select.selectedColor = presets[select.selectedPreset].color;
+            select.selectedWeapon = presets[select.selectedPreset].weapon;
         }
     }
 
     // ZONE 2 : COLOR
     {
         // color circle
-        float radius = 20.f;
+        float radius = Const::PLAYER_SIZE*scale;
         ImVec2 center = ImVec2(
             screenCenter.x,
             z2_min.y + zoneHeight * 0.4f
         );
-        draw_list->AddCircleFilled(center, radius, colors[selectedColor]);
+        draw_list->AddCircleFilled(center, radius, colors[select.selectedColor]);
 
         // Buttons
         float totalWidth = buttonSize * 2 + spacing;
@@ -287,13 +289,13 @@ void ClientUI::drawSelectionScreen(ImDrawList* draw_list, ImVec2 min, ImVec2 max
             z2_min.y + zoneHeight * 0.7f
         ));
         if (ImGui::ArrowButton("##left_color", ImGuiDir_Left)) {
-            selectedColor = (selectedColor - 1 + colors.size()) % colors.size();
+            select.selectedColor = (select.selectedColor - 1 + colors.size()) % colors.size();
         }
 
         ImGui::SameLine(0, spacing);
 
         if (ImGui::ArrowButton("##right_color", ImGuiDir_Right)) {
-            selectedColor = (selectedColor + 1) % colors.size();
+            select.selectedColor = (select.selectedColor + 1) % colors.size();
         }
     }
 
@@ -301,13 +303,12 @@ void ClientUI::drawSelectionScreen(ImDrawList* draw_list, ImVec2 min, ImVec2 max
     {
         float halfWidth = 80.f;
 
-        ImU32 weaponColor = colors[selectedColor];
+        ImU32 weaponColor = colors[select.selectedColor];
 
-        float h = demoWeapon.getHeight();
-        float w = demoWeapon.getWidth();
+        float h = demoWeapon.getHeight()*scale;
+        float w = demoWeapon.getWidth()*scale;
 
         // ZONE 3 - 1 : WPN DRAW
-
         ImVec2 leftCenter = ImVec2(
             screenCenter.x - halfWidth,
             z3_min.y + zoneHeight * 0.45f
@@ -360,11 +361,10 @@ void ClientUI::drawSelectionScreen(ImDrawList* draw_list, ImVec2 min, ImVec2 max
             "\nReload: " + form1(demoWeapon.getReload()) +
             " | Type: " + type;
 
-
         ImVec2 text_size = ImGui::CalcTextSize(info.c_str());
 
         ImVec2 rightPos = ImVec2(
-            screenCenter.x + halfWidth - text_size.x * 0.5f,
+            screenCenter.x + halfWidth - text_size.x * scale * 0.5f,
             z3_min.y + zoneHeight * 0.25f
         );
 
@@ -381,21 +381,21 @@ void ClientUI::drawSelectionScreen(ImDrawList* draw_list, ImVec2 min, ImVec2 max
         const int weaponCount = 5;
 
         if (ImGui::ArrowButton("##left_weapon", ImGuiDir_Left)) {
-            selectedWeapon--;
-            if (selectedWeapon < 1) selectedWeapon = weaponCount;
+            select.selectedWeapon--;
+            if (select.selectedWeapon < 1) select.selectedWeapon = weaponCount;
         }
 
         ImGui::SameLine(0, spacing);
 
         if (ImGui::ArrowButton("##right_weapon", ImGuiDir_Right)) {
-            selectedWeapon++;
-            if (selectedWeapon > weaponCount) selectedWeapon = 1;
+            select.selectedWeapon++;
+            if (select.selectedWeapon > weaponCount) select.selectedWeapon = 1;
         }
     }
 
     // ZONE 4 : CONFIRM
     {
-        float buttonWidth = 120.f;
+        float buttonWidth = 120.f*scale;
         ImGui::SetCursorScreenPos(ImVec2(
             screenCenter.x - buttonWidth * 0.5f,
             z4_min.y + zoneHeight * 0.3f
@@ -403,159 +403,183 @@ void ClientUI::drawSelectionScreen(ImDrawList* draw_list, ImVec2 min, ImVec2 max
 
         if (ImGui::Button("CONFIRMER", ImVec2(buttonWidth, 40))) {
             std::string finalName;
-            if (strlen(nameBuffer) == 0) {
+            if (strlen(select.nameBuffer) == 0) {
                 finalName = "Client-" + std::to_string(this->getPlayer().getPort());
             } else {
-                finalName = nameBuffer;
+                finalName = select.nameBuffer;
             }
 
-            // TODO : make this so the player is
+            // TODO : make this so the player is sent to the server
             std::cout << "=>PLAYER CONFIG<=" << std::endl;
             std::cout << "Name: " << finalName << std::endl;
-            std::cout << "Color ID: " << selectedColor << std::endl;
-            std::cout << "Weapon ID: " << selectedWeapon << std::endl;
+            std::cout << "Color ID: " << select.selectedColor << std::endl;
+            std::cout << "Weapon ID: " << select.selectedWeapon << std::endl;
+
+            // deleting memory of the selector
+            selects.erase(this->getPlayer().getPort());
+            // demoWeapon is automaticly destroyed at the end of the program
+
         }
     }
     ImGui::PopStyleColor(4);
 }
 
 void ClientUI::drawLoadingScreen(ImDrawList* draw_list, ImVec2 min, ImVec2 max) {
-        ImFont* font = ImGui::GetFont();
-        auto player = getPlayer();
+    float window_size = max.x - min.x;
+    float scale = window_size / Const::MAP_SIZE_X;
 
-        float width  = max.x - min.x;
+    ImFont* font = ImGui::GetFont();
+    auto player = getPlayer();
 
-        ImVec2 center = {
+    float width  = max.x - min.x;
+
+    ImVec2 center = {
             (min.x + max.x) * 0.5f,
             (min.y + max.y) * 0.5f
         };
 
-        // BACKGROUND
-        draw_list->AddRectFilled(min, max, IM_COL32(20, 20, 20, 255));
+    // BACKGROUND
+    draw_list->AddRectFilled(min, max, IM_COL32(20, 20, 20, 255));
 
-        // LOADER
-        {
-            static float t = 0.0f;
-            t += ImGui::GetIO().DeltaTime * 3.0f;
+    // LOADER
+    {
+        static float t = 0.0f;
+        t += ImGui::GetIO().DeltaTime * 3.0f;
 
-            float radius = 25.0f;
-            int segments = 30;
+        float radius = 25.0f*scale;
+        int segments = 30;
 
-            float start = t;
-            float end   = t + std::numbers::pi * 1.5f;
+        float start = t;
+        float end   = t + std::numbers::pi * 1.5f;
 
-            draw_list->PathClear();
+        draw_list->PathClear();
 
-            for (int i = 0; i < segments; i++) {
-                float a = start + (end - start) * ((float)i / segments);
+        for (int i = 0; i < segments; i++) {
+            float a = start + (end - start) * ((float)i / segments);
 
-                ImVec2 p = {
-                    center.x + cosf(a) * radius,
-                    center.y - 40 + sinf(a) * radius
-                };
+            ImVec2 p = {
+                center.x + cosf(a) * radius,
+                  center.y - 40 + sinf(a) * radius
+            };
 
-                draw_list->PathLineTo(p);
-            }
-            draw_list->PathStroke(
-                IM_COL32(255,255,255,180),
-                false,
-                4.0f
-            );
+            draw_list->PathLineTo(p);
         }
 
-        // LOADING TEXT
-        {
-            const char* txt;
-            switch (player.getStatus()) {
-                case Status::WAITING_FOR_INIT : {
-                    txt = "Loading... \n Sending your data to the server...";
-                    break;
-                }
-                case Status::WAITING_FOR_OPPONENTS  : {
-                    txt = "Loading... \n Waiting for your opponents...";
-                    break;
-                }
-                case Status::READY_TO_START: {
-                    txt = "Loading... \n Ready to start...";
-                    break;
-                }
-                default : {
-                    txt = "Loading...";
-                    break;
-                }
-            }
-
-            float size = 20.0f;
-
-            ImVec2 dim = font->CalcTextSizeA(size, FLT_MAX, 0.0f, txt);
-
-            ImVec2 pos = {
-                center.x - dim.x * 0.5f,
-                center.y + 10
-            };
-
-            draw_list->AddText(
-                font,
-                size,
-                pos,
-                IM_COL32(220, 220, 220, 255),
-                txt
+        draw_list->PathStroke(
+            IM_COL32(255,255,255,180),
+            false,
+            4.0f
             );
-        }
-
-        // RANDOM PRAISE
-        {
-            static std::vector<std::string> messages = {
-                "Achat de la RAM...",
-                "Si le jeu charge pas, check les config en haut",
-                "Chargement des skills... (introuvables)",
-            };
-
-            static int selected = player.getPort() % messages.size();
-            std::string msg = messages[selected];
-
-            float msg_size = 18.0f;
-
-            float wrap_width = width * 0.8f;
-
-            ImVec2 text_dim = font->CalcTextSizeA(
-                msg_size,
-                wrap_width,
-                0.0f,
-                msg.c_str()
-            );
-
-            ImVec2 msg_center = {
-                center.x,
-                center.y + 100
-            };
-
-            ImVec2 msg_pos = {
-                msg_center.x - text_dim.x * 0.5f,
-                msg_center.y - text_dim.y * 0.5f
-            };
-
-            draw_list->AddText(
-                font,
-                msg_size,
-                msg_pos,
-                IM_COL32(180, 180, 180, 255),
-                msg.c_str(),
-                nullptr,
-                wrap_width
-            );
-        }
     }
+
+    // LOADING TEXT
+    {
+        const char* txt;
+        switch (player.getStatus()) {
+            case Status::WAITING_FOR_INIT : {
+                txt = "Loading... \n Sending your data to the server...";
+                break;
+            }
+            case Status::WAITING_FOR_OPPONENTS  : {
+                txt = "Loading... \n Waiting for your opponents...";
+                break;
+            }
+            case Status::READY_TO_START: {
+                txt = "Loading... \n Ready to start...";
+                break;
+            }
+            default : {
+                txt = "Loading...";
+                break;
+            }
+        }
+
+        float size = 20.0f*scale;
+
+        ImVec2 dim = font->CalcTextSizeA(size, FLT_MAX, 0.0f, txt);
+
+        ImVec2 pos = {
+            center.x - dim.x * 0.5f,
+            center.y + 10
+        };
+
+        draw_list->AddText(
+            font,
+            size,
+            pos,
+            IM_COL32(220, 220, 220, 255),
+            txt
+            );
+    }
+
+    // RANDOM PRAISE
+    {
+        static std::vector<std::string> messages = {
+            "Achat de la RAM...",
+            "Si le jeu charge pas, check les config en haut PTDR",
+            "Allez chatGpt, fait moi le jeu",
+            "Lancement de missiles nucléaires sur washingtown...",
+            "Attente de rachat par EA..."
+        };
+
+        static int selected = player.getPort() % messages.size();
+        std::string msg = messages[selected];
+
+        float msg_size = 18.0f*scale;
+
+        float wrap_width = width * 0.8f;
+
+        ImVec2 text_dim = font->CalcTextSizeA(
+            msg_size,
+            wrap_width,
+            0.0f,
+            msg.c_str()
+            );
+
+        ImVec2 msg_center = {
+            center.x,
+            center.y + 100
+        };
+
+        ImVec2 msg_pos = {
+            msg_center.x - text_dim.x * 0.5f,
+            msg_center.y - text_dim.y * 0.5f
+        };
+
+        draw_list->AddText(
+            font,
+            msg_size,
+            msg_pos,
+            IM_COL32(180, 180, 180, 255),
+            msg.c_str(),
+            nullptr,
+            wrap_width
+            );
+    }
+}
 
 void ClientUI::drawFightingScreen(ImDrawList* draw_list, Player player, std::map<std::string, Player> opponents, ImVec2 min, ImVec2 max) {
     // BACKGROUND
-    draw_list->AddRectFilled(
-        min,
-        max,
-        IM_COL32(120, 120, 120, 255)
-    );
+    static std::vector<std::string> map_link = {
+        "../font/map/dalle1.jpg",
+        "../font/map/grass1.jpg",
+        "../font/map/grass2.jpg",
+    };
 
-    // TODO : picture / fix the color
+    int selected = getMapID() % map_link.size();
+    std::string map = map_link[selected];
+
+    static sf::Texture Texture;
+    if(Texture.loadFromFile(map)) {
+        draw_list->AddImage(
+            (ImTextureID)Texture.getNativeHandle(),
+            ImVec2(min.x, min.y),
+            ImVec2(max.x, max.y)
+        );
+    }
+    else {
+        std::cout<<"Map not loaded"<<std::endl;
+    }
 
     // PLAYERS
     drawPlayer(draw_list,player , min, max);
@@ -618,7 +642,7 @@ void ClientUI::drawWeapon(Player player, ImDrawList* draw_list, ImVec2 pl_positi
     float player_radius = Const::PLAYER_SIZE * scale;
     float distance = player_radius + 2.f * scale;
     switch (player.getWpn().getType()) {
-        case Weapons::TRIANGLE: {
+        case Weapons::TRIANGLE  : {
             ImVec2 dir = {cosf(player.getRadius()), sinf(player.getRadius())};
             float height = player.getWpn().getHeight() * scale;
             float width = player.getWpn().getWidth() * scale;
@@ -654,8 +678,62 @@ void ClientUI::drawWeapon(Player player, ImDrawList* draw_list, ImVec2 pl_positi
             );
             break;
         }
+        case Weapons::RECTANGLE : {
+            float baseAngle = player.getRadius();
 
-        case Weapons::SHIELD: {
+            float height = player.getWpn().getHeight() * scale;
+            float width  = player.getWpn().getWidth() * scale;
+            float range  = player.getWpn().getRange() * scale;
+
+            // ======== ATTACK ANIMATION ========
+            float offset = 0.f;
+
+            if (player.getTimer_atk() != -1) {
+                float atk = player.getWpn().getAttackSpeed();
+                float reload = player.getWpn().getReload();
+
+                if (player.getTimer_atk() <= atk) {
+                    offset = player.getTimer_atk() / atk; // 0 → 1
+                } else if (player.getTimer_atk() <= atk + reload) {
+                    offset = 1.f - (player.getTimer_atk() - atk) / reload; // 1 → 0
+                }
+            }
+
+            // ======== ROTATION ANGLE ========
+            float maxAngle = std::numbers::pi / 3.f; // angle du swing (60°)
+            float angle = baseAngle + (offset - 0.5f) * 2.f * maxAngle;
+            // offset=0 → -maxAngle | offset=1 → +maxAngle
+
+            ImVec2 dir = { cosf(angle), sinf(angle) };
+            ImVec2 perp = { -dir.y, dir.x };
+
+            // ======== POSITION DU CENTRE DE L'ARME ========
+            ImVec2 center = {
+                pl_position.x + dir.x * (distance + range),
+                pl_position.y + dir.y * (distance + range)
+            };
+
+            // ======== CONSTRUCTION DU RECTANGLE ========
+            ImVec2 p1 = { center.x + perp.x * (width * 0.5f), center.y + perp.y * (width * 0.5f) };
+            ImVec2 p2 = { center.x - perp.x * (width * 0.5f), center.y - perp.y * (width * 0.5f) };
+
+            ImVec2 p3 = { p2.x + dir.x * height, p2.y + dir.y * height };
+            ImVec2 p4 = { p1.x + dir.x * height, p1.y + dir.y * height };
+
+            draw_list->AddQuadFilled(
+                p1, p2, p3, p4,
+                IM_COL32(
+                    player.getColor().r,
+                    player.getColor().g,
+                    player.getColor().b,
+                    player.getColor().a
+                )
+            );
+
+            break;
+        }
+        /*--------------------------------------------*/
+        case Weapons::SHIELD    : {
             float arcWidth = 0.8f;
             float a_min = player.getRadius() - arcWidth;
             float a_max = player.getRadius() + arcWidth;
@@ -675,13 +753,16 @@ void ClientUI::drawWeapon(Player player, ImDrawList* draw_list, ImVec2 pl_positi
             );
             break;
         }
-
+        /*--------------------------------------------*/
         default:
             std::cout << "Unknown weapon type: " << player.getWpn().getType() << std::endl;
     }
 }
 
 void ClientUI::drawEndScreen(ImDrawList* draw_list, ImVec2 min, ImVec2 max, bool victory) {
+    float window_size = max.x - min.x;
+    float scale = window_size / Const::MAP_SIZE_X;
+
     ImVec2 center = {
         (min.x + max.x) * 0.5f,
         (min.y + max.y) * 0.5f
@@ -729,7 +810,7 @@ void ClientUI::drawEndScreen(ImDrawList* draw_list, ImVec2 min, ImVec2 max, bool
 
     // TITLE
     {
-        float title_size = 50.0f;
+        float title_size = 50.0f*scale;
 
         ImVec2 title_dim = font->CalcTextSizeA(title_size, FLT_MAX, 0.0f, title);
 
@@ -757,7 +838,7 @@ void ClientUI::drawEndScreen(ImDrawList* draw_list, ImVec2 min, ImVec2 max, bool
         static int selected = this->getPlayer().getPort() % messages.size();
         std::string msg = messages[selected];
 
-        float msg_size = 18.0f;
+        float msg_size = 18.0f*scale;
 
         float wrap_width = (max.x - min.x) * 0.8f;
         ImVec2 text_dim = font->CalcTextSizeA(
@@ -790,7 +871,7 @@ void ClientUI::drawEndScreen(ImDrawList* draw_list, ImVec2 min, ImVec2 max, bool
 
     // BUTTON
     {
-        float btn_font_size = 22.0f;
+        float btn_font_size = 20.0f*scale;
         int nb_buttons = 3;
         float gap = 15.0f;
 
@@ -819,8 +900,8 @@ void ClientUI::drawEndScreen(ImDrawList* draw_list, ImVec2 min, ImVec2 max, bool
             ImGui::SetCursorScreenPos(btn_min);
             if (ImGui::InvisibleButton("btn_retry", btn_size)) {
                 std::cout<<"CLICK ON "<< btn_text <<std::endl;
-                screenToShow = Screens::LOADING_SCREEN;
                 setStatus(Status::WAITING_FOR_INIT);
+                screenToShow = Screens::LOADING_SCREEN;
 
                 // TODO : sending new players packet to the server with the actual player values
                 // TODO : protecting the server so he don't stop the game while playing on retry

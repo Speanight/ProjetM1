@@ -56,6 +56,7 @@ private:
     std::thread receiveThread;
 
     NetworkState network;
+    short mapID = 0;
 
     bool newGame = false;
     bool loop = true;
@@ -97,6 +98,7 @@ public:
     Position getPosition() const;
     int getStatus() const;
     bool getLoop() const;
+    short getMapID() const;
 
 
     Input getInputs(bool mode_enable=false, bool attack_enable=true);
@@ -110,6 +112,7 @@ public:
     void setRadius(float radius);
     void setStatus(int status);
     void setLoop(bool loop);
+    void setMapID(short mapID);
     void setCompensations(std::array<bool,3> compensations);
     void setController(short controller);
 

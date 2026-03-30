@@ -3,6 +3,7 @@
 
 #include "../communication/State.hpp"
 #include "../Utils.hpp"
+#include <algorithm>
 #include <string>
 
 class Player {

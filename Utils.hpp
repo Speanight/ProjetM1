@@ -32,6 +32,7 @@ namespace Const {
 
     static const float MAP_SIZE_X = 500.f;
     static const float MAP_SIZE_Y = 500.f;
+    static const int   NB_MAP_ID  = 3;
 
     static const int AMT_PLAYERS_MAX = 4;
 }

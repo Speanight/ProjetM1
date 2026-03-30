@@ -383,6 +383,7 @@ int Server::sendLoop() {
         }
 
         if (playersDead+1 == clients.size()) {
+            mapID = -1;     // put a mapID back to "not set"
             for (auto &[name, player] : clients) {
                 if (player.getStatus() != Status::DEAD) {
                     clients[name].setStatus(Status::WIN);
@@ -404,8 +405,13 @@ int Server::sendLoop() {
                     bool ready = false;
                     // Check if everyone is ready first:
                     if (clients.size() == maxPlayers) {
+                        // Map
+                        if(mapID==-1) {
+                            mapID = tick%Const::NB_MAP_ID;
+                        }
+
                         ready = true;
-                        packet << Pkt::READY_R;
+                        packet << Pkt::READY_R << mapID;
                         int nb = 1;
                         for (auto &[n, p] : clients) {
                             // Check that everyone know they've been ACKd by server:

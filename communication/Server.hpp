@@ -41,6 +41,7 @@ private:
     bool newGame = false;
     bool newRound = true;   // TODO : put to false at the begining and changing
     bool endGame = false;
+    int mapID=-1;           // -1 stand for not set, mapID going from [0 -> Const::NB_MAP_ID]
 
 public:
     Server(sf::Clock clock);

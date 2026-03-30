@@ -102,6 +102,11 @@ bool Client::getLoop() const {
     return this->loop;
 }
 
+short Client::getMapID() const {
+    return this->mapID;
+}
+
+
 std::array<bool,3> Client::getCompensations() const {
     return network.compensations;
 }
@@ -115,6 +120,10 @@ bool Client::getCompensationEnabled(int compensation) {
 
 void Client::setStatus(int status) {
     this->player.setStatus(status);
+}
+
+void Client::setMapID(short mapID) {
+    this->mapID = mapID;
 }
 
 void Client::setReceivingPacketLoss(int packetLoss) {
@@ -418,6 +427,12 @@ int Client::receiveLoop() {
 
                         // Server is ready and sends the data and position of each client:
                         case Pkt::READY_R: {
+                            // TODO : add something here to get the map and set it using this->setMapID(id)
+                            // getting the map
+                            int mapID;
+                            packet >> mapID;
+                            setMapID(mapID);
+
                             std::string name;
                             std::uint8_t r, g, b, a;
 
