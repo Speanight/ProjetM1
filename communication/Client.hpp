@@ -31,6 +31,8 @@ using namespace Const;
 struct QueuedPacket {
     sf::Time timestamp;
     sf::Packet packet;
+
+    uint32_t packetID;
 };
 
 struct NetworkState {
@@ -56,7 +58,7 @@ private:
     std::thread sendThread;
     std::thread receiveThread;
 
-    Console console;
+    Console& console;
 
     NetworkState network;
 
@@ -74,12 +76,12 @@ protected:
 
     int lastServerTick;
     unsigned int lastInputId = 0;
-    bool created = false;
+//    bool created = false;
 
     int lastUpdate;
 
 public:
-    Client(sf::Clock clock, Console console, std::string name, short controller = -1, sf::Color color = sf::Color::Red);
+    Client(sf::Clock& clock, Console& console, std::string name, short controller = -1, sf::Color color = sf::Color::Red);
     ~Client();
 
     // Copy constructors

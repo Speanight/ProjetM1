@@ -8,3 +8,11 @@ sf::Color convertImUToSfColor(ImU32 im_color) {
 
     return {r,g,b,a};
 }
+
+uint32_t getPacketId() {
+    m.lock();
+    uint32_t val = packetID;
+    packetID += 1;
+    m.unlock();
+    return val;
+}

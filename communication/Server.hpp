@@ -41,10 +41,8 @@ private:
     bool loop = true;
 
 public:
-    Server(sf::Clock clock);
+    Server(Console &console, sf::Clock& clock);
     ~Server();
-
-    void setConsole(Console console);
 
     // Functions
     int addClient(const std::string& name, unsigned short port, sf::Color color, short weapon);

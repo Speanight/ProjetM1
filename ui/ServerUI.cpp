@@ -1,7 +1,7 @@
 #include <iostream>
 #include "ServerUI.hpp"
 
-ServerUI::ServerUI() {
+ServerUI::ServerUI(Console& console) : console(console) {
     std::vector<float> vec(Const::GRAPH_DISPLAY_VALUES, FLT_EPSILON);
     data["Server"] = vec;
 
@@ -117,6 +117,7 @@ void ServerUI::draw() {
     ImGui::SameLine();
     if (ImGui::Button("Pause")) {
         pauseConsole = !pauseConsole;
+        console.setPause(pauseConsole);
     }
     ImGui::SameLine();
     ImGui::Separator();

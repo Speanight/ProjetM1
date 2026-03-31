@@ -1,5 +1,4 @@
 #include "Server.hpp"
-#include <utility>
 
 /**
  * A server is being initialized with MainWindow. It's a needed component to ensure communication between the different
@@ -8,8 +7,7 @@
  *
  * @param clock Clock, needed to synchronise clients and server together for packet transmission.
  */
-Server::Server(const sf::Clock clock) : semaphore(1) {
-    this->clock = clock;
+Server::Server(Console &console, sf::Clock& clock) : ServerUI(console), semaphore(1), clock(clock) {
     if (socket.bind(COMM_PORT_SERVER) != sf::Socket::Status::Done) {
         std::cout << "Error: port isn't available?" << std::endl;
     }
@@ -19,10 +17,6 @@ Server::Server(const sf::Clock clock) : semaphore(1) {
         sendThread = std::thread(&Server::sendLoop, this);
         receiveThread = std::thread(&Server::receiveLoop, this);
     }
-}
-
-void Server::setConsole(Console console) {
-    this->console = std::move(console);
 }
 
 Server::~Server() {
@@ -75,7 +69,7 @@ int Server::addClient(const std::string& name, unsigned short port, sf::Color co
     std::unordered_map<std::string, State> currentState;
     State playerState;
     float radius;
-    int receivedAt;
+    uint32_t id;
 
     while (true) {
         while (!loop) {sf::sleep(sf::Time());} // Pause if needed
@@ -83,7 +77,7 @@ int Server::addClient(const std::string& name, unsigned short port, sf::Color co
         packet.clear();
 
         if (socket.receive(packet, sender, port) == sf::Socket::Status::Done) {
-            packet >> type;
+            packet >> id >> type;
             if (type == Pkt::NEW_PLAYER) {
                 // name << r g b a << wpn
                 std::string pname;
@@ -280,7 +274,6 @@ int Server::addClient(const std::string& name, unsigned short port, sf::Color co
                                             }
                                             else {
                                                 int pts = opponent.getPoint()-currentState[player.getName()].getWpn().getDamage();
-                                                pts = 0; // TODO: remove: only for debug purposes.
                                                 if(pts <= 0) {
                                                     pts = 0;
                                                     clients[plPort].setStatus(Status::DEAD);
@@ -352,9 +345,8 @@ int Server::addClient(const std::string& name, unsigned short port, sf::Color co
                     }
                 }
             }
-            packet >> receivedAt;
 
-            console.addPacket(receivedAt, type, COMM_PORT_SERVER, clock.getElapsedTime().asMilliseconds());
+            console.addPacket(id, type, COMM_PORT_SERVER, clock.getElapsedTime().asMilliseconds(), true);
         }
     }
 }
@@ -368,6 +360,7 @@ int Server::addClient(const std::string& name, unsigned short port, sf::Color co
     std::optional<sf::IpAddress> sender = sf::IpAddress::resolve("127.0.0.1");
     sf::Packet packet;
     short type;
+    uint32_t id;
 
     while (true) {
         while (!loop) {sf::sleep(sf::Time());} // Pause if needed
@@ -393,6 +386,10 @@ int Server::addClient(const std::string& name, unsigned short port, sf::Color co
 
         for (auto & [port, player] : clients) {
             packet.clear();
+            semaphore.acquire();
+            id = getPacketId();
+            packet << id;
+            semaphore.release();
             switch (player.getStatus()) {
                 // If user has been created but didn't receive confirmation yet:
                 case Status::WAITING_FOR_INIT: {
@@ -437,7 +434,7 @@ int Server::addClient(const std::string& name, unsigned short port, sf::Color co
                     if (!ready) {
                         packet.clear();
                         type = Pkt::ACK;
-                        packet << Pkt::ACK << Pkt::WAIT_OPPONENTS;
+                        packet << id << Pkt::ACK << Pkt::WAIT_OPPONENTS;
                     }
                     break;
                 }
@@ -496,11 +493,9 @@ int Server::addClient(const std::string& name, unsigned short port, sf::Color co
                     packet << Pkt::WIN;
                 }
             }
-            int currTime = clock.getElapsedTime().asMilliseconds();
-            packet << currTime;
             semaphore.acquire();
             socket.send(packet, sender.value(), player.getPort());
-            console.addPacket(currTime, type, COMM_PORT_SERVER);
+            console.addPacket(id, type, COMM_PORT_SERVER, clock.getElapsedTime().asMilliseconds());
             semaphore.release();
         }
         semaphore.acquire();
@@ -515,7 +510,6 @@ int Server::addClient(const std::string& name, unsigned short port, sf::Color co
             }
         }
     }
-    receiveThread.join();
 }
 
 

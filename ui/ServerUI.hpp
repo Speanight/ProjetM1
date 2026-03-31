@@ -34,10 +34,10 @@ protected:
     // Data (graphs)
     std::unordered_map<std::string, std::vector<float>> data;
     bool rewind = false; // Compensation method.
-    Console console;
+    Console& console;
 
 public:
-    ServerUI();
+    ServerUI(Console& console);
     void addLine(std::string text, sf::Color color = sf::Color::White);
     void addLine(int timestamp, std::string from, std::string to, std::string details, sf::Color color = sf::Color::White);
     void addToGraph(int timestamp, const std::string& from, const std::string& to);

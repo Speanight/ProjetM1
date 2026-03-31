@@ -1,7 +1,7 @@
 #include "MainWindow.hpp"
 
-MainWindow::MainWindow(sf::Clock clock, bool quickLaunch) : console(), server(clock) {
-    server.setConsole(console);
+MainWindow::MainWindow(sf::Clock clock, bool quickLaunch) : console(), server(console, clock) {
+    std::cout << "Console adress is: " << &console << std::endl;
     if (quickLaunch) {
         quickSetup();
     }

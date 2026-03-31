@@ -13,11 +13,11 @@
  * @param name Name given to the client. Can be any string, must be unique!
  * @param color Color given to the client in the Server's console.
  */
-Client::Client(sf::Clock clock, Console console, std::string name, short controller, sf::Color color) :
+Client::Client(sf::Clock& clock, Console& console, std::string name, short controller, sf::Color color) :
     server(SERVER_IP_BYTE1, SERVER_IP_BYTE2, SERVER_IP_BYTE3, SERVER_IP_BYTE4), semaphore(1),
-    player(std::move(name), color, 0) {
-    this->console = std::move(console);
-    this->clock = clock;
+    player(std::move(name), color, 0),
+    console(console),
+    clock(clock) {
     this->bufferOnReceipt.addClient(player);
     this->controllerNumber = controller;
 }
@@ -278,12 +278,8 @@ Input Client::getInputs(bool mode_enable, bool attack_enable) {
         }
 
         // ==========| PACKET HANDLER |========== //
-        // Verifying if we should drop packet (packet loss %):
-        int packetLossChance = std::experimental::randint(1, 100);
-        if (packetLossChance > network.packetLoss[1]) {
-            // Add latest inputs to queue (for ping simulation)
-            sendPacket(inputs);
-        }
+        // Add latest inputs to queue (for ping simulation)
+        sendPacket(inputs);
 
         // ==========| COMPENSATIONS (if needed) |========== //
         semaphore.acquire();
@@ -325,6 +321,11 @@ int Client::sendPacket(Input inputs) {
     QueuedPacket pkt;
     short type;
     pkt.timestamp = clock.getElapsedTime();
+    semaphore.acquire();
+    uint32_t id = getPacketId();
+    pkt.packet << id;
+    pkt.packetID = id;
+    semaphore.release();
 
     switch (player.getStatus()) {
         // Player sends their data to the server, waiting for ACK:
@@ -373,15 +374,18 @@ int Client::sendPacket(Input inputs) {
         }
     }
 
-    int sentTime = pkt.timestamp.asMilliseconds();
-    pkt.packet << sentTime;
+    semaphore.acquire();
+    console.addPacket(pkt.packetID, type, player.getPort(), pkt.timestamp.asMilliseconds());
     queuedPackets.push_back(pkt); // Adds the packet to the array of packets.
     auto packetToSend = getLatestQueuedPacket();
-    semaphore.acquire();
-    if (packetToSend.has_value()) {
-        socket.send(packetToSend.value().packet, server, COMM_PORT_SERVER);
+
+    int packetLossChance = std::experimental::randint(1, 100);
+    // Only executes if packet loss % is respected (randomly generated number)
+    if (packetLossChance > network.packetLoss[1]) {
+        if (packetToSend.has_value()) {
+            socket.send(packetToSend.value().packet, server, COMM_PORT_SERVER);
+        }
     }
-    console.addPacket(sentTime, type, player.getPort());
 
     semaphore.release();
 
@@ -394,6 +398,7 @@ int Client::sendPacket(Input inputs) {
     short type;
     short typeAck;
     short unsigned int port;
+    uint32_t id;
 
     while (true) {
         while (!loop) {sf::sleep(sf::Time());} // Pause if needed
@@ -404,7 +409,7 @@ int Client::sendPacket(Input inputs) {
             // Only executes if packet loss % is respected (randomly generated number)
             if (packetLossChance > network.packetLoss[0]) {
                 if (port == COMM_PORT_SERVER) {
-                    packet >> type;
+                    packet >> id >> type;
                     switch (type) {
                         case Pkt::ACK: {
                             packet >> typeAck;
@@ -522,11 +527,9 @@ int Client::sendPacket(Input inputs) {
                         }
                     }
 
-                    int currTime;
-                    packet >> currTime;
-                    int time = clock.getElapsedTime().asMilliseconds();
-
-                    console.addPacket(currTime, type, this->player.getPort(), time);
+                    semaphore.acquire();
+                    console.addPacket(id, type, this->player.getPort(), clock.getElapsedTime().asMilliseconds(), true);
+                    semaphore.release();
                 }
             }
         }
@@ -567,7 +570,8 @@ sf::Color Client::getColor() {
 
 // Copy constructors
 Client::Client(const Client& other) : server(other.server), semaphore(1),
-    player(other.player.getName(), other.player.getColor()) {
+    player(other.player.getName(), other.player.getColor()),
+    console(other.console) {
     this->player.setPosition(other.player.getPosition());
     this->player.setRadius(other.player.getRadius());
     this->player.setWpn(other.player.getWpn().getId());

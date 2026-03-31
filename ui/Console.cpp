@@ -1,45 +1,62 @@
-#include <iostream>
 #include "Console.hpp"
 
-Console::Console() = default;
-
-void Console::addClient(unsigned short portToAdd) {
-    clients[portToAdd] = clients.size()*100;
+Console::Console() {
+    clients.insert({Const::COMM_PORT_SERVER, 50});
 }
 
+void Console::setPause(bool pause) {
+    this->pause = pause;
+}
 
-void Console::addPacket(int timestamp, short type, unsigned short client, int receivedAt) {
-    std::cout << "Packet: from " << client << " @" << timestamp << " #" << type << " & received @" << receivedAt << std::endl;
+void Console::addClient(unsigned short portToAdd) {
+    if (portToAdd != Const::COMM_PORT_SERVER) {
+        int pos = 50 / ceil(clients.size()/2);
+        if (clients.size() % 2) {
+            pos = -pos;
+        }
+        pos += 50;
+        clients.insert({portToAdd, pos});
+    }
+}
+
+void Console::addPacket(uint32_t id, short type, unsigned short client, int timestamp, bool received) {
     // TODO: fix and re-add a deleting function.
-//    if (timestamp > timestampDelay + Const::GRAPH_DISPLAY_VALUES) {
-//        timestampDelay = timestamp - Const::GRAPH_DISPLAY_VALUES;
-//        std::erase_if(packets, [this](const auto& item) {
-//            const auto& [key, value] = item;
-//            return key < timestampDelay + Const::GRAPH_DISPLAY_VALUES;
-//        });
-//    }
+    if (pause) {
+        return;
+    }
+    m.lock();
+    if (packets.size() > Const::GRAPH_DISPLAY_VALUES) {
+        auto it = packets.begin();
+        // Remove X first element to have GRAPH_DISPLAY_VALUES elems. left.
+        std::advance(it, packets.size() - Const::GRAPH_DISPLAY_VALUES);
+
+        try {
+            packets.erase(packets.begin(), it);
+        } catch (int errCode) {
+            std::cout << "Couldn't clear packets from console! Error: " << errCode;
+        }
+    }
+    timestampDelay = packets.begin()->second.timestampFrom;
 
     Packet p;
 
-    if (receivedAt != 0) {
-        p = packets[timestamp];
-        p.to = client;
-        p.timestampTo = receivedAt;
+    if (packets.contains(id)) {
+        p = packets[id];
         p.wasReceived = true;
+    }
 
-        packets[timestamp] = p;
+    if (received) {
+        p.to = client;
+        p.timestampTo = timestamp;
     }
     else {
-        p.timestampFrom = timestamp;
-        p.type = type;
         p.from = client;
-
-        // Here to avoid empty values (0) that would display a long line:
-        p.timestampTo = timestamp;
-        p.to = client;
-
-        packets[timestamp] = p;
+        p.timestampFrom = timestamp;
     }
+    p.type = type;
+
+    packets[id] = p;
+    m.unlock();
 }
 
 
@@ -54,21 +71,23 @@ void Console::draw() {
     if (ImPlot::BeginPlot("##MarkerStyles", ImVec2(-1,0), ImPlotFlags_CanvasOnly)) {
 //        ImPlot::SetupAxes(nullptr, nullptr, ImPlotAxisFlags_NoDecorations, ImPlotAxisFlags_NoDecorations);
         ImPlot::SetupAxesLimits(0, Const::GRAPH_DISPLAY_VALUES, 0, 100);
+        ImPlot::SetupAxisZoomConstraints(ImAxis_Y1, 105, 105);
 
-        // filled markers
-        for (auto & [timestamp, packet] : packets) {
+        m.lock();
+        int firstTimestamp = packets.begin()->second.timestampFrom;
+        for (auto & [id, packet] : packets) {
             // Get x/y values depending of available region:
-            int x[2] = {static_cast<int>(Const::GRAPH_DISPLAY_VALUES * packet.timestampFrom - timestampDelay),
-                        static_cast<int>(Const::GRAPH_DISPLAY_VALUES * packet.timestampTo - timestampDelay)};
-            int y[2] = {static_cast<int>(clients[packet.from]), static_cast<int>(clients[packet.to])};
+            int x[2] = {static_cast<int>(packet.timestampFrom - firstTimestamp),
+                        static_cast<int>(packet.timestampTo - firstTimestamp)};
+            int y[2] = {clients[packet.from], clients[packet.to]};
 
 
             ImGui::PushID(packet.type); // Change line display depending on packet type.
             ImPlot::PlotLine("##Filled", x, y, 1+packet.wasReceived, spec); // Draw values
             ImGui::PopID();
         }
+        m.unlock();
 
         ImPlot::EndPlot();
     }
 }
-// TODO: remove all u.int / int / short conversions because values are wrong.
