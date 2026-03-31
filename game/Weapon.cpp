@@ -167,8 +167,8 @@ void Weapon::applyID(short id) {
             w_height = 50.f;
             w_width = 5.f;
             w_type = Weapons::RECTANGLE;
-            w_atk_speed = 1.f;
-            w_rld = 1.f;
+            w_atk_speed = 50.f;
+            w_rld = 50.f;
             w_range = std::numbers::pi;
             w_damage = 1000;
             w_transform = 5.f;

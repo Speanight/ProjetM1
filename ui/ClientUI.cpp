@@ -1,6 +1,7 @@
 #include "ClientUI.hpp"
 
-ClientUI::ClientUI(const sf::Clock clock, std::string name, short controller, sf::Color color) : Client(clock, name, controller, color) {}
+ClientUI::ClientUI(sf::Clock& clock, Console& console, std::string name, short controller, sf::Color color) :
+Client(clock, console, name, controller, color) {}
 
 void ClientUI::drawGame() { // Game space
     const char* title = getName().c_str();
@@ -26,14 +27,16 @@ void ClientUI::drawGame() { // Game space
     ImDrawList* draw_list = ImGui::GetWindowDrawList();
 
     // TODO : => mooving this switch case in an other loop ? <=
-    if(getLoop() == false) {
+    if(!getLoop()) {
         screenToShow = Screens::PLAYER_SELECT;
     }
     else {
         auto player = getPlayer();
         // Switching the screen to show depending on the player status
         switch (player.getStatus()) {
-            case Status::WAITING_FOR_INIT or Status::WAITING_FOR_OPPONENTS or Status::READY_TO_START: {
+            case Status::WAITING_FOR_INIT:
+            case Status::WAITING_FOR_OPPONENTS:
+            case Status::READY_TO_START: {
                 screenToShow = Screens::LOADING_SCREEN;
                 break;
             }
@@ -53,8 +56,8 @@ void ClientUI::drawGame() { // Game space
                 // screenToShow remain the same;
                 break;
             }
-            default         : {
-                std::cout<<"Unknown player status to show " << player.getStatus() <<std::endl;
+            default: {
+                std::cout<<"Unknown player status to show: #"<<player.getStatus()<<std::endl;
                 drawErrorScreen(draw_list, player, childMin, childMax);
                 break;
             }
@@ -167,8 +170,8 @@ void ClientUI::drawSelectionScreen(ImDrawList* draw_list, ImVec2 min, ImVec2 max
     float zoneHeight = size.y / 5.0f;
 
     ImVec2 screenCenter = ImVec2(
-    min.x + size.x * 0.5f,
-    min.y + size.y * 0.5f
+        min.x + size.x * 0.5f,
+        min.y + size.y * 0.5f
     );
 
     std::string port = std::to_string(int(getPlayer().getPort()));
@@ -205,7 +208,7 @@ void ClientUI::drawSelectionScreen(ImDrawList* draw_list, ImVec2 min, ImVec2 max
         IM_COL32(255, 127, 0, 255),             // orange
 
         IM_COL32(255, 0, 127, 255),             // pink
-        IM_COL32(158, 72, 203, 255)             // pony purple
+        IM_COL32(165, 71, 193, 255)             // pony purple
     };
 
     // Presets
@@ -563,11 +566,15 @@ void ClientUI::drawSelectionScreen(ImDrawList* draw_list, ImVec2 min, ImVec2 max
                 finalName = select.nameBuffer;
             }
 
-            // TODO : make this so the player is sent to the server
-            std::cout << "=>PLAYER CONFIG<=" << std::endl;
-            std::cout << "Name: " << finalName << std::endl;
-            std::cout << "Color ID: " << select.selectedColor << std::endl;
-            std::cout << "Weapon ID: " << select.selectedWeapon << std::endl;
+            Player pl = getPlayer();
+
+            pl.setName(finalName);
+            pl.setColor(convertImUToSfColor(colors[select.selectedColor]));
+            pl.setWeapons({Weapons::SHIELD, short(select.selectedWeapon)});
+            setPlayer(pl);
+            screenToShow = Screens::LOADING_SCREEN;
+            setStatus(Status::WAITING_FOR_INIT);
+            setLoop(true);
 
             // deleting memory of the selector
             selects.erase(this->getPlayer().getPort());
@@ -716,7 +723,7 @@ void ClientUI::drawLoadingScreen(ImDrawList* draw_list, ImVec2 min, ImVec2 max) 
             msg.c_str(),
             nullptr,
             wrap_width
-            );
+        );
     }
 }
 
@@ -856,8 +863,8 @@ void ClientUI::drawWeapon(Player player, ImDrawList* draw_list, ImVec2 pl_positi
             ImVec2 perp = { -dir.y, dir.x };
 
             ImVec2 center = {
-                pl_position.x + dir.x * distance,
-                pl_position.y + dir.y * distance
+                    pl_position.x + dir.x * distance,
+                    pl_position.y + dir.y * distance
             };
 
             ImVec2 p1 = { center.x + perp.x * (width * 0.5f), center.y + perp.y * (width * 0.5f) }; // top left
@@ -867,13 +874,13 @@ void ClientUI::drawWeapon(Player player, ImDrawList* draw_list, ImVec2 pl_positi
             ImVec2 p4 = { p1.x + dir.x * height, p1.y + dir.y * height };                           // bottom right
 
             draw_list->AddQuadFilled(
-                p1, p2, p3, p4,
-                IM_COL32(
-                    player.getColor().r,
-                    player.getColor().g,
-                    player.getColor().b,
-                    player.getColor().a
-                )
+                    p1, p2, p3, p4,
+                    IM_COL32(
+                            player.getColor().r,
+                            player.getColor().g,
+                            player.getColor().b,
+                            player.getColor().a
+                    )
             );
 
             break;
@@ -1044,9 +1051,14 @@ void ClientUI::drawEndScreen(ImDrawList* draw_list, ImVec2 min, ImVec2 max, bool
         {
             ImGui::SetCursorScreenPos({ start_x, y });
 
+            ImVec2 btn_min = { start_x, y };
+            ImVec2 btn_max = { btn_min.x + btn_size.x, btn_min.y + btn_size.y };
+
+            ImGui::SetCursorScreenPos(btn_min);
             if (ImGui::Button("RETRY\n(press attack)", btn_size) || inputs.getAttack()) {
                 // std::cout << "CLICK ON RETRY" << std::endl;
                 setStatus(Status::WAITING_FOR_INIT);
+                setLoop(true);
                 screenToShow = Screens::LOADING_SCREEN;
             }
         }

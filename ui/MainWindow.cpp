@@ -1,6 +1,7 @@
 #include "MainWindow.hpp"
 
-MainWindow::MainWindow(sf::Clock clock, bool quickLaunch) : server(clock) {
+MainWindow::MainWindow(sf::Clock clock, bool quickLaunch) : console(), server(console, clock) {
+    std::cout << "Console adress is: " << &console << std::endl;
     if (quickLaunch) {
         quickSetup();
     }
@@ -209,8 +210,8 @@ void MainWindow::draw(short screen) {
  * @brief Starts the game quickly by creating 2 players. Controllers are detected if available.
  */
 void MainWindow::quickSetup() {
-    ClientUI* clientA = new ClientUI(clock, "Client A", -1, sf::Color::Red);
-    ClientUI* clientB = new ClientUI(clock, "Client B", -1, sf::Color::Green);
+    ClientUI* clientA = new ClientUI(clock, console, "Client A", -1, sf::Color::Red);
+    ClientUI* clientB = new ClientUI(clock, console, "Client B", -1, sf::Color::Green);
 
     sf::Joystick::update();
 

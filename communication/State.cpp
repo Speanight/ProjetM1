@@ -69,9 +69,6 @@ void State::setAttack(bool attack) {
 }
 
 void State::setWpn(int wpn_id) {
-    if(this->wpn.getId() == wpn_id) {
-        return;
-    }
     this->wpn.applyID(wpn_id);
 }
 

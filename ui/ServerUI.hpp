@@ -12,6 +12,7 @@
 #include "../game/gameUtils.hpp"
 #include <list>
 
+#include "../ui/Console.hpp"
 #include "../Utils.hpp"
 
 struct ConsoleLine {
@@ -33,16 +34,18 @@ private:
 protected:
     // Data (graphs)
     std::unordered_map<std::string, std::vector<float>> data;
-    bool rewind = true; // Compensation method.
+    bool rewind = false; // Compensation method.
+    Console& console;
 
 public:
-    ServerUI();
+    ServerUI(Console& console);
     void addLine(std::string text, sf::Color color = sf::Color::White);
     void addLine(int timestamp, std::string from, std::string to, std::string details, sf::Color color = sf::Color::White);
     void addToGraph(int timestamp, const std::string& from, const std::string& to);
     void draw();
 
     void addToData(const std::string& to);
+    void removeToData(const std::string& to);
 };
 
 #endif //PROJETM1_SERVERUI_HPP

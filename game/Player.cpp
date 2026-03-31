@@ -5,8 +5,8 @@ Player::Player(std::string name, sf::Color color, unsigned short port, std::vect
     this->color = color;
     this->port = port;
     this->radius = std::numbers::pi/2;
-    this->weapon = 0;
     this->weapons = weapons;
+    this->weapon = this->weapons.size() - 1; // Get last weapon (as 1st is shield)
     this->timer_atk = -1;
     this->isAttacking = false;
     this->status = Status::WAITING_FOR_INIT;
@@ -94,12 +94,21 @@ void Player::setRadius(float radius) {
 
 void Player::setWeapons(std::vector<short> weapons) {
     this->weapons = weapons;
+    this->weapon = weapons.size() - 1;
+    this->wpn.applyID(this->weapons[weapons.size() - 1]);
 }
 
 void Player::setWpn(short weapon) {
-    if (std::find(this->weapons.begin(), this->weapons.end(), weapon) != this->weapons.end()) {
-        this->wpn.applyID(weapon);
+    short i = 0;
+    for (auto & wpn : this->weapons) {
+        if (wpn == weapon) {
+            this->wpn.applyID(weapon);
+            this->weapon = i;
+            return;
+        }
+        i++;
     }
+    std::cout << "ERROR: can't apply weapon " << weapon << " as it has not been found in " << name << "!" << std::endl;
 }
 
 void Player::setIsAttacking(bool isAttacking) {
@@ -117,7 +126,7 @@ void Player::setPoint(int point) {
 // Functions
 void Player::switchWeapon() {
     this->weapon = (this->weapon + 1) % this->weapons.size();
-    this->wpn = Weapon(this->weapons[this->weapon]);
+    this->wpn.applyID(this->weapons[this->weapon]);
 }
 
 void Player::handleTimer_atk(int lastUpdate, int before) {

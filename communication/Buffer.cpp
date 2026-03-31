@@ -16,6 +16,18 @@ std::unordered_map<std::string, State> Buffer::getCurrentState() {
     return currentState;
 }
 
+
+void Buffer::removeFromPlayerList(const Player& player) {
+    playerList.erase(std::remove_if(playerList.begin(), playerList.end(),
+                           [&player](const Player& obj) { return obj.getName() == player.getName(); }),
+            playerList.end()
+    );
+}
+
+void Buffer::addToPlayerList(const Player& player) {
+    playerList.push_back(player);
+}
+
 void Buffer::updateNextPlayerState(const Player& player, State state) {
     nextState[player.getName()] = std::move(state);
 }

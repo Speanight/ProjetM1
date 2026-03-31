@@ -30,7 +30,7 @@ private:
     int point;
 
 public:
-    Player(std::string name = "", sf::Color color = sf::Color(0,0,0,255), unsigned short port = 0, std::vector<short> weapons = {0, 1});
+    Player(std::string name = "", sf::Color color = sf::Color(0,0,0,255), unsigned short port = 0, std::vector<short> weapons = {Weapons::SHIELD, 1});
 
     // Getters
     unsigned short getPort() const;

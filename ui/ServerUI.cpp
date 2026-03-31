@@ -1,7 +1,7 @@
 #include <iostream>
 #include "ServerUI.hpp"
 
-ServerUI::ServerUI() {
+ServerUI::ServerUI(Console& console) : console(console) {
     std::vector<float> vec(Const::GRAPH_DISPLAY_VALUES, FLT_EPSILON);
     data["Server"] = vec;
 
@@ -31,6 +31,10 @@ void ServerUI::addLine(std::string text, sf::Color color) {
 void ServerUI::addToData(const std::string& to) {
     std::vector<float> vec(Const::GRAPH_DISPLAY_VALUES, FLT_EPSILON);
     data[to] = vec;
+}
+
+void ServerUI::removeToData(const std::string& to) {
+    data.erase(to);
 }
 
 void ServerUI::addLine(int timestamp, std::string from, std::string to, std::string details, sf::Color color) {
@@ -115,6 +119,7 @@ void ServerUI::draw() {
         ImGui::BeginChild("LeftTop", ImVec2(0, ImGui::GetFrameHeightWithSpacing()), false);
         if (ImGui::Button("Pause", ImVec2(ImGui::GetContentRegionAvail().x, 0))) {
             pauseConsole = !pauseConsole;
+            console.setPause(pauseConsole);
         }
         ImGui::EndChild();
         ImGui::Separator();
@@ -167,7 +172,7 @@ void ServerUI::draw() {
                     ImPlot::PlotBarGroups(ilabels,data["Server"].data(),1,groups,1,0,{ImPlotProp_Flags, ImPlotBarGroupsFlags_Stacked});
 
                     ImPlot::EndPlot(); // Server's Bar Group
-                                  }
+                }
                 ImGui::PopID();
 
                 int i = 1;
@@ -206,6 +211,7 @@ void ServerUI::draw() {
 
         } else if (selectedGraph == 2) {
             ImGui::Text("Graphe 3");
+            console.draw();
         }
         ImGui::EndChild(); // GraphZone
     }

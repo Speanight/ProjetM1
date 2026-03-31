@@ -6,10 +6,15 @@
 #include <any>
 #include <typeindex>
 #include <vector>
-
+#include <SFML/Graphics/Color.hpp>
+#include <imgui.h>
+#include <imgui-SFML.h>
+#include <mutex>
 
 extern unsigned short tickrate;
 extern unsigned short clientRefreshRate;
+extern uint32_t packetID;
+extern std::mutex m;
 
 namespace Const {
     static const std::string SERVER_IP = "127.0.0.1";
@@ -24,7 +29,7 @@ namespace Const {
 //    constexpr auto TICKRATE = std::chrono::milliseconds(1000 / 10); // Amount of ticks in 1s (1s / tickrate)
     static const int BUFFER_SIZE = 5;
     static const int GRAPH_DISPLAY_MS = 1; // Defines how long (in ms) a "graph line" will be worth for in the server's console.
-    static const int GRAPH_DISPLAY_VALUES = 2000; // Defines how many values are displayed at the same time in server's console. This means console shows the last DISPLAY_VALUES * DISPLAY_MS milliseconds.
+    static const int GRAPH_DISPLAY_VALUES = 200; // Defines how many values are displayed at the same time in server's console. This means console shows the last DISPLAY_VALUES * DISPLAY_MS milliseconds.
 
     static const float PLAYER_SPEED = .3f;
     static const float PLAYER_RADIUS_SPEED = .003f;
@@ -60,10 +65,10 @@ namespace Pkt {
     //// PACKETS HEADERS ////
     /////////////////////////
     // SHUTDOWN
-    static const short SHUTDOWN       = 1;    // None                                                                         // indicate to the clients to shut down themselve
+    static const short SHUTDOWN       = 11;    // None                                                                         // indicate to the clients to shut down themselve
 
     // ACKNOLEDGE
-    static const short ACK            = 2;    // Pkt << tick                                                                  // make an acknoledge
+    static const short ACK            = 10;    // Pkt << tick                                                                  // make an acknoledge
     // ACK << READY_R                       // tick                                                                         // acknoledge the server that the client know he can start
     // ACK << DEATH                         // tick                                                                         // acknoledge the server that the client know he is dead
     // ACK << END_R                         // tick                                                                         // acknoledge the server that the client know the round is finished
@@ -72,20 +77,18 @@ namespace Pkt {
 
 
     /// SERVER PACKAGES (what the server send to the clients)
-    static const short READY_R        = 3;    // tick << client.[info client 1] << client.[info client2] << [...]             // put the player in position for the round to start
-    static const short START_R        = 4;    // tick << amtPlayer                                                            // send the signal so start the fight to the players
-    static const short GLOBAL         = 5;    // tick << amtPlayers << client.name << client.position << [...]                // send the position and the information about the players and it's opponent during the game
-    static const short DEATH          = 6;    // tick << killerName                                                           // send the signal to a specific player that the player is dead
-    static const short WIN            = 7;
-    static const short END_R          = 8;    // tick                                                                         // send the signal that the round is finished
+    static const short READY_R        = 1;    // tick << client.[info client 1] << client.[info client2] << [...]             // put the player in position for the round to start
+//    static const short START_R        = 4;    // tick << amtPlayer                                                            // send the signal so start the fight to the players
+    static const short GLOBAL         = 2;    // tick << amtPlayers << client.name << client.position << [...]                // send the position and the information about the players and it's opponent during the game
+    static const short DEATH          = 3;    // tick << killerName                                                           // send the signal to a specific player that the player is dead
+    static const short WIN            = 4;
+    static const short END_R          = 5;    // tick                                                                         // send the signal that the round is finished
 
     /// CLIENT PACKAGES (what the clients send to the server)
-    static const short NEW_PLAYER     = 9;    // tick << client.name << client.color << client.wpn << client.port             // add the new player datas to the server
-    static const short WAIT_OPPONENTS = 10;
-    static const short WAIT_START_R   = 11;    // tick << client.port                                                          // acknoledge the server that the client is waiting for the round to start
-    static const short INPUTS         = 12;   // tick << inputs << client.port                                                // send the new inputs of the player (the mooves, the radius of the weapon, if he is attacking [...]). also acknoledgge the server that they receive the signal to start the fight
-    static const short END_GAME       = 13;   // tick << client.port                                                          // send the signal of the end of the game, asking the server to shutdown
-
+    static const short NEW_PLAYER     = 6;    // tick << client.name << client.color << client.wpn << client.port             // add the new player datas to the server
+    static const short WAIT_OPPONENTS = 7;
+    static const short WAIT_START_R   = 8;    // tick << client.port                                                          // acknoledge the server that the client is waiting for the round to start
+    static const short INPUTS         = 9;   // tick << inputs << client.port                                                // send the new inputs of the player (the mooves, the radius of the weapon, if he is attacking [...]). also acknoledgge the server that they receive the signal to start the fight
 }
 
 namespace Inputs {
@@ -143,5 +146,8 @@ namespace Weapons {
     static constexpr short CIRCLE = 3;
 
 }
+
+sf::Color convertImUToSfColor(ImU32 im_color);
+uint32_t getPacketId();
 
 #endif

@@ -7,12 +7,12 @@
  *
  * @param clock Clock, needed to synchronise clients and server together for packet transmission.
  */
-Server::Server(const sf::Clock clock) : semaphore(1) {
-    this->clock = clock;
+Server::Server(Console &console, sf::Clock& clock) : ServerUI(console), semaphore(1), clock(clock) {
     if (socket.bind(COMM_PORT_SERVER) != sf::Socket::Status::Done) {
         std::cout << "Error: port isn't available?" << std::endl;
     }
     else {
+        console.addClient(COMM_PORT_SERVER);
         socket.setBlocking(true);
         sendThread = std::thread(&Server::sendLoop, this);
         receiveThread = std::thread(&Server::receiveLoop, this);
@@ -29,14 +29,6 @@ Server::~Server() {
     }
 }
 
-/**
- * Function that allows to get info of clients paired with the server.
- *
- * @return map of clients, keys being their name and values being their port.
- */
-std::unordered_map<std::string, Player> Server::getClients() {
-    return clients;
-}
 
 int Server::getMapID() {
     return mapID;
@@ -50,23 +42,19 @@ int Server::getMapID() {
  * @param infos map of infos, usually returned by Client::init().
  * @return Error code
  */
-int Server::addClient(std::unordered_map<std::string, std::any> infos) {
-    if (std::any_cast<bool>(infos["error"])) {
-        std::cout << "Error initializing client " << std::any_cast<std::string>(infos["name"]) << std::endl;
-        return Err::ERR_CLIENT_INIT;
-    }
+int Server::addClient(const std::string& name, unsigned short port, sf::Color color, short weapon) {
     Player player;
-    player.setPort(std::any_cast<unsigned short>(infos["port"]));
-    player.setName(std::any_cast<std::string>(infos["name"]));
-    player.setColor(std::any_cast<sf::Color>(infos["color"]));
-    player.setWeapons({1, Weapons::SHIELD});
-    player.setWpn(std::any_cast<short>(infos["wpn_id"]));
+    player.setPort(port);
+    player.setName(name);
+    player.setColor(color);
+    player.setWeapons({Weapons::SHIELD, weapon});
 
-    clients[std::any_cast<std::string>(infos["name"])] = player;
-    pings[std::any_cast<std::string>(infos["name"])] = 0;
+    clients[port] = player;
+    pings[name] = 0;
     buffer.addClient(player);
-    std::cout << "Added client " << std::any_cast<std::string>(infos["name"]) << " on port " << clients[std::any_cast<std::string>(infos["name"])].getPort() << std::endl;
-    addToData(std::any_cast<std::string>(infos["name"]));
+    console.addClient(port);
+    std::cout << "Added client " << name << " on port " << port << std::endl;
+    addToData(name);
     return Err::ERR_NONE;
 }
 
@@ -76,7 +64,7 @@ int Server::addClient(std::unordered_map<std::string, std::any> infos) {
  *
  *  @return int code for info as to how the server ended (type Err::)
  */
-int Server::receiveLoop() {
+[[noreturn]] void Server::receiveLoop() {
     std::optional<sf::IpAddress> sender = sf::IpAddress::resolve("127.0.0.1");
     sf::Packet packet;
     short unsigned int port;
@@ -87,13 +75,15 @@ int Server::receiveLoop() {
     std::unordered_map<std::string, State> currentState;
     State playerState;
     float radius;
+    uint32_t id;
 
-    while (loop) {
+    while (true) {
+        while (!loop) {sf::sleep(sf::Time());} // Pause if needed
         sf::sleep(sf::Time());
         packet.clear();
 
         if (socket.receive(packet, sender, port) == sf::Socket::Status::Done) {
-            packet >> type;
+            packet >> id >> type;
             if (type == Pkt::NEW_PLAYER) {
                 // name << r g b a << wpn
                 std::string pname;
@@ -104,19 +94,24 @@ int Server::receiveLoop() {
 
                 sf::Color color(r, g, b, a);
 
-                if (!clients.contains(pname)) {
-                    // ===== PREPARE DATA FOR addClient =====
-                    std::unordered_map<std::string, std::any> infos;
-                    infos["error"] = false;
-                    infos["name"]  = pname;
-                    infos["port"] = port;
-                    infos["color"] = color;
-                    infos["wpn_id"] = wpn_id;
-
-                    addClient(infos);
+                // Check if player exists:
+                semaphore.acquire();
+                if (!clients.empty()) {
+                    for (auto & [playerPort, player] : clients) {
+                        // If port corresponds (aka same client:)
+                        if (playerPort == port and player.getStatus() != Status::WAITING_FOR_INIT) {
+                            buffer.removeFromPlayerList(player);
+                            removeToData(player.getName());
+                            clients.erase(playerPort); // Delete it.
+                            break;
+                        }
+                    }
                 }
 
-                clients[pname].setStatus(Status::WAITING_FOR_INIT);
+                addClient(pname, port, color, wpn_id);
+
+                clients[port].setStatus(Status::WAITING_FOR_INIT);
+                semaphore.release();
             }
             else if (port == COMM_PORT_SERVER) {
                 switch (type) {
@@ -127,242 +122,239 @@ int Server::receiveLoop() {
                     }
                 }
             }
-            else {
-                for (auto &[name, player]: clients) {
-                    if (player.getPort() == port) { // Check if ports corresponds (AKA the expected client)
-                        switch (type) {
-                            case Pkt::ACK: {
-                                short typeAck;
-                                packet >> typeAck;
+            else if (clients.contains(port)) {
+                Player player = clients[port];
+                switch (type) {
+                    case Pkt::ACK: {
+                        short typeAck;
+                        packet >> typeAck;
 
-                                switch (typeAck) {
-                                    // User knows it has been ACKd, and is waiting to know their opponents.
-                                    case Pkt::NEW_PLAYER: {
-                                        clients[name].setStatus(Status::WAITING_FOR_OPPONENTS);
-                                        break;
-                                    }
-
-                                    // User received opponents info and is waiting for the start signal:
-                                    case Pkt::READY_R: {
-                                        int nbOpp;
-                                        packet >> nbOpp;
-
-                                        if (nbOpp == clients.size() - 1) {
-                                            clients[name].setStatus(Status::READY_TO_START);
-                                        }
-                                        else {
-                                            std::cout << name << " is missing one (or more) opponents!" << std::endl;
-                                            clients[name].setStatus(Status::WAITING_FOR_OPPONENTS);
-                                        }
-                                        break;
-                                    }
-                                    case Pkt::DEATH: {
-                                        // Counting for the remaining survivors
-                                        int nbPlayers = maxPlayers;
-                                        for (auto &[n, p]: clients) {
-                                            if(p.getStatus() == Status::DEAD) {
-                                                nbPlayers --;
-                                            }
-                                        }
-                                        if(nbPlayers == 1) {
-                                            clients[name].setStatus(Status::DEAD);
-                                        }
-                                        break;
-                                    }
-                                    case Pkt::END_R: {
-                                        std::cout<<"receive end_r ack" << std::endl;
-                                        // TODO : delete actual players in the buffer and put itself in "waiting for players mode" / putting packet typeToSend to "None"
-                                        break;
-                                    }
-                                    default: {
-                                        std::cout << "Server received unknown ACK from client " << name << ": ack #" << typeAck << std::endl;
-                                    }
-                                }
+                        switch (typeAck) {
+                            // User knows it has been ACKd, and is waiting to know their opponents.
+                            case Pkt::NEW_PLAYER: {
+                                clients[port].setStatus(Status::WAITING_FOR_OPPONENTS);
                                 break;
                             }
 
-                            case Pkt::INPUTS: {
-                                if (clients[name].getStatus() != Status::DEAD) {
-                                    clients[name].setStatus(Status::DONE);
+                            // User received opponents info and is waiting for the start signal:
+                            case Pkt::READY_R: {
+                                int nbOpp;
+                                packet >> nbOpp;
+
+                                if (nbOpp == clients.size() - 1) {
+                                    clients[port].setStatus(Status::READY_TO_START);
                                 }
-                                int time;
-                                packet >> time >> inputs;
-
-                                // Get threads priority
-                                semaphore.acquire();
-                                addLine(
-                                    name + " >>> Server [PING:" + std::to_string(clock.getElapsedTime().asMilliseconds() - time) +"ms] "
-                                    + " | inputs: x=" + std::to_string(inputs.getMovementX()) +
-                                    "; y=" + std::to_string(inputs.getMovementY()) +
-                                    "; rotate = " + std::to_string(inputs.getRotate()) +
-                                    "; changeWpn = " + std::to_string(inputs.getChangeWpn()) +
-                                    "; attack = " + std::to_string(inputs.getAttack()) +
-                                    "; inputs #" + std::to_string(inputs.getId()),
-                                    player.getColor()
-                                );
-                                addToGraph(clock.getElapsedTime().asMilliseconds(), name, "Server");
-                                semaphore.release();
-
-                                // Updates ping of corresponding client:
-                                pings[player.getName()] = clock.getElapsedTime().asMilliseconds() - time;
-
-                                // Get the current server state AND last player state (which might be the next server state!)
-                                currentState = buffer.getCurrentState();
-                                semaphore.acquire();
-                                playerState = buffer.getLastState(player);
-                                semaphore.release();
-                                buffer.addInputsToLastState(player, clock.getElapsedTime().asMilliseconds(), inputs);
-
-                                // ====== POSITION ======
-                                position = playerState.getPosition();
-                                radius = playerState.getRadius();
-
-                                // Get time elapsed since last packet from client. Used for consistency in speed and such.
-                                dt = std::min(time - playerState.getTimestamp(), 1000/static_cast<int>(tickrate));
-
-                                // Adjust client values according to last state and new inputs values.
-                                position.move(inputs.getMovementX(), inputs.getMovementY(), dt);
-                                playerState.setPosition(position);
-
-                                if (inputs.getOnController()) { // If inputs are made through R-stick of controller:
-                                    radius = inputs.getRotate(); // Get raw inputs
+                                else {
+                                    std::cout << port << " is missing one (or more) opponents!" << std::endl;
+                                    clients[port].setStatus(Status::WAITING_FOR_OPPONENTS);
                                 }
-                                else { // Otherwise calculate with rotate speed:
-                                    radius += std::fmod(inputs.getRotate() * Const::PLAYER_RADIUS_SPEED * dt, 2.f * std::numbers::pi);
-                                }
-
-                                // ====== ATTACK ======
-                                bool attack = inputs.getAttack() or playerState.getAttack();
-
-                                // ====== WEAPON DATAS CHANGE ======
-                                if (inputs.getChangeWpn()) {
-                                    player.switchWeapon();
-                                }
-                                currentState[name].setWpn(player.getWpn().getId());
-
-                                // loops of all interaction between players
+                                break;
+                            }
+                            case Pkt::DEATH: {
+                                // Counting for the remaining survivors
+                                int nbPlayers = maxPlayers;
                                 for (auto &[n, p]: clients) {
-                                    if (name != n) {
-                                        bool interaction = false;
-                                        // Check if there is a collision between players (and therefor if it should be resolved)
-                                        Position opponentPos = currentState[n].getPosition();
-                                        opponentPos = resolveCollision(position, opponentPos);
-
-                                        // If yes, we re-adjust the new position of said opponent:
-                                        if (opponentPos != currentState[n].getPosition()) {
-                                            interaction = true;
-                                        }
-
-
-                                        // If user clicks attack button AND not in attack animation still:
-                                        if(inputs.getAttack() and clock.getElapsedTime().asMilliseconds() - playerState.getAttackTimestamp() >= (player.getWpn().getAttackSpeed() + player.getWpn().getReload())) {
-                                            interaction = true;
-                                            semaphore.acquire();
-                                            State stO;
-                                            if (rewind) {
-                                                stO = buffer.getStateAtTimestamp(p, clock.getElapsedTime().asMilliseconds() - pings[player.getName()] - pings[p.getName()] - tickrate);
-                                            }
-                                            else {
-                                                stO = buffer.getLastState(p);
-                                            }
-                                            semaphore.release();
-
-                                            // Process the attack only if value in buffer (aka. max amt. of lag taken into consideration)
-                                            if (stO.getTimestamp() != 0) {
-                                                short attackResult = resolveAttacks(playerState, stO);
-
-                                                // If attack has not been blocked and is hitting:
-                                                if (attackResult == 0) {
-                                                    // HIT SECTION
-                                                    // TODO : section that choose how the point react depending on the game type we are
-                                                    semaphore.acquire();
-                                                    auto opponent = buffer.getLastState(clients[n]);
-                                                    semaphore.release();
-
-                                                    if(demo_mode) {
-                                                        int pts = currentState[name].getPoint() + 1;
-                                                        currentState[name].setPoint(pts);
-                                                        playerState.setPoint(pts);
-                                                    }
-                                                    else {
-                                                        int pts = opponent.getPoint()-currentState[name].getWpn().getDamage();
-                                                        if(pts <= 0) {
-                                                            pts = 0;
-                                                            clients[n].setStatus(Status::DEAD);
-                                                        }
-                                                        currentState[n].setPoint(pts);
-                                                        opponent.setPoint(pts);
-                                                    }
-                                                }
-                                                // If attack has been blocked:
-                                                else if (attackResult == 1) {
-                                                    // BLOCKED SECTION
-                                                    float dirx = std::cos(radius);
-                                                    float diry = std::sin(radius);
-
-                                                    // distance de knockback = 2x la range de l'arme
-                                                    float knockbackDist = currentState[name].getWpn().getRange() * 2.f;
-
-                                                    // nouvelle position du joueur attaquant
-                                                    position.setX(position.getX() - dirx * knockbackDist);
-                                                    position.setY(position.getY() - diry * knockbackDist);
-                                                }
-                                            }
-                                        }
-
-                                        if(interaction) {
-                                            State s = State(clock.getElapsedTime().asMilliseconds(),
-                                                opponentPos, inputs,
-                                                currentState[n].getRadius(),
-                                                currentState[n].getAttack(),
-                                                currentState[n].getWpn().getId(),
-                                                currentState[n].getPoint());
-                                            buffer.updateNextPlayerState(p, s);
-                                        }
+                                    if(p.getStatus() == Status::DEAD) {
+                                        nbPlayers --;
                                     }
-
-                                    semaphore.acquire();
-                                    // TODO: Fix attack that "rewinds" player back few pos. Perhaps "display it" if ticked server-wise?
-                                    State s = State(time, position, inputs, radius,
-                                        attack, player.getWpn().getId(), playerState.getPoint());
-                                    s.setAttackTimestamp(playerState.getAttackTimestamp());
-
-                                    // Keeps track of last attack timestamp, to make sure we can't spam attack and be lucky on tick timing:
-                                    if (inputs.getAttack() and clock.getElapsedTime().asMilliseconds() - playerState.getAttackTimestamp() >= (player.getWpn().getAttackSpeed() + player.getWpn().getReload())) {
-                                        s.setAttackTimestamp(clock.getElapsedTime().asMilliseconds());
-                                    }
-                                    buffer.updateNextPlayerState(player, s);
-                                    semaphore.release();
+                                }
+                                if(nbPlayers == 1) {
+                                    clients[port].setStatus(Status::DEAD);
                                 }
                                 break;
                             }
-                            case Pkt::END_GAME: {
-                                int tick;
-                                short clientPort;
-
-                                packet >> tick >> clientPort;
-
-                                std::cout << "END GAME received" << std::endl;
-                                loop = false;
-                                break;
-                            }
-
                             case Pkt::END_R: {
-                                // TODO: Handle end round packet.
+                                std::cout<<"receive end_r ack" << std::endl;
+                                // TODO : delete actual players in the buffer and put itself in "waiting for players mode" / putting packet typeToSend to "None"
                                 break;
                             }
                             default: {
-                                std::cout << "UNKNOWN PACKET TO SEND! Type: " << type << std::endl;
-                                break;
+                                std::cout << "Server received unknown ACK from client " << port << ": ack #" << typeAck << std::endl;
                             }
                         }
+                        break;
+                    }
+
+                    case Pkt::INPUTS: {
+                        if (clients[port].getStatus() != Status::DEAD) {
+                            clients[port].setStatus(Status::DONE);
+                        }
+                        int time;
+                        packet >> time >> inputs;
+
+                        // Get threads priority
+                        semaphore.acquire();
+                        addLine(
+                            clients[port].getName() + " >>> Server [PING:" + std::to_string(clock.getElapsedTime().asMilliseconds() - time) +"ms] "
+                            + " | inputs: x=" + std::to_string(inputs.getMovementX()) +
+                            "; y=" + std::to_string(inputs.getMovementY()) +
+                            "; rotate = " + std::to_string(inputs.getRotate()) +
+                            "; changeWpn = " + std::to_string(inputs.getChangeWpn()) +
+                            "; attack = " + std::to_string(inputs.getAttack()) +
+                            "; inputs #" + std::to_string(inputs.getId()),
+                            player.getColor()
+                        );
+                        addToGraph(clock.getElapsedTime().asMilliseconds(), player.getName(), "Server");
+                        semaphore.release();
+
+                        // Updates ping of corresponding client:
+                        pings[player.getName()] = clock.getElapsedTime().asMilliseconds() - time;
+
+                        // Get the current server state AND last player state (which might be the next server state!)
+                        currentState = buffer.getCurrentState();
+                        semaphore.acquire();
+                        playerState = buffer.getLastState(player);
+                        semaphore.release();
+                        buffer.addInputsToLastState(player, clock.getElapsedTime().asMilliseconds(), inputs);
+
+                        // ====== POSITION ======
+                        position = playerState.getPosition();
+                        radius = playerState.getRadius();
+
+                        // Get time elapsed since last packet from client. Used for consistency in speed and such.
+                        dt = std::min(time - playerState.getTimestamp(), 1000/static_cast<int>(tickrate));
+
+                        // Adjust client values according to last state and new inputs values.
+                        position.move(inputs.getMovementX(), inputs.getMovementY(), dt);
+                        playerState.setPosition(position);
+
+                        if (inputs.getOnController()) { // If inputs are made through R-stick of controller:
+                            radius = inputs.getRotate(); // Get raw inputs
+                        }
+                        else { // Otherwise calculate with rotate speed:
+                            radius += std::fmod(inputs.getRotate() * Const::PLAYER_RADIUS_SPEED * dt, 2.f * std::numbers::pi);
+                        }
+
+                        // ====== ATTACK ======
+                        bool attack = inputs.getAttack() or playerState.getAttack();
+
+                        // ====== WEAPON DATAS CHANGE ======
+                        if (inputs.getChangeWpn()) {
+                            clients[port].switchWeapon();
+                        }
+                        currentState[player.getName()].setWpn(player.getWpn().getId());
+
+                        // loops of all interaction between players
+                        for (auto &[plPort, p]: clients) {
+                            if (port != plPort) {
+                                bool interaction = false;
+                                // Check if there is a collision between players (and therefor if it should be resolved)
+                                Position opponentPos = currentState[p.getName()].getPosition();
+                                opponentPos = resolveCollision(position, opponentPos);
+
+                                // If yes, we re-adjust the new position of said opponent:
+                                if (opponentPos != currentState[p.getName()].getPosition()) {
+                                    interaction = true;
+                                }
+
+
+                                // If user clicks attack button AND not in attack animation still:
+                                if(inputs.getAttack() and clock.getElapsedTime().asMilliseconds() - playerState.getAttackTimestamp() >= (player.getWpn().getAttackSpeed() + player.getWpn().getReload())) {
+                                    interaction = true;
+                                    semaphore.acquire();
+                                    State stO;
+                                    if (rewind) {
+                                        stO = buffer.getStateAtTimestamp(p, clock.getElapsedTime().asMilliseconds() - pings[player.getName()] - pings[p.getName()] - tickrate);
+                                    }
+                                    else {
+                                        stO = buffer.getLastState(p);
+                                    }
+                                    semaphore.release();
+
+                                    // Process the attack only if value in buffer (aka. max amt. of lag taken into consideration)
+                                    if (stO.getTimestamp() != 0) {
+                                        short attackResult = resolveAttacks(playerState, stO);
+
+                                        // If attack has not been blocked and is hitting:
+                                        if (attackResult == 0) {
+                                            // HIT SECTION
+                                            // TODO : section that choose how the point react depending on the game type we are
+                                            semaphore.acquire();
+                                            auto opponent = buffer.getLastState(p.getName());
+                                            semaphore.release();
+
+                                            if(demo_mode) {
+                                                int pts = currentState[player.getName()].getPoint() + 1;
+                                                currentState[player.getName()].setPoint(pts);
+                                                playerState.setPoint(pts);
+                                            }
+                                            else {
+                                                int pts = opponent.getPoint()-currentState[player.getName()].getWpn().getDamage();
+                                                if(pts <= 0) {
+                                                    pts = 0;
+                                                    clients[plPort].setStatus(Status::DEAD);
+                                                }
+                                                currentState[p.getName()].setPoint(pts);
+                                                opponent.setPoint(pts);
+                                            }
+                                        }
+                                        // If attack has been blocked:
+                                        else if (attackResult == 1) {
+                                            // BLOCKED SECTION
+                                            float dirx = std::cos(radius);
+                                            float diry = std::sin(radius);
+
+                                            // distance de knockback = 2x la range de l'arme
+                                            float knockbackDist = currentState[p.getName()].getWpn().getRange() * 2.f;
+
+                                            // nouvelle position du joueur attaquant
+                                            position.setX(position.getX() - dirx * knockbackDist);
+                                            position.setY(position.getY() - diry * knockbackDist);
+                                        }
+                                    }
+                                }
+
+                                if(interaction) {
+                                    State s = State(clock.getElapsedTime().asMilliseconds(),
+                                        opponentPos, inputs,
+                                        currentState[p.getName()].getRadius(),
+                                        currentState[p.getName()].getAttack(),
+                                        currentState[p.getName()].getWpn().getId(),
+                                        currentState[p.getName()].getPoint());
+                                    buffer.updateNextPlayerState(p, s);
+                                }
+                            }
+
+                            semaphore.acquire();
+                            // TODO: Fix attack that "rewinds" player back few pos. Perhaps "display it" if ticked server-wise?
+                            State s = State(time, position, inputs, radius,
+                                attack, player.getWpn().getId(), playerState.getPoint());
+                            s.setAttackTimestamp(playerState.getAttackTimestamp());
+
+                            // Keeps track of last attack timestamp, to make sure we can't spam attack and be lucky on tick timing:
+                            if (inputs.getAttack() and clock.getElapsedTime().asMilliseconds() - playerState.getAttackTimestamp() >= (player.getWpn().getAttackSpeed() + player.getWpn().getReload())) {
+                                s.setAttackTimestamp(clock.getElapsedTime().asMilliseconds());
+                            }
+                            buffer.updateNextPlayerState(player, s);
+                            semaphore.release();
+                        }
+                        break;
+                    }
+//                    case Pkt::END_GAME: {
+//                        int tick;
+//                        short clientPort;
+//
+//                        packet >> tick >> clientPort;
+//
+//                        std::cout << "END GAME received" << std::endl;
+//                        loop = false;
+//                        break;
+//                    }
+
+                    case Pkt::END_R: {
+                        // TODO: Handle end round packet.
+                        break;
+                    }
+                    default: {
+                        std::cout << "UNKNOWN PACKET TO SEND! Type: " << type << std::endl;
+                        break;
                     }
                 }
             }
+
+            console.addPacket(id, type, COMM_PORT_SERVER, clock.getElapsedTime().asMilliseconds(), true);
         }
     }
-    sendThread.join();
-    return Err::ERR_NONE; // Exited without any issue.
 }
 
 /**
@@ -370,11 +362,14 @@ int Server::receiveLoop() {
  *
  *  @return int code for info as to how the server ended (type Err::)
  */
-int Server::sendLoop() {
+[[noreturn]] void Server::sendLoop() {
     std::optional<sf::IpAddress> sender = sf::IpAddress::resolve("127.0.0.1");
     sf::Packet packet;
+    short type;
+    uint32_t id;
 
-    while (loop) {
+    while (true) {
+        while (!loop) {sf::sleep(sf::Time());} // Pause if needed
         sf::sleep(std::chrono::milliseconds(1000 / tickrate));
 
         std::unordered_map<std::string, State> currentState = buffer.getCurrentState();
@@ -396,11 +391,16 @@ int Server::sendLoop() {
             }
         }
 
-        for (auto & [name, player] : clients) {
+        for (auto & [port, player] : clients) {
             packet.clear();
+            semaphore.acquire();
+            id = getPacketId();
+            packet << id;
+            semaphore.release();
             switch (player.getStatus()) {
                 // If user has been created but didn't receive confirmation yet:
                 case Status::WAITING_FOR_INIT: {
+                    type = Pkt::ACK;
                     packet << Pkt::ACK << Pkt::NEW_PLAYER;
                     break;
                 }
@@ -416,6 +416,7 @@ int Server::sendLoop() {
                         }
 
                         ready = true;
+                        type = Pkt::READY_R;
                         packet << Pkt::READY_R << mapID;
                         int nb = 1;
                         for (auto &[n, p] : clients) {
@@ -446,6 +447,7 @@ int Server::sendLoop() {
 
                             // Add everything in packet:
                             packet << p.getName() << p.getColor().r << p.getColor().g << p.getColor().b << p.getColor().a;
+                            packet << p.getWeapons()[1];
                             nb++;
                         }
                     }
@@ -456,7 +458,8 @@ int Server::sendLoop() {
                     // If not ready, send an ACK that client is waiting:
                     if (!ready) {
                         packet.clear();
-                        packet << Pkt::ACK << Pkt::WAIT_OPPONENTS;
+                        type = Pkt::ACK;
+                        packet << id << Pkt::ACK << Pkt::WAIT_OPPONENTS;
                     }
                     break;
                 }
@@ -470,6 +473,7 @@ int Server::sendLoop() {
                     }
 
                     if (ready) {
+                        type = Pkt::GLOBAL;
                         packet << Pkt::GLOBAL << int(buffer.getCurrentTick());
 
                         for (auto & [n, state] : currentState) {
@@ -477,12 +481,14 @@ int Server::sendLoop() {
                         }
                     }
                     else {
+                        type = Pkt::ACK;
                         packet << Pkt::ACK << Pkt::WAIT_START_R;
                     }
                     break;
                 }
 
                 case Status::DONE: {
+                    type = Pkt::GLOBAL;
                     packet << Pkt::GLOBAL << int(buffer.getCurrentTick()) << clock.getElapsedTime().asMilliseconds();
                     for (auto & [n, state] : currentState) {
                         packet << n << state;
@@ -490,11 +496,11 @@ int Server::sendLoop() {
 
                     semaphore.acquire();
                     addLine(
-                    "Server >>> " + name
-                    + " position: (" + std::to_string(currentState[name].getPosition().getY())
-                    + ", " + std::to_string(currentState[name].getPosition().getY())
-                    + ") ; radius : " + std::to_string(currentState[name].getRadius())
-                    + " attack : " + std::to_string(currentState[name].getAttack())
+                    "Server >>> " + clients[port].getName()
+                    + " position: (" + std::to_string(currentState[clients[port].getName()].getPosition().getY())
+                    + ", " + std::to_string(currentState[clients[port].getName()].getPosition().getY())
+                    + ") ; radius : " + std::to_string(currentState[clients[port].getName()].getRadius())
+                    + " attack : " + std::to_string(currentState[clients[port].getName()].getAttack())
                     , sf::Color::White);
                     addToGraph(clock.getElapsedTime().asMilliseconds(), "Server", "clients");
                     semaphore.release();
@@ -502,15 +508,20 @@ int Server::sendLoop() {
                 }
 
                 case Status::DEAD: {
+                    type = Pkt::DEATH;
                     packet << Pkt::DEATH;
                     break;
                 }
 
                 case Status::WIN: {
+                    type = Pkt::WIN;
                     packet << Pkt::WIN;
                 }
             }
+            semaphore.acquire();
             socket.send(packet, sender.value(), player.getPort());
+            console.addPacket(id, type, COMM_PORT_SERVER, clock.getElapsedTime().asMilliseconds());
+            semaphore.release();
         }
         semaphore.acquire();
         buffer.push(clock.getElapsedTime().asMilliseconds());
@@ -524,8 +535,6 @@ int Server::sendLoop() {
             }
         }
     }
-    receiveThread.join();
-    return Err::ERR_NONE;
 }
 
 

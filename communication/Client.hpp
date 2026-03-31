@@ -24,12 +24,15 @@
 #include "../game/Weapon.hpp"
 #include "../communication/Buffer.hpp"
 #include <cmath>
+#include "../ui/Console.hpp"
 
 using namespace Const;
 
 struct QueuedPacket {
     sf::Time timestamp;
     sf::Packet packet;
+
+    uint32_t packetID;
 };
 
 struct NetworkState {
@@ -55,6 +58,8 @@ private:
     std::thread sendThread;
     std::thread receiveThread;
 
+    Console& console;
+
     NetworkState network;
     short mapID = 0;
 
@@ -72,12 +77,12 @@ protected:
 
     int lastServerTick;
     unsigned int lastInputId = 0;
-    bool created = false;
+//    bool created = false;
 
     int lastUpdate;
 
 public:
-    Client(sf::Clock clock, std::string name, short controller = -1, sf::Color color = sf::Color::Red);
+    Client(sf::Clock& clock, Console& console, std::string name, short controller = -1, sf::Color color = sf::Color::Red);
     ~Client();
 
     // Copy constructors
@@ -115,14 +120,16 @@ public:
     void setMapID(short mapID);
     void setCompensations(std::array<bool,3> compensations);
     void setController(short controller);
+    void setPlayer(Player player);
 
     // Functions
     std::unordered_map<std::string, std::any> init();
 
-    int update();
+    [[noreturn]] void update();
     int sendPacket(Input inputs);
-    int receiveLoop();
-    std::optional<sf::Packet> getLatestQueuedPacket();
+
+    [[noreturn]] void receiveLoop();
+    std::optional<QueuedPacket> getLatestQueuedPacket();
 
     void applyState(std::string name, State state);
 
