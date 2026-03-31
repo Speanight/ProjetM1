@@ -85,7 +85,7 @@ void Weapon::applyID(short id) {
             w_atk_speed = 70.f;
             w_rld = 200.f;
             w_range = 12.f;
-            w_damage = 100;         // todo : put back to 10
+            w_damage = 10;
             w_transform = 5.f;
             break;
         }

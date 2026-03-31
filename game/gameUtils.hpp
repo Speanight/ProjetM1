@@ -24,6 +24,4 @@ Position resolveCollision(Position player, Position opponent);
 float normalize(float a);
 short resolveAttacks(State attacker, State opponent);
 
-sf::Texture getMap(int mapID);
-
 #endif //PROJETM1_GAMEUTILS_HPP

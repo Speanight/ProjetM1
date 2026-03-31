@@ -5,6 +5,7 @@ MainWindow::MainWindow(sf::Clock clock, bool quickLaunch) : server(clock) {
         quickSetup();
     }
 
+
     thread = std::thread(&MainWindow::loop, this);
 }
 
@@ -29,45 +30,6 @@ void MainWindow::addClient(ClientUI* client) {
     clients.push_back(client);
     client->init();
 }
-
-/**
- * Draw the main window
- */
-// void MainWindow::drawGame() {
-//     /// Game size will be determine with the basic size of the window (1280, 850)
-//     /// minimum + maximum height for the server is 300px
-//     /// minimum + maximum height for the config is 100px
-//     /// minimum height for the game is 400px (can get bigger)
-//     ///
-//
-//     // Calculating all position :
-//
-//
-//     // CONFIG PART
-//     {
-//
-//     }
-//
-//     ImGui::Columns(clients.size());
-//
-//      for (auto & client : clients) {
-//          client->drawGame();
-//          ImGui::NextColumn();
-//      }
-//
-//     ImGui::Separator();
-//     ImGui::Columns(2, nullptr, false);
-//
-//     for (auto & client : clients) {
-//         client->drawConfig();
-//         ImGui::NextColumn();
-//     }
-//
-//     ImGui::Columns(1);
-//     ImGui::Separator();
-//     server.draw();
-//     ImGui::End();
-// }
 
 void MainWindow::drawGame() {
     // SIZE CONFIGURATION
@@ -186,6 +148,7 @@ void MainWindow::loop() {
     // thread of window
     while (window.isOpen()) {
         delta = deltaClock.restart();
+        // Closing window
         while (auto event = window.pollEvent()) {
             ImGui::SFML::ProcessEvent(window, *event);
             if (event->is<sf::Event::Closed>())
@@ -226,6 +189,7 @@ void MainWindow::loop() {
         ImGui::SFML::Render(window);
         window.display();
     }
+
 }
 
 void MainWindow::draw(short screen) {
