@@ -9,6 +9,7 @@
 #include <utility>
 #include "../src/implot.h"
 #include "../src/implot_internal.h"
+#include "../game/gameUtils.hpp"
 #include <list>
 
 #include "../Utils.hpp"

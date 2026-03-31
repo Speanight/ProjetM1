@@ -38,6 +38,11 @@ std::unordered_map<std::string, Player> Server::getClients() {
     return clients;
 }
 
+int Server::getMapID() {
+    return mapID;
+}
+
+
 /**
  * Allows to add clients to the server's tracked routes. This means the server will send and receive queuedPackets from the
  * port of the clients added.
@@ -407,7 +412,7 @@ int Server::sendLoop() {
                     if (clients.size() == maxPlayers) {
                         // Map
                         if(mapID==-1) {
-                            mapID = tick%Const::NB_MAP_ID;
+                            mapID = tick%Const::MAP_LINK.size();
                         }
 
                         ready = true;

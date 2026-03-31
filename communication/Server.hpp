@@ -49,6 +49,7 @@ public:
 
     // Getters / Setters
     std::unordered_map<std::string, Player> getClients();
+    int getMapID();
 
     // Functions
     int addClient(std::unordered_map<std::string, std::any> infos);

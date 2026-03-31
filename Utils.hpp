@@ -5,6 +5,8 @@
 #include <chrono>
 #include <any>
 #include <typeindex>
+#include <vector>
+
 
 extern unsigned short tickrate;
 extern unsigned short clientRefreshRate;
@@ -32,7 +34,11 @@ namespace Const {
 
     static const float MAP_SIZE_X = 500.f;
     static const float MAP_SIZE_Y = 500.f;
-    static const int   NB_MAP_ID  = 3;
+    static const std::vector<std::string> MAP_LINK = {
+        "../font/map/dalle1.jpg",
+        "../font/map/grass1.jpg",
+        "../font/map/grass2.jpg",
+    };
 
     static const int AMT_PLAYERS_MAX = 4;
 }

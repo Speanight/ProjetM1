@@ -253,4 +253,17 @@ short resolveAttacks(State attacker, State opponent) {
     return -1;
 }
 
+sf::Texture getMap(int mapID) {
+    static std::vector<std::string> map_link = {
+        "../font/map/dalle1.jpg",
+        "../font/map/grass1.jpg",
+        "../font/map/grass2.jpg",
+    };
 
+    int selected = mapID % map_link.size();
+
+    static sf::Texture map;
+    if(map.loadFromFile(map_link[selected])) {
+        return map;
+    }
+}

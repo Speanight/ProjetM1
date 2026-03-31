@@ -109,78 +109,110 @@ void ServerUI::draw() {
     /////////////
 
     ImGui::BeginChild("Server", ImVec2(0, 0), true);
-    ImGui::Text("SERVER");
-    ImGui::SameLine();
-    if (ImGui::Button("Pause")) {
-        pauseConsole = !pauseConsole;
-    }
-    ImGui::SameLine();
-    ImGui::Separator();
-    ImGui::BeginChild("console", ImVec2(ImGui::GetContentRegionAvail().x * 0.5f, ImGui::GetContentRegionAvail().y));
-    for (const auto& line : std::ranges::reverse_view(lines)) {
-        ImGui::TextColored(line.color, "%s", line.text.c_str());
-    }
-    ImGui::EndChild(); // "console" child
 
-    /////////////
-    //  GRAPH  //
-    /////////////
-    ImGui::SameLine();
+    if (ImGui::BeginTable("MainLayout", 2, ImGuiTableFlags_Resizable)) {
 
-    if (ImGui::BeginTable("##table", 2)) {
-        // Table headers:
-        ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_WidthFixed, 75.0f);
-        ImGui::TableSetupColumn("Data traffic", ImGuiTableColumnFlags_WidthFixed, ImGui::GetContentRegionAvail().x - 75.0f);
-        ImGui::TableHeadersRow();
-
-        // Server tab:
-        ImGui::TableNextRow();
-        ImGui::TableSetColumnIndex(0);
-        ImGui::Text("Server");
-        ImGui::TableSetColumnIndex(1);
-        ImGui::PushID("server");
-
-        static int groups = Const::GRAPH_DISPLAY_VALUES; // dataTab of server should have 200 values (items*groups)
-
-        if (ImPlot::BeginPlot("Bar Group##", ImVec2{ImGui::GetContentRegionAvail().x, ImGui::GetContentRegionAvail().y / (3)},
-                              ImPlotFlags_NoTitle | ImPlotFlags_NoLegend |
-                              ImPlotFlags_NoMouseText | ImPlotFlags_NoFrame | ImPlotFlags_NoInputs)) {
-            static const char* ilabels[] = {"Packets received", "Packets sent"};
-
-            ImPlot::SetupAxes("Time","Packet",ImPlotAxisFlags_NoDecorations, ImPlotAxisFlags_NoDecorations);
-            ImPlot::PlotBarGroups(ilabels,data["Server"].data(),1,groups,1,0,{ImPlotProp_Flags, ImPlotBarGroupsFlags_Stacked});
-
-            ImPlot::EndPlot(); // Server's Bar Group
-
+        ImGui::TableNextColumn();
+        ImGui::BeginChild("LeftTop", ImVec2(0, ImGui::GetFrameHeightWithSpacing()), false);
+        if (ImGui::Button("Pause", ImVec2(ImGui::GetContentRegionAvail().x, 0))) {
+            pauseConsole = !pauseConsole;
         }
-        ImGui::PopID();
+        ImGui::EndChild();
+        ImGui::Separator();
 
-        int i = 1;
+        ImGui::BeginChild("console", ImVec2(0, 0), false);
+        for (const auto& line : std::ranges::reverse_view(lines)) {
+            ImGui::TextColored(line.color, "%s", line.text.c_str());
+        }
+        ImGui::EndChild();
+        ImGui::TableNextColumn();
+        ImGui::BeginChild("RightTop", ImVec2(0, ImGui::GetFrameHeightWithSpacing()), false);
+        static int selectedGraph = 0; // default
 
-        for (auto & [from, values] : data) {
-            if (from != "Server") {
-                ImGui::TableNextRow();
+        float width = ImGui::GetContentRegionAvail().x / 3.0f;
 
-                ImGui::TableSetColumnIndex(0);
-                ImGui::Text("%s", from.c_str());
-                ImGui::TableSetColumnIndex(1);
+        if (ImGui::Button("Graphe 1", ImVec2(width, 0))) selectedGraph = 0;
+        ImGui::SameLine();
+        if (ImGui::Button("Graphe 2", ImVec2(width, 0))) selectedGraph = 1;
+        ImGui::SameLine();
+        if (ImGui::Button("Graphe 3", ImVec2(width, 0))) selectedGraph = 2;
 
-                // Prints data:
-                ImGui::PushID(i);
-                if (ImPlot::BeginPlot("Bar Group##", ImVec2{ImGui::GetContentRegionAvail().x, ImGui::GetContentRegionAvail().y / (data.size()-i)},
-                                      ImPlotFlags_NoTitle | ImPlotFlags_NoLegend |
-                                      ImPlotFlags_NoMouseText | ImPlotFlags_NoFrame | ImPlotFlags_NoInputs)) {
-                    static const char* ilabels[] = {"Packet Loss", "Packet Delivered"};
+        ImGui::EndChild();
 
-                    ImPlot::SetupAxes("Time","Packet",ImPlotAxisFlags_NoDecorations, ImPlotAxisFlags_NoDecorations);
-                    ImPlot::PlotBarGroups(ilabels,data[from].data(),1,groups,1,0,{ImPlotProp_Flags, ImPlotBarGroupsFlags_Stacked});
+        ImGui::Separator();
 
-                    ImPlot::EndPlot(); // Bar Group
-                }
-                ImGui::PopID();
-                i++;
+        ImGui::BeginChild("GraphZone", ImVec2(0, 0), false);
+
+        /////////////
+        //  GRAPH  //
+        /////////////
+
+        if (ImGui::BeginTable("##table", 2)) {
+            // Table headers:
+            ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_WidthFixed, 75.0f);
+            ImGui::TableSetupColumn("Data traffic", ImGuiTableColumnFlags_WidthFixed, ImGui::GetContentRegionAvail().x - 75.0f);
+            ImGui::TableHeadersRow();
+
+            if (selectedGraph == 0) {
+            // Server tab:
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex(0);
+            ImGui::Text("Server");
+            ImGui::TableSetColumnIndex(1);
+            ImGui::PushID("server");
+
+            static int groups = Const::GRAPH_DISPLAY_VALUES; // dataTab of server should have 200 values (items*groups)
+
+            if (ImPlot::BeginPlot("Bar Group##", ImVec2{ImGui::GetContentRegionAvail().x, ImGui::GetContentRegionAvail().y / (3)},
+                                  ImPlotFlags_NoTitle | ImPlotFlags_NoLegend |
+                                  ImPlotFlags_NoMouseText | ImPlotFlags_NoFrame | ImPlotFlags_NoInputs)) {
+                static const char* ilabels[] = {"Packets received", "Packets sent"};
+
+                ImPlot::SetupAxes("Time","Packet",ImPlotAxisFlags_NoDecorations, ImPlotAxisFlags_NoDecorations);
+                ImPlot::PlotBarGroups(ilabels,data["Server"].data(),1,groups,1,0,{ImPlotProp_Flags, ImPlotBarGroupsFlags_Stacked});
+
+                ImPlot::EndPlot(); // Server's Bar Group
             }
+            ImGui::PopID();
+
+            int i = 1;
+
+            for (auto & [from, values] : data) {
+                if (from != "Server") {
+                    ImGui::TableNextRow();
+
+                    ImGui::TableSetColumnIndex(0);
+                    ImGui::Text("%s", from.c_str());
+                    ImGui::TableSetColumnIndex(1);
+
+                    // Prints data:
+                    ImGui::PushID(i);
+                    if (ImPlot::BeginPlot("Bar Group##", ImVec2{ImGui::GetContentRegionAvail().x, ImGui::GetContentRegionAvail().y / (data.size()-i)},
+                                          ImPlotFlags_NoTitle | ImPlotFlags_NoLegend |
+                                          ImPlotFlags_NoMouseText | ImPlotFlags_NoFrame | ImPlotFlags_NoInputs)) {
+                        static const char* ilabels[] = {"Packet Loss", "Packet Delivered"};
+
+                        ImPlot::SetupAxes("Time","Packet",ImPlotAxisFlags_NoDecorations, ImPlotAxisFlags_NoDecorations);
+                        ImPlot::PlotBarGroups(ilabels,data[from].data(),1,groups,1,0,{ImPlotProp_Flags, ImPlotBarGroupsFlags_Stacked});
+
+                        ImPlot::EndPlot(); // Bar Group
+                    }
+                    ImGui::PopID();
+                    i++;
+                }
+            }
+
+            } else if (selectedGraph == 1) {
+                ImGui::Text("Server Game");
+                // sf::Texture map = getMap(getMapID());
+                // std::cout<<"mapID = "<<getMapID()<<std::endl;
+
+            } else if (selectedGraph == 2) {
+                ImGui::Text("Graphe 3");
+            }
+            ImGui::EndTable();
         }
+        ImGui::EndChild(); // GraphZone
         ImGui::EndTable();
     }
 

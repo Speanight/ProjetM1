@@ -722,25 +722,15 @@ void ClientUI::drawLoadingScreen(ImDrawList* draw_list, ImVec2 min, ImVec2 max) 
 
 void ClientUI::drawFightingScreen(ImDrawList* draw_list, Player player, std::map<std::string, Player> opponents, ImVec2 min, ImVec2 max) {
     // BACKGROUND
-    static std::vector<std::string> map_link = {
-        "../font/map/dalle1.jpg",
-        "../font/map/grass1.jpg",
-        "../font/map/grass2.jpg",
-    };
+    int selected = getMapID() % Const::MAP_LINK.size();
 
-    int selected = getMapID() % map_link.size();
-    std::string map = map_link[selected];
-
-    static sf::Texture Texture;
-    if(Texture.loadFromFile(map)) {
+    static sf::Texture map;
+    if(map.loadFromFile(MAP_LINK[selected])) {
         draw_list->AddImage(
-            (ImTextureID)Texture.getNativeHandle(),
-            ImVec2(min.x, min.y),
-            ImVec2(max.x, max.y)
-        );
-    }
-    else {
-        std::cout<<"Map not loaded"<<std::endl;
+    (ImTextureID)map.getNativeHandle(),
+      ImVec2(min.x, min.y),
+      ImVec2(max.x, max.y)
+            );
     }
 
     // PLAYERS
