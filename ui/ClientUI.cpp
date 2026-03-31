@@ -45,10 +45,12 @@ void ClientUI::drawGame() { // Game space
                 break;
             }
             case Status::DEAD : {
+                if(waitRetry == 0){waitRetry = getTick()+Const::WAIT_RETRY_TIME;}
                 screenToShow = Screens::GAME_LOSE;
                 break;
             }
             case Status::WIN : {
+                if(waitRetry == 0){waitRetry = getTick()+Const::WAIT_RETRY_TIME;}
                 screenToShow = Screens::GAME_WIN;
                 break;
             }
@@ -296,21 +298,21 @@ void ClientUI::drawSelectionScreen(ImDrawList* draw_list, ImVec2 min, ImVec2 max
                 }
             }
 
-            if(input.getMovementY() == -1) { // mooving up (selector on top)
+            if(input.getMovementY() < 0) { // mooving up (selector on top)
                 select.allow_moove = false;
                 selectedZone--;
                 if(selectedZone < 0) selectedZone = 3;
             }
-            if(input.getMovementY() == 1) { // mooving down (selector bellow)
+            if(input.getMovementY() > 0) { // mooving down (selector bellow)
                 select.allow_moove = false;
                 selectedZone++;
                 if(selectedZone > 3) selectedZone = 0;
             }
-            if(input.getMovementX() == -1) { // mooving left (selecte left arrow)
+            if(input.getMovementX() < 0) { // mooving left (selecte left arrow)
                 select.allow_moove = false;
                 subSelect = 0;
             }
-            if(input.getMovementX() == 1) { // mooving right (select right arrow)
+            if(input.getMovementX() > 0) { // mooving right (select right arrow)
                 select.allow_moove = false;
                 subSelect = 1;
             }
@@ -1045,21 +1047,31 @@ void ClientUI::drawEndScreen(ImDrawList* draw_list, ImVec2 min, ImVec2 max, bool
 
         float y = y_btn + (zone_h - btn_height) * 0.5f;
 
-        Input inputs = getInputs(false, false);
+        // Handle inputs
+        Input inputs;
+        std::string retryText;
+        if(getTick()>waitRetry) {       // 3sec wait before starting a new game
+            retryText = "RETRY\n(press attack)";
+            inputs = getInputs(false, false);
+        }
+        else {
+            retryText = "wait " + form1((waitRetry-getTick())/100.f) + "s" ;
+            inputs = getInputs(false, true);
+        }
 
         // ===== RETRY =====
         {
             ImGui::SetCursorScreenPos({ start_x, y });
 
             ImVec2 btn_min = { start_x, y };
-            ImVec2 btn_max = { btn_min.x + btn_size.x, btn_min.y + btn_size.y };
 
             ImGui::SetCursorScreenPos(btn_min);
-            if (ImGui::Button("RETRY\n(press attack)", btn_size) || inputs.getAttack()) {
+            if (ImGui::Button(retryText.c_str(), btn_size) || inputs.getAttack()) {
                 // std::cout << "CLICK ON RETRY" << std::endl;
                 setStatus(Status::WAITING_FOR_INIT);
                 setLoop(true);
                 screenToShow = Screens::LOADING_SCREEN;
+                waitRetry = 0;
             }
         }
 
@@ -1069,6 +1081,7 @@ void ClientUI::drawEndScreen(ImDrawList* draw_list, ImVec2 min, ImVec2 max, bool
 
             if (ImGui::Button("CHANGE PLAYER\n(press change wpn)", btn_size)|| inputs.getChangeWpn()) {
                 setLoop(false);
+                waitRetry = 0;
                 std::cout << "CLICK ON CHANGE PLAYER" << std::endl;
             }
         }
@@ -1082,6 +1095,7 @@ void ClientUI::drawEndScreen(ImDrawList* draw_list, ImVec2 min, ImVec2 max, bool
         ImGui::PushStyleColor(ImGuiCol_ButtonActive,  IM_COL32(120, 0, 0, 255));
 
         if (ImGui::Button("MENU", btn_size)) {
+            waitRetry = 0;
             std::cout << "CLICK ON MENU" << std::endl;
         }
 

@@ -53,7 +53,7 @@ int Server::addClient(const std::string& name, unsigned short port, sf::Color co
     pings[name] = 0;
     buffer.addClient(player);
     console.addClient(port);
-    std::cout << "Added client " << name << " on port " << port << std::endl;
+    // std::cout << "Added client " << name << " on port " << port << std::endl;
     addToData(name);
     return Err::ERR_NONE;
 }

@@ -26,6 +26,7 @@ struct UISelect {
 class ClientUI : public Client {
 protected :
     short screenToShow;
+    int waitRetry = 0;
 public:
     ClientUI(sf::Clock& clock, Console& console, std::string name, short controller = -1, sf::Color color = sf::Color::Red);
 

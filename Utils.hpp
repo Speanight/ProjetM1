@@ -44,6 +44,7 @@ namespace Const {
         "../font/map/grass1.jpg",
         "../font/map/grass2.jpg",
     };
+    static const int WAIT_RETRY_TIME = 3000;
 
     static const int AMT_PLAYERS_MAX = 4;
 }

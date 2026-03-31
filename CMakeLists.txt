@@ -54,6 +54,7 @@ add_executable(ProjetM1
         game/Player.cpp
         Utils.cpp
         ui/Console.cpp
+        ui/Console.cpp
 )
 # =========================
 # Link libraries

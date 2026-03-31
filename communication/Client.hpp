@@ -104,6 +104,7 @@ public:
     int getStatus() const;
     bool getLoop() const;
     short getMapID() const;
+    int getTick() const;
 
 
     Input getInputs(bool mode_enable=false, bool attack_enable=true);

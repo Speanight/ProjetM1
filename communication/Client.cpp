@@ -119,6 +119,10 @@ bool Client::getCompensationEnabled(int compensation) {
     return false;
 }
 
+int Client::getTick() const {
+    return clock.getElapsedTime().asMilliseconds();
+}
+
 void Client::setStatus(int status) {
     this->player.setStatus(status);
 }
