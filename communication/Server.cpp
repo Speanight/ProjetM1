@@ -305,18 +305,23 @@ int Server::addClient(const std::string& name, unsigned short port, sf::Color co
                                 }
 
                                 if(interaction) {
-                                    State s = State(clock.getElapsedTime().asMilliseconds(),
+                                    // TODO: Fix attack that "rewinds" player back few pos. Perhaps "display it" if ticked server-wise?
+                                    State s = State(currentState[p.getName()].getTimestamp(),
                                         opponentPos, inputs,
                                         currentState[p.getName()].getRadius(),
                                         currentState[p.getName()].getAttack(),
                                         currentState[p.getName()].getWpn().getId(),
                                         currentState[p.getName()].getPoint());
+
+                                    // TODO: Find better way to do it:
+                                    if (opponentPos != currentState[p.getName()].getPosition()) {
+                                        s.setTimestamp(clock.getElapsedTime().asMilliseconds());
+                                    }
                                     buffer.updateNextPlayerState(p, s);
                                 }
                             }
 
                             semaphore.acquire();
-                            // TODO: Fix attack that "rewinds" player back few pos. Perhaps "display it" if ticked server-wise?
                             State s = State(time, position, inputs, radius,
                                 attack, player.getWpn().getId(), playerState.getPoint());
                             s.setAttackTimestamp(playerState.getAttackTimestamp());

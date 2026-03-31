@@ -20,6 +20,7 @@ Client::Client(sf::Clock& clock, Console& console, std::string name, short contr
     clock(clock) {
     this->bufferOnReceipt.addClient(player);
     this->controllerNumber = controller;
+//    this->updateThread = std::thread(&Client::update, this);
 }
 
 Client::~Client() {
@@ -30,6 +31,9 @@ Client::~Client() {
     if (receiveThread.joinable()) {
         receiveThread.join();
     }
+//    if (updateThread.joinable()) {
+//        updateThread.join();
+//    }
 }
 
 /**
@@ -318,6 +322,80 @@ Input Client::getInputs(bool mode_enable, bool attack_enable) {
         }
         before = lastUpdate;
         sf::sleep(sf::milliseconds(1000/clientRefreshRate)); // Small sleep to make sure everyone send same amount of inputs.
+    }
+}
+
+[[noreturn]] void Client::sendLoop() {
+    while (true) {
+        QueuedPacket pkt;
+        short type;
+        pkt.timestamp = clock.getElapsedTime();
+        semaphore.acquire();
+        uint32_t id = getPacketId();
+        pkt.packet << id;
+        pkt.packetID = id;
+        semaphore.release();
+
+        switch (player.getStatus()) {
+            // Player sends their data to the server, waiting for ACK:
+            case Status::WAITING_FOR_INIT: {
+                type = Pkt::NEW_PLAYER;
+                pkt.packet << Pkt::NEW_PLAYER;
+                pkt.packet << player.getName() << player.getColor().r << player.getColor().g << player.getColor().b << player.getColor().a;
+                pkt.packet << player.getWeapons()[1]; // Add current weapon as well.
+                break;
+            }
+
+                // Player is waiting for data of their opponents:
+            case Status::WAITING_FOR_OPPONENTS: {
+                type = Pkt::ACK;
+                // Tells the server it ACKd that it has been added to the players pool.
+                pkt.packet << Pkt::ACK << Pkt::NEW_PLAYER;
+                break;
+            }
+
+                // Player is ready to start and gives the info to the server:
+            case Status::READY_TO_START: {
+                type = Pkt::ACK;
+                pkt.packet << Pkt::ACK << Pkt::READY_R << int(opponents.size());
+                break;
+            }
+                // Game has been started:
+            case Status::DONE: {
+                type = Pkt::INPUTS;
+                pkt.packet << Pkt::INPUTS << int(pkt.timestamp.asMilliseconds()) << inputs << player.getPort();
+                break;
+            }
+            case Status::DEAD: {
+                type = Pkt::END_R;
+                pkt.packet << Pkt::END_R;
+                break;
+            }
+            case Status::WIN: {
+                type = Pkt::END_R;
+                pkt.packet << Pkt::END_R;
+                break;
+            }
+                // Unrecognized player status.
+            default: {
+                std::cout << "Unhandled player status: status #" << player.getStatus() << std::endl;
+            }
+        }
+
+        semaphore.acquire();
+        console.addPacket(pkt.packetID, type, player.getPort(), pkt.timestamp.asMilliseconds());
+        queuedPackets.push_back(pkt); // Adds the packet to the array of packets.
+        auto packetToSend = getLatestQueuedPacket();
+
+        int packetLossChance = std::experimental::randint(1, 100);
+        // Only executes if packet loss % is respected (randomly generated number)
+        if (packetLossChance > network.packetLoss[1]) {
+            if (packetToSend.has_value()) {
+                socket.send(packetToSend.value().packet, server, COMM_PORT_SERVER);
+            }
+        }
+
+        semaphore.release();
     }
 }
 

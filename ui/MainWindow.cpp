@@ -24,7 +24,6 @@ MainWindow::~MainWindow() {
     ImGui::SFML::Shutdown();
     ImPlot::DestroyContext();
     ImGui::DestroyContext();
-    ImGui::SFML::Shutdown();
 }
 
 void MainWindow::addClient(ClientUI* client) {

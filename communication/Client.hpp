@@ -55,8 +55,11 @@ private:
     std::unordered_map<int, std::variant<sf::Keyboard::Key, sf::Joystick::Axis, int>> keybinds; // int = button ID.
     short controllerNumber = -1;
 
+//    std::thread updateThread;
     std::thread sendThread;
     std::thread receiveThread;
+
+    Input inputs;
 
     Console& console;
 
@@ -126,6 +129,7 @@ public:
     std::unordered_map<std::string, std::any> init();
 
     [[noreturn]] void update();
+    [[noreturn]] void sendLoop();
     int sendPacket(Input inputs);
 
     [[noreturn]] void receiveLoop();

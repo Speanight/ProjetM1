@@ -28,6 +28,8 @@ private:
     int size = 32;
     bool pauseConsole = false;
 
+    std::mutex m;
+
     // Graphs
     int lastTimestamp;
 
