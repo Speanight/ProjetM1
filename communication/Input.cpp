@@ -120,7 +120,7 @@ void Input::handleInput(int inputCode, float value) {
             changeWpn = value;
             break;
         case Inputs::ATTACK:        // Signal to attack
-            attack = value;
+            attack = value;         // todo : never used ?
             break;
         default:
             break;

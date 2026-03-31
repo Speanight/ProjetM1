@@ -19,6 +19,8 @@ struct UISelect {
     int selectedPreset = -1;
     int selectedColor = 0;
     int selectedWeapon = 1;
+
+    bool allow_moove;
 };
 
 class ClientUI : public Client {

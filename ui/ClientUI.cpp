@@ -148,8 +148,12 @@ void ClientUI::addOpponent(const std::string& name, sf::Color color) {
     this->bufferOnReceipt.addClient(pl);
 }
 
-// put the value to print to 2 digits
-auto form1 = [](float v) {
+/**
+ * Make the floating values after the '.' 2 digit long
+ * @param v floating value
+ * @return the floating value but in a string of macimum 2 digit
+ */
+std::string form1(float v) {
     char buf[16];
     snprintf(buf, sizeof(buf), "%.1f", v);
     return std::string(buf);
@@ -186,7 +190,7 @@ void ClientUI::drawSelectionScreen(ImDrawList* draw_list, ImVec2 min, ImVec2 max
     ImGui::PushStyleColor(ImGuiCol_ButtonHovered, IM_COL32(255, 255, 255, 200));
     ImGui::PushStyleColor(ImGuiCol_Button, IM_COL32(255, 255, 255, 130));
 
-    // Colors
+    // Player colors available
     static std::vector<ImU32> colors = {
         IM_COL32(255, 255, 255, 255),           // white
         IM_COL32(255, 0, 0, 255),               // red
@@ -220,6 +224,95 @@ void ClientUI::drawSelectionScreen(ImDrawList* draw_list, ImVec2 min, ImVec2 max
     float buttonSize = ImGui::GetFrameHeight();
     float spacing = ImGui::GetStyle().ItemSpacing.x;
 
+    // Inputs to navigate on the page using buttons
+    Input input = getInputs(false, false);
+
+    // Navigation state
+    static int selectedZone = 0; // 0=NAME, 1=COLOR, 2=WEAPON, 3=CONFIRM
+    static int subSelect = 0;    // 0=left, 1=right (ou bouton unique pour confirm)
+
+    // INPUT HANDLING
+    {
+        // resseting the click lock when clicked
+        if(!input.getAttack() && !input.getChangeWpn() &&
+           input.getMovementX() == 0 && input.getMovementY() == 0) {
+            select.allow_moove = true;
+        }
+
+        if(select.allow_moove) {
+            if(input.getAttack() || input.getChangeWpn()) { // click on the arrow
+                select.allow_moove = false;
+
+                switch(selectedZone) {
+                    case 0: {   // NAME
+                        if(subSelect == 0) {
+                            select.selectedPreset = (select.selectedPreset - 1 + presets.size()) % presets.size();
+                        } else {
+                            select.selectedPreset = (select.selectedPreset + 1) % presets.size();
+                        }
+                        strcpy(select.nameBuffer, presets[select.selectedPreset].name.c_str());
+                        select.selectedColor = presets[select.selectedPreset].color;
+                        select.selectedWeapon = presets[select.selectedPreset].weapon;
+                        break;
+                    }
+                    case 1: {   // COLOR
+                        if(subSelect == 0) {
+                            select.selectedColor = (select.selectedColor - 1 + colors.size()) % colors.size();
+                        } else {
+                            select.selectedColor = (select.selectedColor + 1) % colors.size();
+                        }
+                        break;
+                    }
+                    case 2: {   // WEAPON
+                        const int weaponCount = 5;
+                        if(subSelect == 0) {
+                            select.selectedWeapon--;
+                            if (select.selectedWeapon < 1) select.selectedWeapon = weaponCount;
+                        } else {
+                            select.selectedWeapon++;
+                            if (select.selectedWeapon > weaponCount) select.selectedWeapon = 1;
+                        }
+                        break;
+                    }
+                    case 3: {   // CONFIRM
+                        std::string finalName;
+                        if (strlen(select.nameBuffer) == 0) {
+                            finalName = "Client-" + std::to_string(this->getPlayer().getPort());
+                        } else {
+                            finalName = select.nameBuffer;
+                        }
+                        // todo : put the "add player" here
+                        std::cout << "=>PLAYER CONFIG<=" << std::endl;
+                        std::cout << "Name: " << finalName << std::endl;
+                        std::cout << "Color ID: " << select.selectedColor << std::endl;
+                        std::cout << "Weapon ID: " << select.selectedWeapon << std::endl;
+
+                        selects.erase(this->getPlayer().getPort());
+                        break;
+                    }
+                }
+            }
+
+            if(input.getMovementY() == -1) { // mooving up (selector on top)
+                select.allow_moove = false;
+                selectedZone--;
+                if(selectedZone < 0) selectedZone = 3;
+            }
+            if(input.getMovementY() == 1) { // mooving down (selector bellow)
+                select.allow_moove = false;
+                selectedZone++;
+                if(selectedZone > 3) selectedZone = 0;
+            }
+            if(input.getMovementX() == -1) { // mooving left (selecte left arrow)
+                select.allow_moove = false;
+                subSelect = 0;
+            }
+            if(input.getMovementX() == 1) { // mooving right (select right arrow)
+                select.allow_moove = false;
+                subSelect = 1;
+            }
+        }
+    }
     // ZONE 0 : TITLE
     {
         std::string title = "Sélection des joueurs";
@@ -271,6 +364,27 @@ void ClientUI::drawSelectionScreen(ImDrawList* draw_list, ImVec2 min, ImVec2 max
             select.selectedColor = presets[select.selectedPreset].color;
             select.selectedWeapon = presets[select.selectedPreset].weapon;
         }
+
+        ImVec2 leftBtn = ImVec2(
+            screenCenter.x - totalWidth * 0.5f * scale,
+            z1_min.y * scale + 50
+            );
+
+        ImVec2 rightBtn = ImVec2(
+            leftBtn.x + buttonSize + spacing,
+            leftBtn.y
+            );
+
+        // highligth zone
+        if(selectedZone == 0) {
+            ImVec2 target = (subSelect == 0) ? leftBtn : rightBtn;
+
+            draw_list->AddRect(
+                target,
+                ImVec2(target.x + buttonSize, target.y + buttonSize),
+                IM_COL32(255,255,0,255), 0, 0, 3.0f
+                );
+        }
     }
 
     // ZONE 2 : COLOR
@@ -298,6 +412,27 @@ void ClientUI::drawSelectionScreen(ImDrawList* draw_list, ImVec2 min, ImVec2 max
         if (ImGui::ArrowButton("##right_color", ImGuiDir_Right)) {
             select.selectedColor = (select.selectedColor + 1) % colors.size();
         }
+
+        ImVec2 leftBtn = ImVec2(
+            screenCenter.x - totalWidth * 0.5f,
+            z2_min.y + zoneHeight * 0.7f
+            );
+
+        ImVec2 rightBtn = ImVec2(
+            leftBtn.x + buttonSize + spacing,
+            leftBtn.y
+            );
+
+        // highlight
+        if(selectedZone == 1) {
+            ImVec2 target = (subSelect == 0) ? leftBtn : rightBtn;
+
+            draw_list->AddRect(
+                target,
+                ImVec2(target.x + buttonSize, target.y + buttonSize),
+                IM_COL32(255,255,0,255), 0, 0, 3.0f
+                );
+        }
     }
 
     // ZONE 3 : WEAPON
@@ -317,8 +452,7 @@ void ClientUI::drawSelectionScreen(ImDrawList* draw_list, ImVec2 min, ImVec2 max
 
         switch (demoWeapon.getType()) {
 
-            case Weapons::TRIANGLE:
-            {
+            case Weapons::TRIANGLE: {
                 ImVec2 p1 = ImVec2(leftCenter.x, leftCenter.y - h * 0.5f);
                 ImVec2 p2 = ImVec2(leftCenter.x - w * 0.5f, leftCenter.y + h * 0.5f);
                 ImVec2 p3 = ImVec2(leftCenter.x + w * 0.5f, leftCenter.y + h * 0.5f);
@@ -327,8 +461,7 @@ void ClientUI::drawSelectionScreen(ImDrawList* draw_list, ImVec2 min, ImVec2 max
                 break;
             }
 
-            case Weapons::RECTANGLE:
-            {
+            case Weapons::RECTANGLE: {
                 ImVec2 minRect = ImVec2(leftCenter.x - w * 0.5f, leftCenter.y - h * 0.5f);
                 ImVec2 maxRect = ImVec2(leftCenter.x + w * 0.5f, leftCenter.y + h * 0.5f);
 
@@ -339,15 +472,13 @@ void ClientUI::drawSelectionScreen(ImDrawList* draw_list, ImVec2 min, ImVec2 max
                 draw_list->AddCircleFilled(leftCenter, h * 0.5f, weaponColor);
                 break;
             }
-            default:
-            {
+            default:{
                 draw_list->AddCircleFilled(leftCenter, h * 0.5f, weaponColor);
                 break;
             }
         }
 
         // ZONE 3 - 2: INFOS
-
         // Selection type
         std::string type;
         switch (demoWeapon.getType()) {
@@ -371,6 +502,8 @@ void ClientUI::drawSelectionScreen(ImDrawList* draw_list, ImVec2 min, ImVec2 max
 
         draw_list->AddText(rightPos, IM_COL32(220,220,220,255), info.c_str());
 
+        // ZONE 3 - 3: BUTTONS
+
         // Buttons
         float totalWidth = buttonSize * 2 + spacing;
         ImGui::SetCursorScreenPos(ImVec2(
@@ -391,6 +524,26 @@ void ClientUI::drawSelectionScreen(ImDrawList* draw_list, ImVec2 min, ImVec2 max
         if (ImGui::ArrowButton("##right_weapon", ImGuiDir_Right)) {
             select.selectedWeapon++;
             if (select.selectedWeapon > weaponCount) select.selectedWeapon = 1;
+        }
+        ImVec2 leftBtn = ImVec2(
+            screenCenter.x - totalWidth * 0.5f,
+            z3_min.y + zoneHeight * 0.8f
+            );
+
+        ImVec2 rightBtn = ImVec2(
+            leftBtn.x + buttonSize + spacing,
+            leftBtn.y
+            );
+
+        // highlight
+        if(selectedZone == 2) {
+            ImVec2 target = (subSelect == 0) ? leftBtn : rightBtn;
+
+            draw_list->AddRect(
+                target,
+                ImVec2(target.x + buttonSize, target.y + buttonSize),
+                IM_COL32(255,255,0,255), 0, 0, 3.0f
+                );
         }
     }
 
@@ -419,7 +572,15 @@ void ClientUI::drawSelectionScreen(ImDrawList* draw_list, ImVec2 min, ImVec2 max
             // deleting memory of the selector
             selects.erase(this->getPlayer().getPort());
             // demoWeapon is automaticly destroyed at the end of the program
+        }
 
+        // highlight
+        if(selectedZone == 3) {
+            draw_list->AddRect(
+                ImVec2(screenCenter.x - buttonWidth * 0.5f, z4_min.y + zoneHeight * 0.3f),
+                ImVec2(screenCenter.x + buttonWidth * 0.5f, z4_min.y + zoneHeight * 0.3f + 40),
+                IM_COL32(255,255,0,255), 0, 0, 2.0f
+                );
         }
     }
     ImGui::PopStyleColor(4);
@@ -648,7 +809,7 @@ void ClientUI::drawWeapon(Player player, ImDrawList* draw_list, ImVec2 pl_positi
             float height = player.getWpn().getHeight() * scale;
             float width = player.getWpn().getWidth() * scale;
 
-            // ======== ATTACK ANIMATION ========
+            // ======== ATTACK ANIMATIONS ========
             float offset = 0;
             if (player.getTimer_atk() != -1) {
                 if (player.getTimer_atk() <= player.getWpn().getAttackSpeed()) {
@@ -680,7 +841,6 @@ void ClientUI::drawWeapon(Player player, ImDrawList* draw_list, ImVec2 pl_positi
             break;
         }
         case Weapons::RECTANGLE : {
-
             float baseAngle = player.getRadius();
 
             float height = player.getWpn().getHeight() * scale;
@@ -702,8 +862,7 @@ void ClientUI::drawWeapon(Player player, ImDrawList* draw_list, ImVec2 pl_positi
 
             float angle = baseAngle + offset * range;
 
-            ImVec2 dir = { cosf(angle), sinf(angle) };
-
+            ImVec2 dir = { cosf(angle), sinf(angle) };  // rectangle direction
             ImVec2 perp = { -dir.y, dir.x };
 
             ImVec2 center = {
@@ -711,11 +870,11 @@ void ClientUI::drawWeapon(Player player, ImDrawList* draw_list, ImVec2 pl_positi
                 pl_position.y + dir.y * distance
             };
 
-            ImVec2 p1 = { center.x + perp.x * (width * 0.5f), center.y + perp.y * (width * 0.5f) };
-            ImVec2 p2 = { center.x - perp.x * (width * 0.5f), center.y - perp.y * (width * 0.5f) };
+            ImVec2 p1 = { center.x + perp.x * (width * 0.5f), center.y + perp.y * (width * 0.5f) }; // top left
+            ImVec2 p2 = { center.x - perp.x * (width * 0.5f), center.y - perp.y * (width * 0.5f) }; // top right
 
-            ImVec2 p3 = { p2.x + dir.x * height, p2.y + dir.y * height };
-            ImVec2 p4 = { p1.x + dir.x * height, p1.y + dir.y * height };
+            ImVec2 p3 = { p2.x + dir.x * height, p2.y + dir.y * height };                           // bottom left
+            ImVec2 p4 = { p1.x + dir.x * height, p1.y + dir.y * height };                           // bottom right
 
             draw_list->AddQuadFilled(
                 p1, p2, p3, p4,
@@ -757,6 +916,11 @@ void ClientUI::drawWeapon(Player player, ImDrawList* draw_list, ImVec2 pl_positi
 }
 
 void ClientUI::drawEndScreen(ImDrawList* draw_list, ImVec2 min, ImVec2 max, bool victory) {
+    ImGui::PushStyleColor(ImGuiCol_ButtonActive, IM_COL32(255, 255, 255, 180));
+    ImGui::PushStyleColor(ImGuiCol_ButtonHovered, IM_COL32(255, 255, 255, 200));
+    ImGui::PushStyleColor(ImGuiCol_Button, IM_COL32(255, 255, 255, 130));
+    ImGui::PushStyleVar(ImGuiStyleVar_FrameRounding, 6.0f);
+
     float window_size = max.x - min.x;
     float scale = window_size / Const::MAP_SIZE_X;
 
@@ -827,7 +991,7 @@ void ClientUI::drawEndScreen(ImDrawList* draw_list, ImVec2 min, ImVec2 max, bool
 
     // PLAYER INFO
     {
-        // TODO
+        // TODO ?
     }
 
     // RANDOM PRAISE
@@ -868,11 +1032,9 @@ void ClientUI::drawEndScreen(ImDrawList* draw_list, ImVec2 min, ImVec2 max, bool
 
     // BUTTON
     {
-        float btn_font_size = 20.0f*scale;
         int nb_buttons = 3;
         float gap = 15.0f;
 
-        // Buttons width
         float total_width = max.x - min.x;
         float side_margin = 20.0f;
 
@@ -881,89 +1043,48 @@ void ClientUI::drawEndScreen(ImDrawList* draw_list, ImVec2 min, ImVec2 max, bool
 
         float start_x = min.x + side_margin;
 
-        // btn_height
         float btn_height = 60.0f;
         ImVec2 btn_size = { btn_width, btn_height };
 
         float y = y_btn + (zone_h - btn_height) * 0.5f;
 
+        Input inputs = getInputs(false, false);
+
         // ===== RETRY =====
         {
-            std::string btn_text = "RETRY";
+            ImGui::SetCursorScreenPos({ start_x, y });
 
-            ImVec2 btn_min = { start_x, y };
-            ImVec2 btn_max = { btn_min.x + btn_size.x, btn_min.y + btn_size.y };
-
-            ImGui::SetCursorScreenPos(btn_min);
-            if (ImGui::InvisibleButton("btn_retry", btn_size)) {
-                std::cout<<"CLICK ON "<< btn_text <<std::endl;
+            if (ImGui::Button("RETRY\n(press attack)", btn_size) || inputs.getAttack()) {
+                // std::cout << "CLICK ON RETRY" << std::endl;
                 setStatus(Status::WAITING_FOR_INIT);
                 screenToShow = Screens::LOADING_SCREEN;
-
-                // TODO : sending new players packet to the server with the actual player values
-                // TODO : protecting the server so he don't stop the game while playing on retry
-
             }
-
-            draw_list->AddRectFilled(btn_min, btn_max, IM_COL32(180,180,180,180), 6.0f);                    // content
-            draw_list->AddRect(btn_min, btn_max, IM_COL32(255,255,255,255), 6.0f, 0, 2.0f);     // borders
-
-            ImVec2 text_dim = font->CalcTextSizeA(btn_font_size, FLT_MAX, 0.0f, btn_text.c_str());
-            ImVec2 text_pos = {
-                btn_min.x + (btn_size.x - text_dim.x) * 0.5f,
-                btn_min.y + (btn_size.y - text_dim.y) * 0.5f
-            };
-
-            draw_list->AddText(font, btn_font_size, text_pos, IM_COL32(255,255,255,255), btn_text.c_str());
         }
 
         // ===== CHANGE PLAYER =====
         {
-            std::string btn_text = "CHANGE\nPLAYER";
+            ImGui::SetCursorScreenPos({ start_x + (btn_width + gap), y });
 
-            ImVec2 btn_min = { start_x + (btn_width + gap), y };
-            ImVec2 btn_max = { btn_min.x + btn_size.x, btn_min.y + btn_size.y };
-
-            ImGui::SetCursorScreenPos(btn_min);
-            if (ImGui::InvisibleButton("btn_change", btn_size)) {
+            if (ImGui::Button("CHANGE PLAYER\n(press change wpn)", btn_size)|| inputs.getChangeWpn()) {
                 setLoop(false);
-                std::cout<<"CLICK ON "<< btn_text <<std::endl;
+                std::cout << "CLICK ON CHANGE PLAYER" << std::endl;
             }
-
-            draw_list->AddRectFilled(btn_min, btn_max, IM_COL32(180,180,180,180), 6.0f);                // content
-            draw_list->AddRect(btn_min, btn_max, IM_COL32(255,255,255,255), 6.0f, 0, 2.0f); // border
-
-            ImVec2 text_dim = font->CalcTextSizeA(btn_font_size, FLT_MAX, 0.0f, btn_text.c_str());
-            ImVec2 text_pos = {
-                btn_min.x + (btn_size.x - text_dim.x) * 0.5f,
-                btn_min.y + (btn_size.y - text_dim.y) * 0.5f
-            };
-
-            draw_list->AddText(font, btn_font_size, text_pos, IM_COL32(255,255,255,255), btn_text.c_str());
         }
 
         // ===== MENU =====
-        {
-            std::string btn_text = "MENU";
+        ImGui::SetCursorScreenPos({ start_x + 2 * (btn_width + gap), y });
 
-            ImVec2 btn_min = { start_x + 2 * (btn_width + gap), y };
-            ImVec2 btn_max = { btn_min.x + btn_size.x, btn_min.y + btn_size.y };
+        // Couleur custom pour celui-ci
+        ImGui::PushStyleColor(ImGuiCol_Button,        IM_COL32(150, 0, 0, 255));
+        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, IM_COL32(180, 50, 50, 255));
+        ImGui::PushStyleColor(ImGuiCol_ButtonActive,  IM_COL32(120, 0, 0, 255));
 
-            ImGui::SetCursorScreenPos(btn_min);
-            if (ImGui::InvisibleButton("btn_menu", btn_size)) {
-                std::cout<<"CLICK ON "<< btn_text <<std::endl;
-            }
-
-            draw_list->AddRectFilled(btn_min, btn_max, IM_COL32(150,0,0,255), 6.0f);
-            draw_list->AddRect(btn_min, btn_max, IM_COL32(255,255,255,255), 6.0f, 0, 2.0f);
-
-            ImVec2 text_dim = font->CalcTextSizeA(btn_font_size, FLT_MAX, 0.0f, btn_text.c_str());
-            ImVec2 text_pos = {
-                btn_min.x + (btn_size.x - text_dim.x) * 0.5f,
-                btn_min.y + (btn_size.y - text_dim.y) * 0.5f
-            };
-
-            draw_list->AddText(font, btn_font_size, text_pos, IM_COL32(255,255,255,255), btn_text.c_str());
+        if (ImGui::Button("MENU", btn_size)) {
+            std::cout << "CLICK ON MENU" << std::endl;
         }
+
+        ImGui::PopStyleColor(3);
     }
+    ImGui::PopStyleVar();
+    ImGui::PopStyleColor(3);
 }

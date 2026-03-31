@@ -427,7 +427,6 @@ int Client::receiveLoop() {
 
                         // Server is ready and sends the data and position of each client:
                         case Pkt::READY_R: {
-                            // TODO : add something here to get the map and set it using this->setMapID(id)
                             // getting the map
                             int mapID;
                             packet >> mapID;
@@ -496,7 +495,7 @@ int Client::receiveLoop() {
                             break;
                         }
                         case Pkt::WIN: {
-                            player.setStatus(Status::WIN);
+                            this->player.setStatus(Status::WIN);
                             break;
                         }
                         case Pkt::END_R: {     // tick                                                                         // send the signal that the round is finished

@@ -131,6 +131,16 @@ Position resolveCollision(Position player, Position opponent) {
     return opponent;
 }
 
+/**
+ * Make the angle be in the [0-2pi] interval so he can be easilly calculated
+ * @param a angle that need to be normalized
+ * @return an angle beetween [0 - 2pi]
+ */
+float normalize(float a) {
+    a = std::fmod(a, 2 * std::numbers::pi);
+    if (a < 0) a += 2 * std::numbers::pi;
+    return a;
+};
 
 short resolveAttacks(State attacker, State opponent) {
     if (attacker.getWpn().getId() == Weapons::SHIELD) {
@@ -190,12 +200,6 @@ short resolveAttacks(State attacker, State opponent) {
                 opponent.getPosition().getY()
             };
 
-            auto normalize = [](float a) {
-                a = std::fmod(a, 2 * std::numbers::pi);
-                if (a < 0) a += 2 * std::numbers::pi;
-                return a;
-            };
-
             // ======== DISTANCE CHECK ========
             float dx = opponentPos.x - attackerPos.x;
             float dy = opponentPos.y - attackerPos.y;
@@ -207,7 +211,7 @@ short resolveAttacks(State attacker, State opponent) {
                 return -1;
             }
 
-            // ======== ANGLE CHECK (ANTI-HORAIRE) ========
+            // ======== ANGLE CHECK ========
             float angleToOpponent = normalize(std::atan2(dy, dx));
 
             float start = normalize(attacker.getRadius());
@@ -228,18 +232,18 @@ short resolveAttacks(State attacker, State opponent) {
 
                 float diff = std::fabs(angleToOpponent - opponentRadius);
 
-                // wrap propre
+                // wrap
                 diff = std::fmod(diff, 2 * std::numbers::pi);
                 if (diff > std::numbers::pi)
                     diff = 2 * std::numbers::pi - diff;
 
-                // angle proche de 90°
+                // checking for the shield
                 if (std::fabs(diff - std::numbers::pi/2) <= 0.8f) {
-                    return 1; // bloqué
+                    return 1; // bloqued
                 }
             }
 
-            return 0; // touche
+            return 0; // hit
         }
         default : {
             std::cout<<"weapond not recognized of type ="<<attacker.getWpn().getType()<<std::endl;
