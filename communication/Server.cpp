@@ -87,33 +87,35 @@ int Server::addClient(const std::string& name, unsigned short port, sf::Color co
         if (socket.receive(packet, sender, port) == sf::Socket::Status::Done) {
             packet >> id >> type;
             if (type == Pkt::NEW_PLAYER) {
-                // name << r g b a << wpn
-                std::string pname;
-                std::uint8_t r, g, b, a;
-                short wpn_id;
+                if(gameRunning==false) {
+                    // name << r g b a << wpn
+                    std::string pname;
+                    std::uint8_t r, g, b, a;
+                    short wpn_id;
 
-                packet >> pname >> r >> g >> b >> a >> wpn_id;
+                    packet >> pname >> r >> g >> b >> a >> wpn_id;
 
-                sf::Color color(r, g, b, a);
+                    sf::Color color(r, g, b, a);
 
-                // Check if player exists:
-                semaphore.acquire();
-                if (!clients.empty()) {
-                    for (auto & [playerPort, player] : clients) {
-                        // If port corresponds (aka same client:)
-                        if (playerPort == port and player.getStatus() != Status::WAITING_FOR_INIT) {
-                            buffer.removeFromPlayerList(player);
-                            removeToData(player.getName());
-                            clients.erase(playerPort); // Delete it.
-                            break;
+                    // Check if player exists:
+                    semaphore.acquire();
+                    if (!clients.empty()) {
+                        for (auto & [playerPort, player] : clients) {
+                            // If port corresponds (aka same client:)
+                            if (playerPort == port and player.getStatus() != Status::WAITING_FOR_INIT) {
+                                buffer.removeFromPlayerList(player);
+                                removeToData(player.getName());
+                                clients.erase(playerPort); // Delete it.
+                                break;
+                            }
                         }
                     }
+
+                    addClient(pname, port, color, wpn_id);
+
+                    clients[port].setStatus(Status::WAITING_FOR_INIT);
+                    semaphore.release();
                 }
-
-                addClient(pname, port, color, wpn_id);
-
-                clients[port].setStatus(Status::WAITING_FOR_INIT);
-                semaphore.release();
             }
             else if (port == COMM_PORT_SERVER) {
                 switch (type) {
@@ -145,6 +147,7 @@ int Server::addClient(const std::string& name, unsigned short port, sf::Color co
 
                                 if (nbOpp == clients.size() - 1) {
                                     clients[port].setStatus(Status::READY_TO_START);
+                                    gameRunning = true;
                                 }
                                 else {
                                     std::cout << port << " is missing one (or more) opponents!" << std::endl;
@@ -389,6 +392,7 @@ int Server::addClient(const std::string& name, unsigned short port, sf::Color co
             for (auto &[name, player] : clients) {
                 if (player.getStatus() != Status::DEAD) {
                     clients[name].setStatus(Status::WIN);
+                    gameRunning = false;
                 }
             }
         }

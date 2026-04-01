@@ -37,6 +37,7 @@ private:
 
     int maxPlayers = 2;     // TODO : make something better to handle how many players we want before starting the game
 
+    bool gameRunning = false;
     bool demoMode = false;
     bool loop = true;
     int mapID=-1;           // -1 stand for not set, mapID going from [0 -> Const::NB_MAP_ID]
