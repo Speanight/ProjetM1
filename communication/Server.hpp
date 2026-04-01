@@ -37,7 +37,7 @@ private:
 
     int maxPlayers = 2;     // TODO : make something better to handle how many players we want before starting the game
 
-    bool demo_mode = false;
+    bool demoMode = false;
     bool loop = true;
     int mapID=-1;           // -1 stand for not set, mapID going from [0 -> Const::NB_MAP_ID]
 
@@ -45,8 +45,11 @@ public:
     Server(Console &console, sf::Clock& clock);
     ~Server();
 
+    // Getters/Setters
+    void setMaxPlayers(int maxPlayers);
+    void setDemoMode(bool demoMode);
+
     // Functions
-    int getMapID();
     int addClient(const std::string& name, unsigned short port, sf::Color color, short weapon);
     [[noreturn]] void sendLoop();
     [[noreturn]] void receiveLoop();

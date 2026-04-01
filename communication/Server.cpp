@@ -29,9 +29,11 @@ Server::~Server() {
     }
 }
 
-
-int Server::getMapID() {
-    return mapID;
+void Server::setMaxPlayers(int maxPlayers) {
+    this->maxPlayers = maxPlayers;
+}
+void Server::setDemoMode(bool demoMode) {
+    this->demoMode = demoMode;
 }
 
 
@@ -273,7 +275,7 @@ int Server::addClient(const std::string& name, unsigned short port, sf::Color co
                                             auto opponent = buffer.getLastState(p.getName());
                                             semaphore.release();
 
-                                            if(demo_mode) {
+                                            if(demoMode) {
                                                 int pts = currentState[player.getName()].getPoint() + 1;
                                                 currentState[player.getName()].setPoint(pts);
                                                 playerState.setPoint(pts);
@@ -281,7 +283,7 @@ int Server::addClient(const std::string& name, unsigned short port, sf::Color co
                                             else {
                                                 int pts = opponent.getPoint()-currentState[player.getName()].getWpn().getDamage();
                                                 if(pts <= 0) {
-                                                    pts = 0;
+                                                    pts = -1;
                                                     clients[plPort].setStatus(Status::DEAD);
                                                 }
                                                 currentState[p.getName()].setPoint(pts);
@@ -294,10 +296,10 @@ int Server::addClient(const std::string& name, unsigned short port, sf::Color co
                                             float dirx = std::cos(radius);
                                             float diry = std::sin(radius);
 
-                                            // distance de knockback = 2x la range de l'arme
+                                            // knockback distance = 2x range
                                             float knockbackDist = currentState[p.getName()].getWpn().getRange() * 2.f;
 
-                                            // nouvelle position du joueur attaquant
+                                            // new position of the player
                                             position.setX(position.getX() - dirx * knockbackDist);
                                             position.setY(position.getY() - diry * knockbackDist);
                                         }
@@ -442,7 +444,10 @@ int Server::addClient(const std::string& name, unsigned short port, sf::Color co
 
                             Input inputs;
 
-                            State s(tick, pos, inputs, angleToCenter, false, 0, 100);
+                            int point = 100;
+                            if(demoMode) point =0;
+
+                            State s(tick, pos, inputs, angleToCenter, false, 0, point);
                             buffer.updateNextPlayerState(p, s);
 
                             // Add everything in packet:

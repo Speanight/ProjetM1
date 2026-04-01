@@ -20,7 +20,7 @@ int main() {
     std::cout << "Tickrate changes " << tickrate << " times per second." << std::endl;
     std::cout << "Starting server on Network: " << SERVER_IP << ":" << COMM_PORT_SERVER << std::endl;
 
-    MainWindow window(clock, true);
+    MainWindow window(clock, false);
 
     return 0;
 }

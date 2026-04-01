@@ -3,9 +3,9 @@
 MainWindow::MainWindow(sf::Clock clock, bool quickLaunch) : console(), server(console, clock) {
     std::cout << "Console adress is: " << &console << std::endl;
     if (quickLaunch) {
-        quickSetup();
+        demoSetup();
     }
-
+    screen = Screens::TITLE_SCREEN;
 
     thread = std::thread(&MainWindow::loop, this);
 }
@@ -96,22 +96,153 @@ void MainWindow::drawGame() {
  * @brief Title screen of the game. First window showing by default.
  */
 void MainWindow::drawTitlescreen() {
-    ImGui::Text("Projet M1");
-    ImGui::Separator();
+    ImVec2 avail = ImGui::GetContentRegionAvail();
+    float maxWidth = avail.x * 0.8f;
 
-    ImGui::Columns(2);
-    if (ImGui::Button("Setup & Play")) {
-        screen = Screens::GAME;
+    static int nbPlayers = 2;
+    static bool modeNormal = true;      // default mode selected = normal
+    static bool modeDemo = false;
+
+    // Zone split 20 / 60 / 20
+    float titleHeight = avail.y * 0.2f;
+    float menuHeight  = avail.y * 0.6f;
+    float bottomHeight = avail.y * 0.2f;
+
+    // Title
+    {
+        ImGui::BeginChild("TitleZone", ImVec2(0, titleHeight), false);
+
+        float fontSize = maxWidth * 0.08f;
+        if (fontSize < 100.0f) fontSize = 100.0f;
+
+        ImGui::SetWindowFontScale(fontSize / ImGui::GetFontSize());
+
+        const char* title = "Choisissez mode de jeu";
+        ImVec2 textSize = ImGui::CalcTextSize(title);
+
+        ImGui::SetCursorPosX((avail.x - textSize.x) * 0.5f);
+        ImGui::SetCursorPosY((titleHeight - textSize.y) * 0.5f);
+
+        ImGui::Text("%s", title);
+
+        ImGui::SetWindowFontScale(1.0f);
+
+        ImGui::EndChild();
     }
-    ImGui::NextColumn();
 
-    if (ImGui::Button("Demo (quick launch)")) {
-        quickSetup();
-        screen = Screens::GAME;
+    // Selection menu
+    {
+        ImGui::BeginChild("MenuZone", ImVec2(0, menuHeight), false);
+
+        float textScale = maxWidth * 0.02f;
+        if (textScale < 20.0f) textScale = 20.0f;
+
+        ImGui::SetWindowFontScale(textScale / ImGui::GetFontSize());
+
+        ImGui::Columns(2, nullptr, false);
+
+        float columnWidth = ImGui::GetColumnWidth();
+        float innerPadding = columnWidth * 0.1f;
+        float textPadding = 15.0f;
+
+        // Demo
+        {
+            ImGui::SetCursorPosX(ImGui::GetCursorPosX() + innerPadding);
+
+            const char* label = "Mode démo";
+            ImVec2 size = ImGui::CalcTextSize(label);
+
+            ImGui::SetCursorPosX(ImGui::GetCursorPosX() + (columnWidth - innerPadding*2 - size.x) * 0.5f);
+            ImGui::Checkbox(label, &modeDemo);
+            if (modeDemo) modeNormal = false;
+
+            ImGui::Dummy(ImVec2(0, 20));
+
+            ImGui::SetCursorPosX(ImGui::GetCursorPosX() + innerPadding + textPadding);
+
+            ImGui::PushTextWrapPos(ImGui::GetCursorPosX() + columnWidth - innerPadding*2 - textPadding);
+            ImGui::TextWrapped("Deux joueurs commencent avec 0 points au départ, leur objectif ? en accumuler le plus en attaquant leur adversaire. Ce mode de jeu est sans fin et est idéal pour la démonstration du jeu.");
+            ImGui::PopTextWrapPos();
+        }
+
+        ImGui::NextColumn();
+
+        // Normal
+        {
+            ImGui::SetCursorPosX(ImGui::GetCursorPosX() + innerPadding);
+
+            const char* label = "Mode normal";
+            ImVec2 size = ImGui::CalcTextSize(label);
+
+            ImGui::SetCursorPosX(ImGui::GetCursorPosX() + (columnWidth - innerPadding*2 - size.x) * 0.5f);
+            ImGui::Checkbox(label, &modeNormal);
+            if (modeNormal) modeDemo = false;
+
+            ImGui::Dummy(ImVec2(0, 20));
+
+            ImGui::SetCursorPosX(ImGui::GetCursorPosX() + innerPadding + textPadding);
+
+            ImGui::PushTextWrapPos(ImGui::GetCursorPosX() + columnWidth - innerPadding*2 - textPadding);
+            ImGui::TextWrapped("Chaque joueurs commencent avec 100 point de vie au départ, leur objectif ? tuer les autres joueurs. Ce mode de jeu est fait pour imiter un jeu dans son ensemble de l'attribution des joueurs a la gestion de la fin de partie.");
+            ImGui::PopTextWrapPos();
+
+            ImGui::Dummy(ImVec2(0, 30)); // get the more space he can
+
+            ImGui::SetCursorPosX(ImGui::GetCursorPosX() + innerPadding);
+
+            ImGui::Text("Nombre de joueurs :");
+
+            // largeur dynamique avec minimum
+            float availableWidth = columnWidth - innerPadding * 2;
+            float inputWidth = availableWidth * 0.4f;
+
+            if (inputWidth < 120.0f) inputWidth = 120.0f; // cancell disapiration
+            if (inputWidth > 200.0f) inputWidth = 200.0f; // make it not too large
+
+            // centrage
+            ImGui::SetCursorPosX(ImGui::GetCursorPosX() + (availableWidth - inputWidth) * 0.5f);
+
+            ImGui::PushItemWidth(inputWidth);
+            if (ImGui::InputInt("##players", &nbPlayers, 1, 1)) {
+                if (nbPlayers < 2) nbPlayers = 2;
+                if (nbPlayers > 4) nbPlayers = 4;
+            }
+            ImGui::PopItemWidth();
+        }
+
+        ImGui::Columns(1);
+        ImGui::SetWindowFontScale(1.0f);
+
+        ImGui::EndChild();
     }
 
-    ImGui::Columns(1);
-    ImGui::Separator();
+    // Buttons
+    {
+        ImGui::BeginChild("BottomZone", ImVec2(0, bottomHeight), false);
+
+        float buttonWidth = ImGui::GetContentRegionAvail().x * 0.4f;
+        float buttonHeight = 50.0f;
+
+        ImGui::SetCursorPosX((ImGui::GetContentRegionAvail().x - buttonWidth) * 0.5f);
+        ImGui::SetCursorPosY((bottomHeight - buttonHeight) * 0.5f);
+
+        if (ImGui::Button("Lancer le jeu", ImVec2(buttonWidth, buttonHeight))) {
+            if (nbPlayers < 2) nbPlayers = 2;
+            if (nbPlayers > 4) nbPlayers = 4;
+
+            if (modeNormal) {
+                gameSetup(nbPlayers);
+            }
+            else if (modeDemo) {
+                demoSetup();
+            }
+            else {
+                gameSetup(2);
+            }
+        }
+
+        ImGui::EndChild();
+    }
 
     ImGui::End();
 }
@@ -209,7 +340,7 @@ void MainWindow::draw(short screen) {
  *
  * @brief Starts the game quickly by creating 2 players. Controllers are detected if available.
  */
-void MainWindow::quickSetup() {
+void MainWindow::demoSetup() {
     ClientUI* clientA = new ClientUI(clock, console, "Client A", -1, sf::Color::Red);
     ClientUI* clientB = new ClientUI(clock, console, "Client B", -1, sf::Color::Green);
 
@@ -218,59 +349,54 @@ void MainWindow::quickSetup() {
     if (sf::Joystick::isConnected(0)) {
         std::cout << "Controller #0 found! Associating it to " << clientA->getName();
         clientA->setController(0);
-        clientA->setKeybinds({
-             {Inputs::MOVEMENT_DOWN, sf::Joystick::Axis::Y},
-             {Inputs::MOVEMENT_RIGHT, sf::Joystick::Axis::X},
-             {Inputs::WPN_CCW, 4}, // LB button
-             {Inputs::WPN_CW, 5}, // RB button
-             {Inputs::WPN_CHANGE, 2}, // X (xbox HyperX)
-             {Inputs::ATTACK, sf::Joystick::Axis::R}, // RT button
-             {Inputs::WPN_ANGLE_WE, sf::Joystick::Axis::U},
-             {Inputs::WPN_ANGLE_NS, sf::Joystick::Axis::V}
-         });
+        clientA->setKeybinds(Controller::CONTROLLER_MAP[0]);
     }
     else { // Fallback to keyboard keybinds.
-        clientA->setKeybinds({
-            {Inputs::MOVEMENT_UP, sf::Keyboard::Key::Z},
-            {Inputs::MOVEMENT_DOWN, sf::Keyboard::Key::S},
-            {Inputs::MOVEMENT_LEFT, sf::Keyboard::Key::Q},
-            {Inputs::MOVEMENT_RIGHT, sf::Keyboard::Key::D},
-            {Inputs::WPN_CCW, sf::Keyboard::Key::A},
-            {Inputs::WPN_CW, sf::Keyboard::Key::E},
-            {Inputs::WPN_CHANGE, sf::Keyboard::Key::W},
-            {Inputs::ATTACK, sf::Keyboard::Key::C}
-        });
+        clientA->setKeybinds(Controller::KEYBIND_MAP[0]);
     }
 
     if (sf::Joystick::isConnected(1)) {
         std::cout << "Controller #1 found! Associating it to " << clientB->getName();
         clientB->setController(1);
-        clientB->setKeybinds({
-             {Inputs::MOVEMENT_DOWN, sf::Joystick::Axis::Y},
-             {Inputs::MOVEMENT_RIGHT, sf::Joystick::Axis::X},
-             {Inputs::WPN_CCW, 4}, // LB button
-             {Inputs::WPN_CW, 5}, // RB button
-             {Inputs::WPN_CHANGE, 2}, // X (logitech)
-             {Inputs::ATTACK, sf::Joystick::Axis::R}, // RT button
-             {Inputs::WPN_ANGLE_WE, sf::Joystick::Axis::U},
-             {Inputs::WPN_ANGLE_NS, sf::Joystick::Axis::V}
-         });
+        clientB->setKeybinds(Controller::CONTROLLER_MAP[1]);
     }
     else { // Fallback to keyboard keybinds.
-        clientB->setKeybinds({
-             {Inputs::MOVEMENT_UP, sf::Keyboard::Key::Up},
-             {Inputs::MOVEMENT_DOWN, sf::Keyboard::Key::Down},
-             {Inputs::MOVEMENT_LEFT, sf::Keyboard::Key::Left},
-             {Inputs::MOVEMENT_RIGHT, sf::Keyboard::Key::Right},
-             {Inputs::WPN_CCW, sf::Keyboard::Key::P},
-             {Inputs::WPN_CW, sf::Keyboard::Key::M},
-             {Inputs::WPN_CHANGE, sf::Keyboard::Key::L},
-             {Inputs::ATTACK, sf::Keyboard::Key::O}
-         });
+        clientB->setKeybinds(Controller::KEYBIND_MAP[1]);
     }
 
     addClient(clientA);
     addClient(clientB);
 
+    this->server.setMaxPlayers(2);
+    this->server.setDemoMode(true);
+
+    screen = Screens::GAME;
+}
+
+void MainWindow::gameSetup(int nbPlayers) {
+    int controllerAvailable = 0;
+    int keyboardAvailable = 0;
+
+    sf::Joystick::update();
+    for(int i = 0; i < nbPlayers; i++) {
+        ClientUI* client = new ClientUI(clock, console, "Client"+std::to_string(i), -1, sf::Color::Red);
+
+        if (sf::Joystick::isConnected(0)||sf::Joystick::isConnected(1)||sf::Joystick::isConnected(2)) {
+            std::cout<<"attributing controller "<<controllerAvailable<<"..."<<std::endl;
+            client->setKeybinds(Controller::CONTROLLER_MAP[controllerAvailable]);
+            client->setController(controllerAvailable);
+            controllerAvailable++;
+        }
+        else {
+            std::cout<<"attributing keyboard "<<keyboardAvailable<<"..."<<std::endl;
+            client->setKeybinds(Controller::KEYBIND_MAP[keyboardAvailable]);
+            keyboardAvailable++;
+        }
+
+        client->setLoop(false);
+        addClient(client);
+    }
+    this->server.setMaxPlayers(nbPlayers);
+    this->server.setDemoMode(false);
     screen = Screens::GAME;
 }

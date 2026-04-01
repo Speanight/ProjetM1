@@ -232,10 +232,6 @@ void ClientUI::drawSelectionScreen(ImDrawList* draw_list, ImVec2 min, ImVec2 max
     // Inputs to navigate on the page using buttons
     Input input = getInputs(false, false);
 
-    // Navigation state
-    static int selectedZone = 0; // 0=NAME, 1=COLOR, 2=WEAPON, 3=CONFIRM
-    static int subSelect = 0;    // 0=left, 1=right (ou bouton unique pour confirm)
-
     // INPUT HANDLING
     {
         // resseting the click lock when clicked
@@ -248,9 +244,9 @@ void ClientUI::drawSelectionScreen(ImDrawList* draw_list, ImVec2 min, ImVec2 max
             if(input.getAttack() || input.getChangeWpn()) { // click on the arrow
                 select.allow_moove = false;
 
-                switch(selectedZone) {
+                switch(select.selectedZone) {
                     case 0: {   // NAME
-                        if(subSelect == 0) {
+                        if(select.subSelect == 0) {
                             select.selectedPreset = (select.selectedPreset - 1 + presets.size()) % presets.size();
                         } else {
                             select.selectedPreset = (select.selectedPreset + 1) % presets.size();
@@ -261,7 +257,7 @@ void ClientUI::drawSelectionScreen(ImDrawList* draw_list, ImVec2 min, ImVec2 max
                         break;
                     }
                     case 1: {   // COLOR
-                        if(subSelect == 0) {
+                        if(select.subSelect == 0) {
                             select.selectedColor = (select.selectedColor - 1 + colors.size()) % colors.size();
                         } else {
                             select.selectedColor = (select.selectedColor + 1) % colors.size();
@@ -270,7 +266,7 @@ void ClientUI::drawSelectionScreen(ImDrawList* draw_list, ImVec2 min, ImVec2 max
                     }
                     case 2: {   // WEAPON
                         const int weaponCount = 5;
-                        if(subSelect == 0) {
+                        if(select.subSelect == 0) {
                             select.selectedWeapon--;
                             if (select.selectedWeapon < 1) select.selectedWeapon = weaponCount;
                         } else {
@@ -286,11 +282,20 @@ void ClientUI::drawSelectionScreen(ImDrawList* draw_list, ImVec2 min, ImVec2 max
                         } else {
                             finalName = select.nameBuffer;
                         }
-                        // todo : put the "add player" here
-                        std::cout << "=>PLAYER CONFIG<=" << std::endl;
-                        std::cout << "Name: " << finalName << std::endl;
-                        std::cout << "Color ID: " << select.selectedColor << std::endl;
-                        std::cout << "Weapon ID: " << select.selectedWeapon << std::endl;
+
+                        Player pl = getPlayer();
+
+                        pl.setName(finalName);
+                        pl.setColor(convertImUToSfColor(colors[select.selectedColor]));
+                        pl.setWeapons({Weapons::SHIELD, short(select.selectedWeapon)});
+                        setPlayer(pl);
+                        screenToShow = Screens::LOADING_SCREEN;
+                        setStatus(Status::WAITING_FOR_INIT);
+                        setLoop(true);
+
+                        // deleting memory of the selector
+                        selects.erase(this->getPlayer().getPort());
+                        // demoWeapon is automaticly destroyed at the end of the program
 
                         selects.erase(this->getPlayer().getPort());
                         break;
@@ -300,21 +305,21 @@ void ClientUI::drawSelectionScreen(ImDrawList* draw_list, ImVec2 min, ImVec2 max
 
             if(input.getMovementY() < 0) { // mooving up (selector on top)
                 select.allow_moove = false;
-                selectedZone--;
-                if(selectedZone < 0) selectedZone = 3;
+                select.selectedZone--;
+                if(select.selectedZone < 0) select.selectedZone = 3;
             }
             if(input.getMovementY() > 0) { // mooving down (selector bellow)
                 select.allow_moove = false;
-                selectedZone++;
-                if(selectedZone > 3) selectedZone = 0;
+                select.selectedZone++;
+                if(select.selectedZone > 3) select.selectedZone = 0;
             }
             if(input.getMovementX() < 0) { // mooving left (selecte left arrow)
                 select.allow_moove = false;
-                subSelect = 0;
+                select.subSelect = 0;
             }
             if(input.getMovementX() > 0) { // mooving right (select right arrow)
                 select.allow_moove = false;
-                subSelect = 1;
+                select.subSelect = 1;
             }
         }
     }
@@ -381,8 +386,8 @@ void ClientUI::drawSelectionScreen(ImDrawList* draw_list, ImVec2 min, ImVec2 max
             );
 
         // highligth zone
-        if(selectedZone == 0) {
-            ImVec2 target = (subSelect == 0) ? leftBtn : rightBtn;
+        if(select.selectedZone == 0) {
+            ImVec2 target = (select.subSelect == 0) ? leftBtn : rightBtn;
 
             draw_list->AddRect(
                 target,
@@ -429,8 +434,8 @@ void ClientUI::drawSelectionScreen(ImDrawList* draw_list, ImVec2 min, ImVec2 max
             );
 
         // highlight
-        if(selectedZone == 1) {
-            ImVec2 target = (subSelect == 0) ? leftBtn : rightBtn;
+        if(select.selectedZone == 1) {
+            ImVec2 target = (select.subSelect == 0) ? leftBtn : rightBtn;
 
             draw_list->AddRect(
                 target,
@@ -541,8 +546,8 @@ void ClientUI::drawSelectionScreen(ImDrawList* draw_list, ImVec2 min, ImVec2 max
             );
 
         // highlight
-        if(selectedZone == 2) {
-            ImVec2 target = (subSelect == 0) ? leftBtn : rightBtn;
+        if(select.selectedZone == 2) {
+            ImVec2 target = (select.subSelect == 0) ? leftBtn : rightBtn;
 
             draw_list->AddRect(
                 target,
@@ -584,7 +589,7 @@ void ClientUI::drawSelectionScreen(ImDrawList* draw_list, ImVec2 min, ImVec2 max
         }
 
         // highlight
-        if(selectedZone == 3) {
+        if(select.selectedZone == 3) {
             draw_list->AddRect(
                 ImVec2(screenCenter.x - buttonWidth * 0.5f, z4_min.y + zoneHeight * 0.3f),
                 ImVec2(screenCenter.x + buttonWidth * 0.5f, z4_min.y + zoneHeight * 0.3f + 40),
@@ -749,8 +754,13 @@ void ClientUI::drawFightingScreen(ImDrawList* draw_list, Player player, std::map
     }
 }
 void ClientUI::drawPlayer(ImDrawList* draw_list, Player player, ImVec2 min, ImVec2 max) {
-    if(player.getStatus() == Status::DEAD || player.getPoint() == 0) {
+    std::string points;
+    if(player.getStatus() == Status::DEAD || player.getPoint() == -1) {
         player.setColor(sf::Color::White);                // TODO : handle the death differently ?
+        points = "DEAD";
+    }
+    else {
+        points = std::to_string(player.getPoint());
     }
     float window_size = max.x - min.x;
 
@@ -773,7 +783,6 @@ void ClientUI::drawPlayer(ImDrawList* draw_list, Player player, ImVec2 min, ImVe
     drawWeapon(player, draw_list, pl_position, scale);
 
     // ========= POINT =========
-    std::string points = std::to_string(player.getPoint());
 
     float font_size = 16.0f * scale;
 
@@ -949,9 +958,7 @@ void ClientUI::drawEndScreen(ImDrawList* draw_list, ImVec2 min, ImVec2 max, bool
             "BOMBE THERMONUCLEAIRE vs BEBE QUI TOUSSE",
             "EPIC WIN",
             "Hehe bah alors, c'est qui le meilleur ?",
-            "Wahhh gg bro",
-            "TEST 0",
-            "TEST 1"
+            "Wahhh gg bro"
         };
     }
     else {
@@ -962,9 +969,7 @@ void ClientUI::drawEndScreen(ImDrawList* draw_list, ImVec2 min, ImVec2 max, bool
             "Il a triché t'inquiète",
             "Mais je me fait big gank là c'est quoi ça !",
             "Blammez les JOUEURS pas le jeu...",
-            "La prochaine fois c'est la bonne",
-            "TEST 0",
-            "TEST 1"
+            "La prochaine fois c'est la bonne"
         };
     }
 

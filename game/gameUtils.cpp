@@ -153,19 +153,41 @@ short resolveAttacks(State attacker, State opponent) {
         case Weapons::TRIANGLE : {
             float attackReach = PLAYER_SIZE + attacker.getWpn().getHeight() + attacker.getWpn().getRange();
 
-            ImVec2 d2 = {opponent.getPosition().getX() - attacker.getPosition().getX() - dir.x * attackReach,
-                         opponent.getPosition().getY() - attacker.getPosition().getY() - dir.y * attackReach};
+            // Segment start and end
+            ImVec2 start = {attacker.getPosition().getX(), attacker.getPosition().getY()};
+            ImVec2 end   = {start.x + dir.x * attackReach, start.y + dir.y * attackReach};
 
-            float distTop = std::sqrt(pow(d2.x, 2) + pow(d2.y, 2));
+            // Opponen
+            ImVec2 circleCenter = {opponent.getPosition().getX(), opponent.getPosition().getY()};
+            float circleRadius = PLAYER_SIZE * (1.0f + WEAPON_GRACE_PERCENT);
 
-            if (distTop <= PLAYER_SIZE * (1+WEAPON_GRACE_PERCENT)) {        // if the weapon can enter the opponent perimeters, then it's a touch
+            // Vector from start to end
+            ImVec2 seg = {end.x - start.x, end.y - start.y};
+            ImVec2 pt = {circleCenter.x - start.x, circleCenter.y - start.y};
+
+            // Project point onto segment (t clampé entre 0 et 1)
+            float segLen2 = seg.x*seg.x + seg.y*seg.y;
+            float t = (pt.x*seg.x + pt.y*seg.y) / segLen2;
+            if (t < 0) t = 0;
+            if (t > 1) t = 1;
+
+            // closer point on the trajectory
+            ImVec2 closest = {start.x + seg.x*t, start.y + seg.y*t};
+
+
+            float dx = closest.x - circleCenter.x;
+            float dy = closest.y - circleCenter.y;
+            float dist2 = dx*dx + dy*dy;
+
+            bool hit = dist2 <= circleRadius*circleRadius;
+
+            if (hit) {
                 bool blocked = false;
 
                 if (opponent.getWpn().getId() == Weapons::SHIELD) {
-                    // looking for the angle between the player and it's opponent
                     float angleToAttacker = std::atan2(
-                            attacker.getPosition().getY() - opponent.getPosition().getY(),
-                            attacker.getPosition().getX() - opponent.getPosition().getX()
+                        attacker.getPosition().getY() - opponent.getPosition().getY(),
+                        attacker.getPosition().getX() - opponent.getPosition().getX()
                     );
 
                     auto normalize = [&](float a) {
@@ -178,7 +200,7 @@ short resolveAttacks(State attacker, State opponent) {
                     float opponentRadius = normalize(opponent.getRadius());
 
                     float shieldStart = normalize(opponentRadius - 0.8f);
-                    float shieldEnd = normalize(opponentRadius + 0.8f);
+                    float shieldEnd   = normalize(opponentRadius + 0.8f);
 
                     if (shieldStart < shieldEnd)
                         blocked = (angleToAttacker >= shieldStart && angleToAttacker <= shieldEnd);

@@ -10,6 +10,9 @@
 #include <imgui.h>
 #include <imgui-SFML.h>
 #include <mutex>
+#include <unordered_map>
+#include <variant>
+#include <SFML/Window/Keyboard.hpp>
 
 extern unsigned short tickrate;
 extern unsigned short clientRefreshRate;
@@ -104,6 +107,64 @@ namespace Inputs {
     static constexpr int WPN_ANGLE_NS = 7;
     static constexpr int WPN_CHANGE = 8;
     static constexpr int ATTACK = 9;
+}
+
+namespace Controller {
+    static std::vector<std::unordered_map<int, std::variant<sf::Keyboard::Key, sf::Joystick::Axis, int>>> CONTROLLER_MAP {
+        {
+            {Inputs::MOVEMENT_DOWN, sf::Joystick::Axis::Y},
+            {Inputs::MOVEMENT_RIGHT, sf::Joystick::Axis::X},
+            {Inputs::WPN_CCW, 4}, // LB button
+            {Inputs::WPN_CW, 5}, // RB button
+            {Inputs::WPN_CHANGE, 2}, // X (xbox HyperX)
+            {Inputs::ATTACK, sf::Joystick::Axis::R}, // RT button
+            {Inputs::WPN_ANGLE_WE, sf::Joystick::Axis::U},
+            {Inputs::WPN_ANGLE_NS, sf::Joystick::Axis::V}
+        },
+        {
+            {Inputs::MOVEMENT_DOWN, sf::Joystick::Axis::Y},
+            {Inputs::MOVEMENT_RIGHT, sf::Joystick::Axis::X},
+            {Inputs::WPN_CCW, 4}, // LB button
+            {Inputs::WPN_CW, 5}, // RB button
+            {Inputs::WPN_CHANGE, 2}, // X (logitech)
+            {Inputs::ATTACK, sf::Joystick::Axis::R}, // RT button
+            {Inputs::WPN_ANGLE_WE, sf::Joystick::Axis::U},
+            {Inputs::WPN_ANGLE_NS, sf::Joystick::Axis::V}
+        }
+    };
+
+    static std::vector<std::unordered_map<int, std::variant<sf::Keyboard::Key, sf::Joystick::Axis, int>>> KEYBIND_MAP {
+        {
+            {Inputs::MOVEMENT_UP, sf::Keyboard::Key::Z},
+            {Inputs::MOVEMENT_DOWN, sf::Keyboard::Key::S},
+            {Inputs::MOVEMENT_LEFT, sf::Keyboard::Key::Q},
+            {Inputs::MOVEMENT_RIGHT, sf::Keyboard::Key::D},
+            {Inputs::WPN_CCW, sf::Keyboard::Key::A},
+            {Inputs::WPN_CW, sf::Keyboard::Key::E},
+            {Inputs::WPN_CHANGE, sf::Keyboard::Key::W},
+            {Inputs::ATTACK, sf::Keyboard::Key::C}
+        },
+        {
+            {Inputs::MOVEMENT_UP, sf::Keyboard::Key::Up},
+            {Inputs::MOVEMENT_DOWN, sf::Keyboard::Key::Down},
+            {Inputs::MOVEMENT_LEFT, sf::Keyboard::Key::Left},
+            {Inputs::MOVEMENT_RIGHT, sf::Keyboard::Key::Right},
+            {Inputs::WPN_CCW, sf::Keyboard::Key::P},
+            {Inputs::WPN_CW, sf::Keyboard::Key::M},
+            {Inputs::WPN_CHANGE, sf::Keyboard::Key::L},
+            {Inputs::ATTACK, sf::Keyboard::Key::O}
+        },
+        {
+            {Inputs::MOVEMENT_UP, sf::Keyboard::Key::T},
+            {Inputs::MOVEMENT_DOWN, sf::Keyboard::Key::G},
+            {Inputs::MOVEMENT_LEFT, sf::Keyboard::Key::F},
+            {Inputs::MOVEMENT_RIGHT, sf::Keyboard::Key::H},
+            {Inputs::WPN_CCW, sf::Keyboard::Key::R},
+            {Inputs::WPN_CW, sf::Keyboard::Key::Y},
+            {Inputs::WPN_CHANGE, sf::Keyboard::Key::V},
+            {Inputs::ATTACK, sf::Keyboard::Key::B}
+        }
+    };
 }
 
 namespace Compensation {

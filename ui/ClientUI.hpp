@@ -21,6 +21,9 @@ struct UISelect {
     int selectedWeapon = 1;
 
     bool allow_moove;
+
+    int selectedZone = 0; // 0=NAME, 1=COLOR, 2=WEAPON, 3=CONFIRM
+    int subSelect = 0;    // 0=left, 1=right (ou bouton unique pour confirm)
 };
 
 class ClientUI : public Client {
