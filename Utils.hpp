@@ -163,6 +163,16 @@ namespace Controller {
             {Inputs::WPN_CW, sf::Keyboard::Key::Y},
             {Inputs::WPN_CHANGE, sf::Keyboard::Key::V},
             {Inputs::ATTACK, sf::Keyboard::Key::B}
+        },
+        {
+            {Inputs::MOVEMENT_UP, sf::Keyboard::Key::M},
+            {Inputs::MOVEMENT_DOWN, sf::Keyboard::Key::L},
+            {Inputs::MOVEMENT_LEFT, sf::Keyboard::Key::K},
+            {Inputs::MOVEMENT_RIGHT, sf::Keyboard::Key::J},
+            {Inputs::WPN_CCW, sf::Keyboard::Key::H},
+            {Inputs::WPN_CW, sf::Keyboard::Key::G},
+            {Inputs::WPN_CHANGE, sf::Keyboard::Key::F},
+            {Inputs::ATTACK, sf::Keyboard::Key::D}
         }
     };
 }

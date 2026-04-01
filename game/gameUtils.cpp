@@ -143,6 +143,8 @@ float normalize(float a) {
 };
 
 short resolveAttacks(State attacker, State opponent) {
+    bool blocked = false;
+
     if (attacker.getWpn().getId() == Weapons::SHIELD) {
         return -1;
     }
@@ -151,65 +153,73 @@ short resolveAttacks(State attacker, State opponent) {
 
     switch (attacker.getWpn().getType()) {
         case Weapons::TRIANGLE : {
-            float attackReach = PLAYER_SIZE + attacker.getWpn().getHeight() + attacker.getWpn().getRange();
 
-            // Segment start and end
-            ImVec2 start = {attacker.getPosition().getX(), attacker.getPosition().getY()};
-            ImVec2 end   = {start.x + dir.x * attackReach, start.y + dir.y * attackReach};
+            ImVec2 attackerPos = {
+                attacker.getPosition().getX(),
+                attacker.getPosition().getY()
+            };
 
-            // Opponen
-            ImVec2 circleCenter = {opponent.getPosition().getX(), opponent.getPosition().getY()};
-            float circleRadius = PLAYER_SIZE * (1.0f + WEAPON_GRACE_PERCENT);
+            ImVec2 enemyPos = {
+                opponent.getPosition().getX(),
+                opponent.getPosition().getY()
+            };
 
-            // Vector from start to end
-            ImVec2 seg = {end.x - start.x, end.y - start.y};
-            ImVec2 pt = {circleCenter.x - start.x, circleCenter.y - start.y};
+            // checking for direction the player is attacking
+            ImVec2 toEnemy = {
+                enemyPos.x - attackerPos.x,
+                enemyPos.y - attackerPos.y
+            };
 
-            // Project point onto segment (t clampé entre 0 et 1)
-            float segLen2 = seg.x*seg.x + seg.y*seg.y;
-            float t = (pt.x*seg.x + pt.y*seg.y) / segLen2;
-            if (t < 0) t = 0;
-            if (t > 1) t = 1;
+            float distToEnemy = std::sqrt(toEnemy.x*toEnemy.x + toEnemy.y*toEnemy.y);
 
-            // closer point on the trajectory
-            ImVec2 closest = {start.x + seg.x*t, start.y + seg.y*t};
+            if (distToEnemy == 0)
+                return -1;
 
+            // normalisation
+            toEnemy.x /= distToEnemy;
+            toEnemy.y /= distToEnemy;
 
-            float dx = closest.x - circleCenter.x;
-            float dy = closest.y - circleCenter.y;
-            float dist2 = dx*dx + dy*dy;
+            // dot product
+            float dot = toEnemy.x * dir.x + toEnemy.y * dir.y;
 
-            bool hit = dist2 <= circleRadius*circleRadius;
+            if (dot < 0.5f)
+                return -1; // not hiting in the right direction
 
-            if (hit) {
-                bool blocked = false;
+            // shield check
+            if (opponent.getWpn().getId() == Weapons::SHIELD) {
 
-                if (opponent.getWpn().getId() == Weapons::SHIELD) {
-                    float angleToAttacker = std::atan2(
-                        attacker.getPosition().getY() - opponent.getPosition().getY(),
-                        attacker.getPosition().getX() - opponent.getPosition().getX()
-                    );
+                // angle de l'attaquant par rapport au centre de l'opposant
+                float attackToOpponent = std::atan2(
+                    attackerPos.y - enemyPos.y,
+                    attackerPos.x - enemyPos.x
+                );
 
-                    auto normalize = [&](float a) {
-                        a = std::fmod(a, 2 * std::numbers::pi);
-                        if (a < 0) a += 2 * std::numbers::pi;
-                        return a;
-                    };
+                attackToOpponent = normalize(attackToOpponent);
 
-                    angleToAttacker = normalize(angleToAttacker);
-                    float opponentRadius = normalize(opponent.getRadius());
+                float opponentAngle = normalize(opponent.getRadius());
+                float shieldStart = normalize(opponentAngle - 0.8f);
+                float shieldEnd   = normalize(opponentAngle + 0.8f);
 
-                    float shieldStart = normalize(opponentRadius - 0.8f);
-                    float shieldEnd   = normalize(opponentRadius + 0.8f);
+                if (shieldStart < shieldEnd)
+                    blocked = (attackToOpponent >= shieldStart && attackToOpponent <= shieldEnd);
+                else
+                    blocked = (attackToOpponent >= shieldStart || attackToOpponent <= shieldEnd);
 
-                    if (shieldStart < shieldEnd)
-                        blocked = (angleToAttacker >= shieldStart && angleToAttacker <= shieldEnd);
-                    else
-                        blocked = (angleToAttacker >= shieldStart || angleToAttacker <= shieldEnd);
-                }
-
-                return blocked;
             }
+
+            // check distance between players
+            float attackReach =
+                PLAYER_SIZE +
+                attacker.getWpn().getHeight() +
+                attacker.getWpn().getRange();
+
+            float hitDistance = distToEnemy - PLAYER_SIZE;
+
+            if (hitDistance <= attackReach)
+                if(blocked){return 1;}
+                else {return 0;}
+
+            return -1;
         }
         case Weapons::RECTANGLE : {
             ImVec2 attackerPos = {

@@ -3,9 +3,11 @@
 MainWindow::MainWindow(sf::Clock clock, bool quickLaunch) : console(), server(console, clock) {
     std::cout << "Console adress is: " << &console << std::endl;
     if (quickLaunch) {
-        demoSetup();
+        gameSetup();
     }
-    screen = Screens::TITLE_SCREEN;
+    else {
+        screen = Screens::TITLE_SCREEN;
+    }
 
     thread = std::thread(&MainWindow::loop, this);
 }
@@ -64,12 +66,39 @@ void MainWindow::drawGame() {
         }
 
         // adding game and config
-        ImGui::Columns(clients.size(), nullptr, false);
+        int count = clients.size();
 
-        for (auto & client : clients) {
-            client->drawConfig();
-            client->drawGame();
-            ImGui::NextColumn();
+        if (count <= 4) {
+            ImGui::Columns(count, nullptr, false);
+
+            for (auto& client : clients) {
+                client->drawConfig();
+                client->drawGame();
+                ImGui::NextColumn();
+            }
+        }
+        else {
+            int topCount = (count + 1) / 2;
+            int bottomCount = count - topCount;
+
+            ImGui::Columns(topCount, nullptr, false);
+
+            for (int i = 0; i < topCount; i++) {
+                clients[i]->drawConfig();
+                clients[i]->drawGame();
+                ImGui::NextColumn();
+            }
+
+            ImGui::Columns(1);
+            ImGui::Separator();
+
+            ImGui::Columns(bottomCount, nullptr, false);
+
+            for (int i = topCount; i < count; i++) {
+                clients[i]->drawConfig();
+                clients[i]->drawGame();
+                ImGui::NextColumn();
+            }
         }
 
         ImGui::Columns(clients.size(), nullptr, false);
