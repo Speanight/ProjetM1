@@ -278,10 +278,11 @@ void ClientUI::drawSelectionScreen(ImDrawList* draw_list, ImVec2 min, ImVec2 max
                     case 3: {   // CONFIRM
                         std::string finalName;
                         if (strlen(select.nameBuffer) == 0) {
-                            finalName = "Client-" + std::to_string(this->getPlayer().getPort());
+                            finalName = "Client-";
                         } else {
-                            finalName = select.nameBuffer;
+                            finalName = select.nameBuffer ;
                         }
+                        finalName += std::to_string(this->getPlayer().getPort()); // security of 2 player taking the same role
 
                         Player pl = getPlayer();
 
@@ -568,10 +569,11 @@ void ClientUI::drawSelectionScreen(ImDrawList* draw_list, ImVec2 min, ImVec2 max
         if (ImGui::Button("CONFIRMER", ImVec2(buttonWidth, 40))) {
             std::string finalName;
             if (strlen(select.nameBuffer) == 0) {
-                finalName = "Client-" + std::to_string(this->getPlayer().getPort());
+                finalName = "Client-";
             } else {
-                finalName = select.nameBuffer;
+                finalName = select.nameBuffer ;
             }
+            finalName += std::to_string(this->getPlayer().getPort()); // security of 2 player taking the same role
 
             Player pl = getPlayer();
 
@@ -1036,7 +1038,7 @@ void ClientUI::drawEndScreen(ImDrawList* draw_list, ImVec2 min, ImVec2 max, bool
 
     // BUTTON
     {
-        int nb_buttons = 3;
+        int nb_buttons = 2;     // todo : if we don't supress the menu button, then put it back to 3
         float gap = 15.0f;
 
         float total_width = max.x - min.x;
@@ -1091,20 +1093,21 @@ void ClientUI::drawEndScreen(ImDrawList* draw_list, ImVec2 min, ImVec2 max, bool
             }
         }
 
-        // ===== MENU =====
-        ImGui::SetCursorScreenPos({ start_x + 2 * (btn_width + gap), y });
+        // ===== MENU =====     // TODO : delete the menu button ?
+        /*{
+            ImGui::SetCursorScreenPos({ start_x + 2 * (btn_width + gap), y });
 
-        // Couleur custom pour celui-ci
-        ImGui::PushStyleColor(ImGuiCol_Button,        IM_COL32(150, 0, 0, 255));
-        ImGui::PushStyleColor(ImGuiCol_ButtonHovered, IM_COL32(180, 50, 50, 255));
-        ImGui::PushStyleColor(ImGuiCol_ButtonActive,  IM_COL32(120, 0, 0, 255));
+            ImGui::PushStyleColor(ImGuiCol_Button,        IM_COL32(150, 0, 0, 255));
+            ImGui::PushStyleColor(ImGuiCol_ButtonHovered, IM_COL32(180, 50, 50, 255));
+            ImGui::PushStyleColor(ImGuiCol_ButtonActive,  IM_COL32(120, 0, 0, 255));
 
-        if (ImGui::Button("MENU", btn_size)) {
-            waitRetry = 0;
-            std::cout << "CLICK ON MENU" << std::endl;
-        }
+            if (ImGui::Button("MENU", btn_size)) {
+                waitRetry = 0;
+                std::cout << "CLICK ON MENU" << std::endl;
+            }
 
-        ImGui::PopStyleColor(3);
+            ImGui::PopStyleColor(3);
+        }*/
     }
     ImGui::PopStyleVar();
     ImGui::PopStyleColor(3);
