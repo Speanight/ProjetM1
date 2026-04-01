@@ -9,6 +9,7 @@
 #include "../game/Weapon.hpp"
 #include <queue>
 #include "../game/Player.hpp"
+#include <mutex>
 
 class Buffer {
 private:

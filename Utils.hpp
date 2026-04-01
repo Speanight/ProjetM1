@@ -144,7 +144,12 @@ namespace Weapons {
     static constexpr short TRIANGLE = 1;
     static constexpr short RECTANGLE = 2;
     static constexpr short CIRCLE = 3;
+}
 
+// To use names instead of obscure numbers
+namespace Utils {
+    static constexpr int RECEIVED = 0;
+    static constexpr int SENT = 1;
 }
 
 sf::Color convertImUToSfColor(ImU32 im_color);

@@ -117,11 +117,11 @@ void ClientUI::drawConfig() {
     ImGui::SliderInt("Packet loss S -> C", &packetLoss[0], 0, 100);
     ImGui::SliderInt("Packet loss C -> S", &packetLoss[1], 0, 100);
     ImGui::PopItemWidth();
-//    ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x * 0.25f);
-//    ImGui::InputInt("Ping S -> C", &ping[0]);
+    ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x * 0.25f);
+    ImGui::InputInt("Ping S -> C", &ping[RECEIVED]);
 //    ImGui::SameLine();
-    ImGui::InputInt("Ping C -> S", &ping[1]);
-//    ImGui::PopItemWidth();
+    ImGui::InputInt("Ping C -> S", &ping[SENT]);
+    ImGui::PopItemWidth();
 
     ImGui::Checkbox("Interpolation", &compensations[Compensation::INTERPOLATION]);
     ImGui::SameLine();

@@ -1,7 +1,6 @@
 #include "MainWindow.hpp"
 
 MainWindow::MainWindow(sf::Clock clock, bool quickLaunch) : console(), server(console, clock) {
-    std::cout << "Console adress is: " << &console << std::endl;
     if (quickLaunch) {
         quickSetup();
     }
@@ -20,10 +19,6 @@ MainWindow::~MainWindow() {
     }
 
     server.shutdown();
-
-    ImGui::SFML::Shutdown();
-    ImPlot::DestroyContext();
-    ImGui::DestroyContext();
 }
 
 void MainWindow::addClient(ClientUI* client) {
@@ -129,21 +124,20 @@ void MainWindow::drawPlayerSelect() {
 
 void MainWindow::loop() {
     sf::RenderWindow window(sf::VideoMode({1280, 880}), "Projet M1");
+    window.setFramerateLimit(60);
     window.setPosition({0,0});
-
-    // check imgui OK
-    IMGUI_CHECKVERSION();
-    ImGui::CreateContext();
-    ImPlot::CreateContext();
-    ImGui::StyleColorsDark();
 
     if (!ImGui::SFML::Init(window)) {
         return;
         // TODO: Error handler
     }
 
+    ImPlot::CreateContext();
+
     sf::Clock deltaClock;
     sf::Time delta;
+
+    ImGuiIO& io = ImGui::GetIO();
 
     // thread of window
     while (window.isOpen()) {
@@ -154,8 +148,6 @@ void MainWindow::loop() {
             if (event->is<sf::Event::Closed>())
                 window.close();
         }
-
-        ImGuiIO& io = ImGui::GetIO();
         io.DeltaTime = deltaClock.restart().asSeconds();
 
         auto size = window.getSize();
@@ -190,6 +182,11 @@ void MainWindow::loop() {
         window.display();
     }
 
+
+    ImPlot::DestroyContext();
+    ImGui::SFML::Shutdown();
+//    ImGui::SetCurrentContext(ImGui::GetCurrentContext());
+//    ImGui::DestroyContext();
 }
 
 void MainWindow::draw(short screen) {

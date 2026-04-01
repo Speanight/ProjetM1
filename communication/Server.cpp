@@ -21,6 +21,7 @@ Server::Server(Console &console, sf::Clock& clock) : ServerUI(console), semaphor
 
 Server::~Server() {
     socket.unbind();
+    running = false;
     if (sendThread.joinable()) {
         sendThread.join();
     }
@@ -64,7 +65,7 @@ int Server::addClient(const std::string& name, unsigned short port, sf::Color co
  *
  *  @return int code for info as to how the server ended (type Err::)
  */
-[[noreturn]] void Server::receiveLoop() {
+void Server::receiveLoop() {
     std::optional<sf::IpAddress> sender = sf::IpAddress::resolve("127.0.0.1");
     sf::Packet packet;
     short unsigned int port;
@@ -77,7 +78,7 @@ int Server::addClient(const std::string& name, unsigned short port, sf::Color co
     float radius;
     uint32_t id;
 
-    while (true) {
+    while (running) {
         while (!loop) {sf::sleep(sf::Time());} // Pause if needed
         sf::sleep(sf::Time());
         packet.clear();
@@ -240,6 +241,7 @@ int Server::addClient(const std::string& name, unsigned short port, sf::Color co
                                 bool interaction = false;
                                 // Check if there is a collision between players (and therefor if it should be resolved)
                                 Position opponentPos = currentState[p.getName()].getPosition();
+//                                Position opponentPos = buffer.getStateAtTimestamp(p, clock.getElapsedTime().asMilliseconds()-pings[player.getName()]).getPosition();
                                 opponentPos = resolveCollision(position, opponentPos);
 
                                 // If yes, we re-adjust the new position of said opponent:
@@ -254,7 +256,7 @@ int Server::addClient(const std::string& name, unsigned short port, sf::Color co
                                     semaphore.acquire();
                                     State stO;
                                     if (rewind) {
-                                        stO = buffer.getStateAtTimestamp(p, clock.getElapsedTime().asMilliseconds() - pings[player.getName()] - pings[p.getName()] - tickrate);
+                                        stO = buffer.getStateAtTimestamp(p, clock.getElapsedTime().asMilliseconds() - pings[player.getName()] - pings[p.getName()]);
                                     }
                                     else {
                                         stO = buffer.getLastState(p);
@@ -313,10 +315,6 @@ int Server::addClient(const std::string& name, unsigned short port, sf::Color co
                                         currentState[p.getName()].getWpn().getId(),
                                         currentState[p.getName()].getPoint());
 
-                                    // TODO: Find better way to do it:
-                                    if (opponentPos != currentState[p.getName()].getPosition()) {
-                                        s.setTimestamp(clock.getElapsedTime().asMilliseconds());
-                                    }
                                     buffer.updateNextPlayerState(p, s);
                                 }
                             }
@@ -367,13 +365,13 @@ int Server::addClient(const std::string& name, unsigned short port, sf::Color co
  *
  *  @return int code for info as to how the server ended (type Err::)
  */
-[[noreturn]] void Server::sendLoop() {
+void Server::sendLoop() {
     std::optional<sf::IpAddress> sender = sf::IpAddress::resolve("127.0.0.1");
     sf::Packet packet;
     short type;
     uint32_t id;
 
-    while (true) {
+    while (running) {
         while (!loop) {sf::sleep(sf::Time());} // Pause if needed
         sf::sleep(std::chrono::milliseconds(1000 / tickrate));
 

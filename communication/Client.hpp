@@ -25,8 +25,10 @@
 #include "../communication/Buffer.hpp"
 #include <cmath>
 #include "../ui/Console.hpp"
+#include "../game/gameUtils.hpp"
 
 using namespace Const;
+using namespace Utils;
 
 struct QueuedPacket {
     sf::Time timestamp;
@@ -46,7 +48,7 @@ struct NetworkState {
 class Client {
 private:
     Player player;
-    std::deque<QueuedPacket> queuedPackets; // [0] = received; [1] = sent
+    std::deque<QueuedPacket> queuedPackets[2]; // [0] = received; [1] = sent
 
     std::binary_semaphore semaphore;
 
@@ -55,6 +57,7 @@ private:
     std::unordered_map<int, std::variant<sf::Keyboard::Key, sf::Joystick::Axis, int>> keybinds; // int = button ID.
     short controllerNumber = -1;
 
+    std::atomic<bool> running = true;
 //    std::thread updateThread;
     std::thread sendThread;
     std::thread receiveThread;
@@ -128,12 +131,12 @@ public:
     // Functions
     std::unordered_map<std::string, std::any> init();
 
-    [[noreturn]] void update();
-    [[noreturn]] void sendLoop();
+    void update();
+    void sendLoop();
     int sendPacket(Input inputs);
 
     [[noreturn]] void receiveLoop();
-    std::optional<QueuedPacket> getLatestQueuedPacket();
+    std::optional<QueuedPacket> getLatestQueuedPacket(int status);
 
     void applyState(std::string name, State state);
 

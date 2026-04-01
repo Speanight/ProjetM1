@@ -213,7 +213,7 @@ void ServerUI::draw() {
 
 
         } else if (selectedGraph == 2) {
-            console.setPause(false);
+            console.setPause(pauseConsole);
             ImGui::Text("Graphe 3");
             console.draw();
         }
