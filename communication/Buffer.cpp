@@ -50,12 +50,11 @@ void Buffer::updateNextPlayerState(const Player& player, State state) {
 void Buffer::push(int clockState) {
     for (auto & player : playerList) {
         if (auto search = nextState.find(player.getName()); search == nextState.end()) {
-            // If a player isn't find in the next "current state"...
+            // If a player isn't found in the next "current state"...
             nextState[player.getName()] = currentState[player.getName()]; // Roll backs to previously known pos.
         }
     }
 
-//    pastStates.push(currentState);
     pastStates.push_front(currentState);
 
     if (pastStates.size() > amtPastStates) {
@@ -64,6 +63,7 @@ void Buffer::push(int clockState) {
     currentTick = clockState;
     currentState = nextState;
     nextState.clear();
+    m.unlock();
 }
 
 /**

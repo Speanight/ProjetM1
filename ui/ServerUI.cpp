@@ -148,6 +148,7 @@ void ServerUI::draw() {
 
         ImGui::BeginChild("GraphZone", ImVec2(0, 0), false);
         if (selectedGraph == 0) {
+            console.setPause(true);
             if (ImGui::BeginTable("##table", 2)) {
                 // // Table headers:
 
@@ -177,6 +178,7 @@ void ServerUI::draw() {
 
                 int i = 1;
 
+                m.lock();
                 for (auto & [from, values] : data) {
                     if (from != "Server") {
                         ImGui::TableNextRow();
@@ -201,6 +203,7 @@ void ServerUI::draw() {
                         i++;
                     }
                 }
+                m.unlock();
                 ImGui::EndTable();
             }
         } else if (selectedGraph == 1) {
@@ -210,6 +213,7 @@ void ServerUI::draw() {
 
 
         } else if (selectedGraph == 2) {
+            console.setPause(pauseConsole);
             ImGui::Text("Graphe 3");
             console.draw();
         }

@@ -28,6 +28,7 @@ private:
     sf::UdpSocket socket;
     Buffer buffer;
 
+    std::atomic<bool> running = true;
     std::thread sendThread;
     std::thread receiveThread;
     std::binary_semaphore semaphore;
@@ -52,8 +53,8 @@ public:
 
     // Functions
     int addClient(const std::string& name, unsigned short port, sf::Color color, short weapon);
-    [[noreturn]] void sendLoop();
-    [[noreturn]] void receiveLoop();
+    void sendLoop();
+    void receiveLoop();
     int shutdown();
 };
 

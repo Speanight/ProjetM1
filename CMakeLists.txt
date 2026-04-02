@@ -4,6 +4,14 @@ project(ProjetM1)
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 
+
+# ==========================
+# GPROF - for performance check.
+# ==========================
+set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -pg")
+set(CMAKE_EXE_LINKER_FLAGS "${CMAKE_EXE_LINKER_FLAGS} -pg")
+
+
 set(SFML_STATIC_LIBRARIES OFF)
 
 # =========================
