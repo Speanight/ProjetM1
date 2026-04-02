@@ -153,6 +153,11 @@ sf::Packet& operator>>(sf::Packet &packet, Input& inputs) {
     return packet;
 }
 
+bool Input::operator==(const Input& other) const {
+    return this->getMovementX() == other.getMovementX() and this->getMovementY() == other.getMovementY()
+    and this->getRotate() == other.getRotate() and this->getChangeWpn() == other.getChangeWpn();
+}
+
 std::ostream &operator<<(std::ostream& os, const Input& inputs) {
     return os << "#" << inputs.getId() << " x=" << inputs.getMovementX() << "; y=" << inputs.getMovementY() << " ATK=" << inputs.getAttack() << " " << inputs.getRotate() << "°";
 }

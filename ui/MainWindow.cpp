@@ -418,7 +418,7 @@ void MainWindow::gameSetup(int nbPlayers) {
             keyboardAvailable++;
         }
 
-        client->setLoop(false);
+        client->setLoop(true);
         addClient(client);
     }
     this->server.setMaxPlayers(nbPlayers);

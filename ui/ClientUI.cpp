@@ -1,7 +1,7 @@
 #include "ClientUI.hpp"
 
 ClientUI::ClientUI(sf::Clock& clock, Console& console, std::string name, short controller, sf::Color color) :
-Client(clock, console, name, controller, color) {}
+Client(clock, console, std::move(name), controller, color) {}
 
 void ClientUI::drawGame() { // Game space
     const char* title = getName().c_str();
@@ -740,14 +740,13 @@ void ClientUI::drawFightingScreen(ImDrawList* draw_list, Player player, std::map
     // BACKGROUND
     int selected = getMapID() % Const::MAP_LINK.size();
 
-    static sf::Texture map;
-    if(map.loadFromFile(MAP_LINK[selected])) {
-        draw_list->AddImage(
-    (ImTextureID)map.getNativeHandle(),
-      ImVec2(min.x, min.y),
-      ImVec2(max.x, max.y)
-            );
-    }
+//    if(map.loadFromFile(MAP_LINK[selected])) {
+//        draw_list->AddImage(
+//    (ImTextureID)textureMaps[selected].getNativeHandle(),
+//      ImVec2(min.x, min.y),
+//      ImVec2(max.x, max.y)
+//            );
+//    }
 
     // PLAYERS
     drawPlayer(draw_list,player , min, max);

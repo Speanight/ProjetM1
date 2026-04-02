@@ -20,7 +20,7 @@ Client::Client(sf::Clock& clock, Console& console, std::string name, short contr
     clock(clock) {
     this->bufferOnReceipt.addClient(player);
     this->controllerNumber = controller;
-//    this->updateThread = std::thread(&Client::update, this);
+    this->updateThread = std::thread(&Client::update, this);
 }
 
 Client::~Client() {
@@ -32,9 +32,9 @@ Client::~Client() {
     if (receiveThread.joinable()) {
         receiveThread.join();
     }
-//    if (updateThread.joinable()) {
-//        updateThread.join();
-//    }
+    if (updateThread.joinable()) {
+        updateThread.join();
+    }
 }
 
 /**
@@ -54,7 +54,7 @@ std::unordered_map<std::string, std::any> Client::init() {
 
         socket.setBlocking(true);
 
-        sendThread = std::thread(&Client::update, this);
+        sendThread = std::thread(&Client::sendLoop, this);
         receiveThread = std::thread(&Client::receiveLoop, this);
     }
 
@@ -275,18 +275,18 @@ void Client::update() {
     while (running) {
         while (!loop) {sf::sleep(sf::Time());} // Pause if needed
         // ==========| INPUTS |========== //
-        Input inputs = this->getInputs(mode_enable, attack_enable);
-        mode_enable = inputs.getModeEnable();
-        attack_enable = inputs.getAttackEnable();
+        Input input = this->getInputs(mode_enable, attack_enable);
+        mode_enable = input.getModeEnable();
+        attack_enable = input.getAttackEnable();
 
         // Storing recent local positions to re-adjust if needed.
         if (player.getStatus() == Status::DONE) {
             float radius = getRadius();
-            if (inputs.getRotate() == -999) { // If user on controller and not moving stick:
-                inputs.setRotate(player.getRadius()); // Get last radius pos.
+            if (input.getRotate() == -999) { // If user on controller and not moving stick:
+                input.setRotate(player.getRadius()); // Get last radius pos.
             }
-            State state(clock.getElapsedTime().asMilliseconds(), getPlayer().getPosition(), inputs, radius, getPlayer().getIsAttacking(), getPlayer().getWpn().getId());
-            inputs.setId(lastInputId);
+            State state(clock.getElapsedTime().asMilliseconds(), getPlayer().getPosition(), input, radius, getPlayer().getIsAttacking(), getPlayer().getWpn().getId());
+            input.setId(lastInputId);
             inputsBuffer[lastInputId] = state;
             lastInputId++;
         }
@@ -294,10 +294,21 @@ void Client::update() {
             lastInputId = 0;
             inputsBuffer.clear();
         }
+        m.lock();
+//        if (!inputs.empty()) {
+//            if (input != inputs.begin()->second) {
+//                inputs.insert({clock.getElapsedTime().asMilliseconds(), input});
+//            }
+//        }
+//        else {
+//            inputs.insert({clock.getElapsedTime().asMilliseconds(), input});
+//        }
+        inputs.insert({clock.getElapsedTime().asMilliseconds(), input});
+        m.unlock();
 
         // ==========| PACKET HANDLER |========== //
         // Add latest inputs to queue (for ping simulation)
-        sendPacket(inputs);
+//        sendPacket(inputs);
 
         // ==========| COMPENSATIONS (if needed) |========== //
         semaphore.acquire();
@@ -306,7 +317,7 @@ void Client::update() {
             compensationInterpolation();
         }
         if (getCompensationEnabled(Compensation::PREDICTION)) {
-            compensationPrediction(inputs);
+            compensationPrediction(input);
         }
         if (getCompensationEnabled(Compensation::RECONCILIATION)) {
             compensationReconciliation();
@@ -314,7 +325,7 @@ void Client::update() {
         else { // If not reconciliation, we empty inputsBuffer to avoid SIGSEGV/huge memory alloc.:
             inputsBuffer.clear();
         }
-        State state(lastUpdate, getPosition(), inputs, getRadius(), getPlayer().getIsAttacking(), getPlayer().getWpn().getId());
+        State state(lastUpdate, getPosition(), input, getRadius(), getPlayer().getIsAttacking(), getPlayer().getWpn().getId());
         inputsBuffer[lastInputId] = state; // We add the last input as it may be used for controller players. (R-stick)
         semaphore.release();
 
@@ -326,7 +337,7 @@ void Client::update() {
             opp.handleTimer_atk(lastUpdate, before);
         }
         before = lastUpdate;
-        sf::sleep(sf::milliseconds(1000/clientRefreshRate)); // Small sleep to make sure everyone send same amount of inputs.
+        sf::sleep(sf::Time()); // Small sleep to make sure everyone send same amount of inputs.
     }
 }
 
@@ -368,7 +379,13 @@ void Client::sendLoop() {
                 // Game has been started:
             case Status::DONE: {
                 type = Pkt::INPUTS;
-                pkt.packet << Pkt::INPUTS << int(pkt.timestamp.asMilliseconds()) << inputs << player.getPort();
+                pkt.packet << Pkt::INPUTS << int(pkt.timestamp.asMilliseconds());
+                m.lock();
+                for (auto & [dt, input] : inputs) {
+                    pkt.packet << int(dt) << input;
+                }
+                inputs.clear();
+                m.unlock();
                 break;
             }
             case Status::DEAD: {
@@ -401,6 +418,8 @@ void Client::sendLoop() {
         }
 
         semaphore.release();
+
+        sf::sleep(sf::milliseconds(1000/clientRefreshRate));
     }
 }
 
@@ -544,7 +563,7 @@ int Client::sendPacket(Input inputs) {
                                 break;
                             }
 
-                                // Server is ready and sends the data and position of each client:
+                            // Server is ready and sends the data and position of each client:
                             case Pkt::READY_R: {
                                 // getting the map
                                 int mapID;

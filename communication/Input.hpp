@@ -46,6 +46,8 @@ public:
 
     // Functions
     void handleInput(int inputCode, float value);
+
+    bool operator==(const Input& other) const;
 };
 
 sf::Packet& operator<<(sf::Packet& packet, Input inputs);

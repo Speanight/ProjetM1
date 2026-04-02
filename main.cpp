@@ -8,6 +8,7 @@ unsigned short tickrate;
 unsigned short clientRefreshRate;
 uint32_t packetID;
 std::mutex m;
+std::vector<sf::Texture> textureMaps;
 
 int main() {
     XInitThreads(); // Needed for multi-threading.
@@ -16,6 +17,14 @@ int main() {
     tickrate = 10;
     clientRefreshRate = 50;
     packetID = 0;
+
+    // Define maps to avoid drawing them constantly:
+//    for (auto& i : Const::MAP_LINK) {
+//        sf::Texture texture;
+//        if (texture.loadFromFile(i)) {
+//            textureMaps.push_back(texture);
+//        }
+//    }
 
     std::cout << "Tickrate changes " << tickrate << " times per second." << std::endl;
     std::cout << "Starting server on Network: " << SERVER_IP << ":" << COMM_PORT_SERVER << std::endl;

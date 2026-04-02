@@ -58,11 +58,12 @@ private:
     short controllerNumber = -1;
 
     std::atomic<bool> running = true;
-//    std::thread updateThread;
+    std::thread updateThread;
     std::thread sendThread;
     std::thread receiveThread;
 
-    Input inputs;
+    std::map<uint32_t, Input> inputs;
+    std::mutex m;
 
     Console& console;
 

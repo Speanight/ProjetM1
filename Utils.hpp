@@ -19,6 +19,8 @@ extern unsigned short clientRefreshRate;
 extern uint32_t packetID;
 extern std::mutex m;
 
+extern std::vector<sf::Texture> textureMaps;
+
 namespace Const {
     static const std::string SERVER_IP = "127.0.0.1";
     static constexpr unsigned short COMM_PORT_SERVER = 35496;
