@@ -16,3 +16,13 @@ uint32_t getPacketId() {
     m.unlock();
     return val;
 }
+
+std::vector<sf::Texture> GLOBAL_MAP_TEXTURES;
+void loadGlobalMaps() {
+    GLOBAL_MAP_TEXTURES.resize(Const::MAP_LINK.size());
+    for (size_t i = 0; i < Const::MAP_LINK.size(); ++i) {
+        if (!GLOBAL_MAP_TEXTURES[i].loadFromFile(Const::MAP_LINK[i])) {
+            std::cout << "Failed to load map: " << Const::MAP_LINK[i] << std::endl;
+        }
+    }
+}

@@ -18,6 +18,7 @@ struct Preset {
 };
 
 void drawErrorScreen(ImDrawList* draw_list, ImVec2 min, ImVec2 max);
+
 void drawFightingScreen(ImDrawList* draw_list, const Player player, std::map<std::string, Player> opponents, ImVec2 min, ImVec2 max, int mapID);
 void drawPlayer(ImDrawList* draw_list, const Player player, ImVec2 min, ImVec2 max);
 void drawWeapon(Player player, ImDrawList* draw_list, ImVec2 pl_position, float scale);

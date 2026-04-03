@@ -219,7 +219,6 @@ void ServerUI::draw() {
     ImGui::EndChild();
 }
 
-
 void ServerUI::setPlayer(unsigned short id, Player player) {
     clients[id] = player;
 }

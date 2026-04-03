@@ -2,7 +2,12 @@
 #include "gameUtils.hpp"
 #include "../communication/Client.hpp"
 
-
+/**
+ * Draw an error screen for the player if we don't know wich screen to print
+ * @param draw_list : place where the screen will be printed
+ * @param min : point on the top right that define the minimum position of the screen
+ * @param max : point at the bottom right that define the maximum position of the screen
+ */
 void drawErrorScreen(ImDrawList* draw_list, ImVec2 min, ImVec2 max) {
     ImVec2 center = {
         (min.x + max.x) * 0.5f,
@@ -106,18 +111,24 @@ void drawErrorScreen(ImDrawList* draw_list, ImVec2 min, ImVec2 max) {
     }
 }
 
+/**
+ * Draw the fighting screen with the different player, the background map and the weapon
+ * @param draw_list
+ * @param player
+ * @param opponents
+ * @param min
+ * @param max
+ * @param mapID
+ */
 void drawFightingScreen(ImDrawList* draw_list, Player player, std::map<std::string, Player> opponents, ImVec2 min, ImVec2 max, int mapID) {
     // BACKGROUND
-    int selected = mapID % Const::MAP_LINK.size();
-
-    static sf::Texture map;
-    if(map.loadFromFile(MAP_LINK[selected])) {
-        draw_list->AddImage(
-    (ImTextureID)map.getNativeHandle(),
-      ImVec2(min.x, min.y),
-      ImVec2(max.x, max.y)
-      );
-    }
+    int selected = mapID % GLOBAL_MAP_TEXTURES.size();
+    sf::Texture& map = GLOBAL_MAP_TEXTURES[selected];
+    draw_list->AddImage(
+        (ImTextureID)map.getNativeHandle(),
+        ImVec2(min.x, min.y),
+        ImVec2(max.x, max.y)
+    );
 
     // PLAYERS
     drawPlayer(draw_list,player , min, max);
