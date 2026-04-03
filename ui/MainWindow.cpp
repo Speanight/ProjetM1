@@ -12,10 +12,6 @@ MainWindow::MainWindow(sf::Clock clock, bool quickLaunch) : console(), server(co
     thread = std::thread(&MainWindow::loop, this);
 }
 
-//MainWindow::MainWindow(sf::Clock clock, int amtPlayers) : server(clock, amtPlayers) {
-//    thread = std::thread(&MainWindow::loop, this);
-//}
-
 MainWindow::~MainWindow() {
     if (thread.joinable()) {
         thread.join();
@@ -400,6 +396,10 @@ void MainWindow::demoSetup() {
     screen = Screens::GAME;
 }
 
+/**
+ * Create the general UI and divide the player zone for each player we want (max 4)
+ * @param nbPlayers     : players that need to get a place to play
+ */
 void MainWindow::gameSetup(int nbPlayers) {
     int controllerAvailable = 0;
     int keyboardAvailable = 0;

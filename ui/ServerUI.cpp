@@ -219,12 +219,22 @@ void ServerUI::draw() {
     ImGui::EndChild();
 }
 
+// ============= GRAPH 2 =============
+/**
+ * Set the player on the database of the serverUI (copy)
+ * @param id        : port of the player to find it in the player list
+ * @param player    : data of the player [color, position, weapon ...]
+ */
 void ServerUI::setPlayer(unsigned short id, Player player) {
     clients[id] = player;
 }
 
+/**
+ * Update the client data based on the actual state contained in the server
+ * @param id    : port of the player used as an ID
+ * @param s     : state of the player in the server
+ */
 void ServerUI::updateClient(unsigned short id, State s) {
-
     auto it = clients.find(id);
     if (it == clients.end()) return; // security
 
@@ -238,10 +248,17 @@ void ServerUI::updateClient(unsigned short id, State s) {
     player.getWpn().applyID(s.getWpn().getId());
 }
 
+/**
+ * Get the mapID and set it
+ * @param mapID : id of the map to find it in the GLOBAL_MAP_TEXTURES
+ */
 void ServerUI::setMapID(int mapID) {
     this->mapID = mapID;
 }
 
+/**
+ * Draw the graph (game area on the server)
+ */
 void ServerUI::drawGame() {
     ImVec2 avail = ImGui::GetContentRegionAvail();
 

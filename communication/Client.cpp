@@ -107,7 +107,6 @@ short Client::getMapID() const {
     return this->mapID;
 }
 
-
 std::array<bool,3> Client::getCompensations() const {
     return network.compensations;
 }
@@ -170,7 +169,6 @@ void Client::setController(short controller) {
 void Client::setPlayer(Player player) {
     this->player = player;
 }
-
 
 /**
  * Function that recovers all the users inputs. This uses user's defined keybinds and iterates

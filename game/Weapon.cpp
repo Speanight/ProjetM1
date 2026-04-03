@@ -142,8 +142,8 @@ void Weapon::applyID(short id) {
             w_height = 10.f;
             w_width = 10.f;
             w_type = Weapons::CIRCLE;
-            w_atk_speed = 500.f;
-            w_rld = 300.f;
+            w_atk_speed = 300.f;
+            w_rld = 500.f;
             w_range = 500;
             w_damage = 15;
             w_transform = 5.f;
@@ -154,8 +154,8 @@ void Weapon::applyID(short id) {
             w_height = 20.f;
             w_width = 20.f;
             w_type = Weapons::CIRCLE;
-            w_atk_speed = 500.f;
-            w_rld = 500.f;
+            w_atk_speed = 300.f;
+            w_rld = 700.f;
             w_range = 500;
             w_damage = 20;
             w_transform = 5.f;
@@ -166,8 +166,8 @@ void Weapon::applyID(short id) {
             w_height = 30.f;
             w_width = 30.f;
             w_type = Weapons::CIRCLE;
-            w_atk_speed = 500.f;
-            w_rld = 300.f;
+            w_atk_speed = 300.f;
+            w_rld = 1300.f;
             w_range = 500;
             w_damage = 30;
             w_transform = 5.f;
@@ -176,24 +176,24 @@ void Weapon::applyID(short id) {
 /*----------------------------------------*/
         case 10: {      // SUPER WEAPON FOR TWIG
             w_id = 10;
-            w_height = 5.f;
-            w_width = 10.f;
+            w_height = 40.f;
+            w_width = 50.f;
             w_type = Weapons::TRIANGLE;
-            w_atk_speed = 1.f;
-            w_rld = 1.f;
-            w_range = 20.f;
+            w_atk_speed = 30.f;
+            w_rld = 50.f;
+            w_range = 40.f;
             w_damage = 1;
             w_transform = 5.f;
             break;
         }
         case 11: {      // SUPER WEAPON FOR PONY
             w_id = 11;
-            w_height = 100.f;
+            w_height = 5.f;
             w_width = 10.f;
-            w_type = Weapons::TRIANGLE;
-            w_atk_speed = 1.f;
+            w_type = Weapons::CIRCLE;
+            w_atk_speed = 500.f;
             w_rld = 1000.f;
-            w_range = 5000.f;
+            w_range = 500.f;
             w_damage = 1000;
             w_transform = 5.f;
             break;

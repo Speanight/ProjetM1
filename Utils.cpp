@@ -17,6 +17,7 @@ uint32_t getPacketId() {
     return val;
 }
 
+// TODO : add something to delete the global map texture at the end
 std::vector<sf::Texture> GLOBAL_MAP_TEXTURES;
 void loadGlobalMaps() {
     GLOBAL_MAP_TEXTURES.resize(Const::MAP_LINK.size());

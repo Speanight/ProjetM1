@@ -113,12 +113,15 @@ void drawErrorScreen(ImDrawList* draw_list, ImVec2 min, ImVec2 max) {
 
 /**
  * Draw the fighting screen with the different player, the background map and the weapon
- * @param draw_list
- * @param player
- * @param opponents
- * @param min
- * @param max
- * @param mapID
+ * -> draw the background
+ * -> draw the opponent
+ * -> draw the weapon
+ * @param draw_list     : will contain all the element that will be print at the end of the program
+ * @param player        : the actual player (placed before)
+ * @param opponents     : list of all the opponent witht their position and data
+ * @param min           : point at the top left of the screen to define the size
+ * @param max           : point at the bottom right of the screen to define the size
+ * @param mapID         : id of the map we will use
  */
 void drawFightingScreen(ImDrawList* draw_list, Player player, std::map<std::string, Player> opponents, ImVec2 min, ImVec2 max, int mapID) {
     // BACKGROUND
@@ -341,6 +344,12 @@ void drawWeapon(Player player, ImDrawList* draw_list, ImVec2 pl_position, float 
     }
 }
 
+/**
+ * Make the player have smooth collision
+ * @param player    : actual player (the one who is mooving, and will affect the others)
+ * @param opponent  : position of the opponent affected by the player position
+ * @return          : position of the opponent after being affected by the moovement
+ */
 Position resolveCollision(Position player, Position opponent) {
     ImVec2 diff = { opponent.getX() - player.getX(),
                     opponent.getY() - player.getY()};
@@ -368,8 +377,8 @@ Position resolveCollision(Position player, Position opponent) {
 
 /**
  * Make the angle be in the [0-2pi] interval so he can be easilly calculated
- * @param a angle that need to be normalized
- * @return an angle beetween [0 - 2pi]
+ * @param a     : angle that need to be normalized
+ * @return      : an angle beetween [0 - 2pi]
  */
 float normalize(float a) {
     a = std::fmod(a, 2 * std::numbers::pi);
@@ -377,6 +386,12 @@ float normalize(float a) {
     return a;
 };
 
+/**
+ * Handle the attack between the player and the opponent
+ * @param attacker  : player who is attacking
+ * @param opponent  : opponent who is being attacked
+ * @return          : -1 attack miss ; 0 attack worked ; 1 attack blocked by the shield
+ */
 short resolveAttacks(State attacker, State opponent) {
     bool blocked = false;
 

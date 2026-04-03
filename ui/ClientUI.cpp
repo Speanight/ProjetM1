@@ -156,8 +156,8 @@ void ClientUI::addOpponent(const std::string& name, sf::Color color) {
 
 /**
  * Make the floating values after the '.' 2 digit long
- * @param v floating value
- * @return the floating value but in a string of macimum 2 digit
+ * @param v : floating value
+ * @return  : the floating value but in a string of macimum 2 digit
  */
 std::string form1(float v) {
     char buf[16];
@@ -165,6 +165,12 @@ std::string form1(float v) {
     return std::string(buf);
 };
 
+/**
+ * draw the screen to select the player we want (color, weapon, name ...)
+ * @param draw_list : will contain all the element that will be print at the end of the program
+ * @param min           : point at the top left of the screen to define the size
+ * @param max           : point at the bottom right of the screen to define the size
+ */
 void ClientUI::drawSelectionScreen(ImDrawList* draw_list, ImVec2 min, ImVec2 max) {
     float window_size = max.x - min.x;
     float scale = window_size / Const::MAP_SIZE_X;
@@ -608,6 +614,15 @@ void ClientUI::drawSelectionScreen(ImDrawList* draw_list, ImVec2 min, ImVec2 max
     ImGui::PopStyleColor(4);
 }
 
+/**
+ * draw the loading screen
+ * -> when the player is waiting for it's datas
+ * -> when the player is waiting for the other oponents
+ * -> when the player is waiting for the game to start
+ * @param draw_list     : will contain all the element that will be print at the end of the program
+ * @param min           : point at the top left of the screen to define the size
+ * @param max           : point at the bottom right of the screen to define the size
+ */
 void ClientUI::drawLoadingScreen(ImDrawList* draw_list, ImVec2 min, ImVec2 max) {
     float window_size = max.x - min.x;
     float scale = window_size / Const::MAP_SIZE_X;
@@ -742,6 +757,13 @@ void ClientUI::drawLoadingScreen(ImDrawList* draw_list, ImVec2 min, ImVec2 max) 
     }
 }
 
+/**
+ * draw the game over screen with the two buttons to retry or change the player
+ * @param draw_list     : will contain all the element that will be print at the end of the program
+ * @param min           : point at the top left of the screen to define the size
+ * @param max           : point at the bottom right of the screen to define the size
+ * @param victory       : print the screen depending on the victory or defeat of the player
+ */
 void ClientUI::drawEndScreen(ImDrawList* draw_list, ImVec2 min, ImVec2 max, bool victory) {
     ImGui::PushStyleColor(ImGuiCol_ButtonActive, IM_COL32(255, 255, 255, 180));
     ImGui::PushStyleColor(ImGuiCol_ButtonHovered, IM_COL32(255, 255, 255, 200));
