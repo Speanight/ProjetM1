@@ -388,194 +388,183 @@ short resolveAttacks(State attacker, State opponent) {
 
     switch (attacker.getWpn().getType()) {
         case Weapons::TRIANGLE : {
+            ImVec2 start = {
+                attacker.getPosition().getX(),
+                attacker.getPosition().getY()
+            };
 
-    ImVec2 start = {
-        attacker.getPosition().getX(),
-        attacker.getPosition().getY()
-    };
+            ImVec2 enemy = {
+                opponent.getPosition().getX(),
+                opponent.getPosition().getY()
+            };
 
-    ImVec2 enemy = {
-        opponent.getPosition().getX(),
-        opponent.getPosition().getY()
-    };
+            float attackReach =
+                PLAYER_SIZE +
+                attacker.getWpn().getHeight() +
+                attacker.getWpn().getRange();
 
-    float attackReach =
-        PLAYER_SIZE +
-        attacker.getWpn().getHeight() +
-        attacker.getWpn().getRange();
+            // weapon direction
+            ImVec2 attackDir = dir;
 
-    // direction de l'arme
-    ImVec2 attackDir = dir; // déjà normalisé normalement
+            ImVec2 toEnemy = {
+                enemy.x - start.x,
+                enemy.y - start.y
+            };
 
-    // vecteur vers l'ennemi
-    ImVec2 toEnemy = {
-        enemy.x - start.x,
-        enemy.y - start.y
-    };
+            float dist = std::sqrt(toEnemy.x*toEnemy.x + toEnemy.y*toEnemy.y);
+            if (dist == 0) return -1;
 
-    float dist = std::sqrt(toEnemy.x*toEnemy.x + toEnemy.y*toEnemy.y);
-    if (dist == 0) return -1;
+            toEnemy.x /= dist;
+            toEnemy.y /= dist;
 
-    // normalisation
-    toEnemy.x /= dist;
-    toEnemy.y /= dist;
+            // ===== 1. CHECK DIRECTION =====
+            float dot = attackDir.x * toEnemy.x + attackDir.y * toEnemy.y;
 
-    // ===== 1. CHECK DIRECTION (plus strict) =====
-    float dot = attackDir.x * toEnemy.x + attackDir.y * toEnemy.y;
+            if (dot < 0.8f) // touch direction tolerance
+                return -1;
 
-    if (dot < 0.8f) // ⚠️ beaucoup plus strict (~36°)
-        return -1;
+            ImVec2 end = {
+                start.x + attackDir.x * attackReach,
+                start.y + attackDir.y * attackReach
+            };
 
-    // ===== 2. SEGMENT =====
-    ImVec2 end = {
-        start.x + attackDir.x * attackReach,
-        start.y + attackDir.y * attackReach
-    };
+            ImVec2 AB = { end.x - start.x, end.y - start.y };
+            ImVec2 AE = { enemy.x - start.x, enemy.y - start.y };
 
-    ImVec2 AB = { end.x - start.x, end.y - start.y };
-    ImVec2 AE = { enemy.x - start.x, enemy.y - start.y };
+            float ab2 = AB.x*AB.x + AB.y*AB.y;
 
-    float ab2 = AB.x*AB.x + AB.y*AB.y;
+            float t = (AE.x*AB.x + AE.y*AB.y) / ab2;
 
-    float t = (AE.x*AB.x + AE.y*AB.y) / ab2;
+            if (t < 0.0f || t > 1.0f)
+                return -1;
 
-    // hors du segment → pas touché
-    if (t < 0.0f || t > 1.0f)
-        return -1;
+            ImVec2 closest = {
+                start.x + AB.x * t,
+                start.y + AB.y * t
+            };
 
-    // point le plus proche sur la trajectoire
-    ImVec2 closest = {
-        start.x + AB.x * t,
-        start.y + AB.y * t
-    };
+            float dx = closest.x - enemy.x;
+            float dy = closest.y - enemy.y;
 
-    float dx = closest.x - enemy.x;
-    float dy = closest.y - enemy.y;
+            float radius = PLAYER_SIZE * (1.0f + WEAPON_GRACE_PERCENT);
 
-    float radius = PLAYER_SIZE * (1.0f + WEAPON_GRACE_PERCENT);
+            // ===== 3. DISTANCE =====
+            if (dx*dx + dy*dy > radius*radius)
+                return -1;
 
-    // ===== 3. DISTANCE À LA TRAJECTOIRE =====
-    if (dx*dx + dy*dy > radius*radius)
-        return -1;
+            // ===== 4. SHIELD =====
+            if (opponent.getWpn().getId() == Weapons::SHIELD) {
 
-    // ===== 4. SHIELD =====
-    if (opponent.getWpn().getId() == Weapons::SHIELD) {
+                float impactAngle = std::atan2(
+                    start.y - enemy.y,
+                    start.x - enemy.x
+                );
 
-        float impactAngle = std::atan2(
-            start.y - enemy.y,
-            start.x - enemy.x
-        );
+                impactAngle = normalize(impactAngle);
 
-        impactAngle = normalize(impactAngle);
+                float opponentAngle = normalize(opponent.getRadius());
 
-        float opponentAngle = normalize(opponent.getRadius());
+                float shieldStart = normalize(opponentAngle - 0.8f);
+                float shieldEnd   = normalize(opponentAngle + 0.8f);
 
-        float shieldStart = normalize(opponentAngle - 0.8f);
-        float shieldEnd   = normalize(opponentAngle + 0.8f);
+                bool blocked;
+                if (shieldStart < shieldEnd)
+                    blocked = (impactAngle >= shieldStart && impactAngle <= shieldEnd);
+                else
+                    blocked = (impactAngle >= shieldStart || impactAngle <= shieldEnd);
 
-        bool blocked;
-        if (shieldStart < shieldEnd)
-            blocked = (impactAngle >= shieldStart && impactAngle <= shieldEnd);
-        else
-            blocked = (impactAngle >= shieldStart || impactAngle <= shieldEnd);
+                if (blocked)
+                    return 1;
+            }
 
-        if (blocked)
-            return 1;
-    }
-
-    return 0;
-}
+            return 0;
+        }
         case Weapons::CIRCLE : {
+            ImVec2 start = {
+                attacker.getPosition().getX(),
+                attacker.getPosition().getY()
+            };
 
-    ImVec2 start = {
-        attacker.getPosition().getX(),
-        attacker.getPosition().getY()
-    };
+            ImVec2 enemy = {
+                opponent.getPosition().getX(),
+                opponent.getPosition().getY()
+            };
 
-    ImVec2 enemy = {
-        opponent.getPosition().getX(),
-        opponent.getPosition().getY()
-    };
+            // ===== 1. DIRECTION CHECK =====
+            ImVec2 toEnemy = {
+                enemy.x - start.x,
+                enemy.y - start.y
+            };
 
-    // ===== 1. DIRECTION CHECK =====
-    ImVec2 toEnemy = {
-        enemy.x - start.x,
-        enemy.y - start.y
-    };
+            float dist = std::sqrt(toEnemy.x*toEnemy.x + toEnemy.y*toEnemy.y);
+            if (dist == 0) return -1;
 
-    float dist = std::sqrt(toEnemy.x*toEnemy.x + toEnemy.y*toEnemy.y);
-    if (dist == 0) return -1;
+            toEnemy.x /= dist;
+            toEnemy.y /= dist;
 
-    toEnemy.x /= dist;
-    toEnemy.y /= dist;
+            float dot = dir.x * toEnemy.x + dir.y * toEnemy.y;
 
-    float dot = dir.x * toEnemy.x + dir.y * toEnemy.y;
+            if (dot < 0.8f) // weapon touch tolerance
+                return -1;
 
-    if (dot < 0.8f)
-        return -1; // mauvaise direction
+            // ===== 2. TRAJECTORY =====
+            float attackReach = 10000.0f; // all direction
 
-    // ===== 2. TRAJECTOIRE LONGUE =====
-    float attackReach = 10000.0f; // très grande distance (traverse écran)
+            ImVec2 end = {
+                start.x + dir.x * attackReach,
+                start.y + dir.y * attackReach
+            };
 
-    ImVec2 end = {
-        start.x + dir.x * attackReach,
-        start.y + dir.y * attackReach
-    };
+            ImVec2 AB = { end.x - start.x, end.y - start.y };
+            ImVec2 AE = { enemy.x - start.x, enemy.y - start.y };
 
-    // segment
-    ImVec2 AB = { end.x - start.x, end.y - start.y };
-    ImVec2 AE = { enemy.x - start.x, enemy.y - start.y };
+            float ab2 = AB.x*AB.x + AB.y*AB.y;
 
-    float ab2 = AB.x*AB.x + AB.y*AB.y;
+            float t = (AE.x*AB.x + AE.y*AB.y) / ab2;
 
-    float t = (AE.x*AB.x + AE.y*AB.y) / ab2;
+            if (t < 0.0f)
+                return -1;
 
-    // ❌ derrière l'attaque seulement
-    if (t < 0.0f)
-        return -1;
+            ImVec2 closest = {
+                start.x + AB.x * t,
+                start.y + AB.y * t
+            };
 
-    // point projeté sur la ligne
-    ImVec2 closest = {
-        start.x + AB.x * t,
-        start.y + AB.y * t
-    };
+            float dx = closest.x - enemy.x;
+            float dy = closest.y - enemy.y;
 
-    float dx = closest.x - enemy.x;
-    float dy = closest.y - enemy.y;
+            float radius = PLAYER_SIZE * (1.0f + WEAPON_GRACE_PERCENT);
 
-    float radius = PLAYER_SIZE * (1.0f + WEAPON_GRACE_PERCENT);
+            if (dx*dx + dy*dy > radius*radius)
+                return -1;
 
-    // ❌ ne touche pas la trajectoire
-    if (dx*dx + dy*dy > radius*radius)
-        return -1;
+            // ===== 3. SHIELD =====
+            if (opponent.getWpn().getId() == Weapons::SHIELD) {
 
-    // ===== 3. SHIELD =====
-    if (opponent.getWpn().getId() == Weapons::SHIELD) {
+                float impactAngle = std::atan2(
+                    start.y - enemy.y,
+                    start.x - enemy.x
+                );
 
-        float impactAngle = std::atan2(
-            start.y - enemy.y,
-            start.x - enemy.x
-        );
+                impactAngle = normalize(impactAngle);
 
-        impactAngle = normalize(impactAngle);
+                float opponentAngle = normalize(opponent.getRadius());
 
-        float opponentAngle = normalize(opponent.getRadius());
+                float shieldStart = normalize(opponentAngle - 0.8f);
+                float shieldEnd   = normalize(opponentAngle + 0.8f);
 
-        float shieldStart = normalize(opponentAngle - 0.8f);
-        float shieldEnd   = normalize(opponentAngle + 0.8f);
+                bool blocked;
+                if (shieldStart < shieldEnd)
+                    blocked = (impactAngle >= shieldStart && impactAngle <= shieldEnd);
+                else
+                    blocked = (impactAngle >= shieldStart || impactAngle <= shieldEnd);
 
-        bool blocked;
-        if (shieldStart < shieldEnd)
-            blocked = (impactAngle >= shieldStart && impactAngle <= shieldEnd);
-        else
-            blocked = (impactAngle >= shieldStart || impactAngle <= shieldEnd);
+                if (blocked)
+                    return 1;
+            }
 
-        if (blocked)
-            return 1;
-    }
-
-    return 0;
-}
+            return 0;
+        }
         case Weapons::RECTANGLE : {
             ImVec2 attackerPos = {
                 attacker.getPosition().getX(),
