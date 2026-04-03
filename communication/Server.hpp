@@ -36,7 +36,7 @@ private:
     std::unordered_map<unsigned short, Player> clients;
     std::unordered_map<std::string, int> pings;
 
-    int maxPlayers = 2;     // TODO : make something better to handle how many players we want before starting the game
+    int maxPlayers = 2;
 
     bool gameRunning = false;
     bool demoMode = false;

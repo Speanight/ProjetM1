@@ -33,7 +33,9 @@ public:
     void removeFromPlayerList(const Player& player);
     void addToPlayerList(const Player& player);
     std::unordered_map<std::string, State> getTState(int t);
+    State getNextState(const Player& player);
     State getLastState(const Player& player);
+    void setNextPlayerState(const Player& player, State state);
     void updateNextPlayerState(const Player& player, State state);
     void push(int clockState);
     void addClient(Player p);

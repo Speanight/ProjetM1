@@ -26,14 +26,14 @@ Client::Client(sf::Clock& clock, Console& console, std::string name, short contr
 Client::~Client() {
     running = false;
     socket.unbind();
+    if (updateThread.joinable()) {
+        updateThread.join();
+    }
     if (sendThread.joinable()) {
         sendThread.join();
     }
     if (receiveThread.joinable()) {
         receiveThread.join();
-    }
-    if (updateThread.joinable()) {
-        updateThread.join();
     }
 }
 
@@ -188,6 +188,7 @@ void Client::setPlayer(Player player) {
  * @return - Returns an object Input with corresponding values according to keys pressed.
  */
 Input Client::getInputs(bool mode_enable, bool attack_enable) {
+    // TODO: Fix SIGSEGV error when closing game caused by this (??)
     Input input;
     float value;
     ImVec2 weaponAngle = {};
@@ -294,17 +295,16 @@ void Client::update() {
             lastInputId = 0;
             inputsBuffer.clear();
         }
-        m.lock();
-//        if (!inputs.empty()) {
-//            if (input != inputs.begin()->second) {
-//                inputs.insert({clock.getElapsedTime().asMilliseconds(), input});
-//            }
-//        }
-//        else {
-//            inputs.insert({clock.getElapsedTime().asMilliseconds(), input});
-//        }
-        inputs.insert({clock.getElapsedTime().asMilliseconds(), input});
-        m.unlock();
+        m_inputs.lock();
+        if (!inputs.empty()) {
+            if (input != std::prev(inputs.end())->second) {
+                inputs.insert({clock.getElapsedTime().asMilliseconds(), input});
+            }
+        }
+        else {
+            inputs.insert({clock.getElapsedTime().asMilliseconds(), input});
+        }
+        m_inputs.unlock();
 
         // ==========| PACKET HANDLER |========== //
         // Add latest inputs to queue (for ping simulation)
@@ -362,7 +362,7 @@ void Client::sendLoop() {
                 break;
             }
 
-                // Player is waiting for data of their opponents:
+            // Player is waiting for data of their opponents:
             case Status::WAITING_FOR_OPPONENTS: {
                 type = Pkt::ACK;
                 // Tells the server it ACKd that it has been added to the players pool.
@@ -370,22 +370,22 @@ void Client::sendLoop() {
                 break;
             }
 
-                // Player is ready to start and gives the info to the server:
+            // Player is ready to start and gives the info to the server:
             case Status::READY_TO_START: {
                 type = Pkt::ACK;
                 pkt.packet << Pkt::ACK << Pkt::READY_R << int(opponents.size());
                 break;
             }
-                // Game has been started:
+            // Game has been started:
             case Status::DONE: {
                 type = Pkt::INPUTS;
                 pkt.packet << Pkt::INPUTS << int(pkt.timestamp.asMilliseconds());
-                m.lock();
+                m_inputs.lock();
                 for (auto & [dt, input] : inputs) {
                     pkt.packet << int(dt) << input;
                 }
                 inputs.clear();
-                m.unlock();
+                m_inputs.unlock();
                 break;
             }
             case Status::DEAD: {
@@ -398,7 +398,7 @@ void Client::sendLoop() {
                 pkt.packet << Pkt::END_R;
                 break;
             }
-                // Unrecognized player status.
+            // Unrecognized player status.
             default: {
                 std::cout << "Unhandled player status: status #" << player.getStatus() << std::endl;
             }
@@ -600,14 +600,16 @@ int Client::sendPacket(Input inputs) {
                                 packet >> tick >> lastServerTick;
 
                                 while (packet >> name >> state) {
+                                    m_states.lock();
                                     std::unordered_map<std::string, State> currentState = bufferOnReceipt.getCurrentState();
                                     std::unordered_map<std::string, State> pastState = bufferOnReceipt.getTState(-1);
+                                    m_states.unlock();
 
                                     if (name == this->getName()) {
-                                        this->bufferOnReceipt.updateNextPlayerState(player, state);
-                                        semaphore.acquire();
+                                        this->bufferOnReceipt.setNextPlayerState(player, state);
+                                        m_states.lock();
                                         State currState = bufferOnReceipt.getLastState(player);
-                                        semaphore.release();
+                                        m_states.unlock();
 
                                         if (!this->getCompensations()[Compensation::RECONCILIATION]) {
                                             this->player.setPosition(currState.getPosition());
@@ -618,7 +620,7 @@ int Client::sendPacket(Input inputs) {
                                         this->player.setPoint(state.getPoint());
                                     } else {
                                         // Opponent position:
-                                        this->bufferOnReceipt.updateNextPlayerState(opponents[name], state);
+                                        this->bufferOnReceipt.setNextPlayerState(opponents[name], state);
                                         opponents[name].setPosition(currentState[name].getPosition());
                                         opponents[name].setRadius(currentState[name].getRadius());
                                         opponents[name].setIsAttacking(currentState[name].getAttack());
@@ -626,7 +628,9 @@ int Client::sendPacket(Input inputs) {
                                         opponents[name].setPoint(currentState[name].getPoint());
                                     }
                                 }
+                                m_states.lock();
                                 this->bufferOnReceipt.push(tick);
+                                m_states.unlock();
                                 break;
                             }
                             case Pkt::DEATH: {     // tick << killerName                                                           // send the signal to a specific player that the player is dead
@@ -663,11 +667,13 @@ int Client::sendPacket(Input inputs) {
 }
 
 void Client::applyState(std::string name, State state){
+    m_states.lock();
     std::unordered_map<std::string, State> currentState = bufferOnReceipt.getCurrentState();
     std::unordered_map<std::string, State> pastState = bufferOnReceipt.getTState(-1);
+    m_states.unlock();
 
     if (name == this->getName()) {
-        this->bufferOnReceipt.updateNextPlayerState(player, state);
+        this->bufferOnReceipt.setNextPlayerState(player, state);
         semaphore.acquire();
         State currState = bufferOnReceipt.getLastState(player);
         semaphore.release();
@@ -681,7 +687,7 @@ void Client::applyState(std::string name, State state){
     }
     else {
         // Opponent position:
-        this->bufferOnReceipt.updateNextPlayerState(opponents[name], state);
+        this->bufferOnReceipt.setNextPlayerState(opponents[name], state);
         opponents[name].setPosition(currentState[name].getPosition());
         opponents[name].setRadius(currentState[name].getRadius());
         opponents[name].setIsAttacking(currentState[name].getAttack());
@@ -762,10 +768,23 @@ std::optional<QueuedPacket> Client::getLatestQueuedPacket(int status) {
  * have a refresh rate of 60Hz if not more. A server's tickrate is usually kept between 10 and 20.
  */
 void Client::compensationInterpolation() {
+    m_states.lock();
     std::unordered_map<std::string, State> pastState = bufferOnReceipt.getTState(-1);
     std::unordered_map<std::string, State> currState = bufferOnReceipt.getCurrentState();
+    m_states.unlock();
     for (auto & [name, other] : opponents) {
         if (name != getName()) {
+            Position pos = opponents[name].getPosition();
+            float radius = opponents[name].getRadius();
+
+            // TODO: Fix interpolation to have it to work while receiving all inputs from server.
+            double tickProgress = std::min(1.0,(clock.getElapsedTime().asMilliseconds() - lastServerTick) / (1000/(double)tickrate));
+            Input corrInputs = pastState[name].getPercentInput(tickProgress);
+            pos.move(corrInputs.getMovementX(), corrInputs.getMovementY(), clock.getElapsedTime().asMilliseconds() - lastUpdate);
+
+            opponents[name].setPosition(pos);
+
+            /*
             Position pastPos = pastState[name].getPosition();
             Position currPos = currState[name].getPosition();
 
@@ -784,6 +803,8 @@ void Client::compensationInterpolation() {
             float diff = currState[name].getRadius() - pastState[name].getRadius();
             diff = std::fmod(diff + 3 * M_PI, 2 * M_PI) - M_PI;
             opponents[name].setRadius(pastState[name].getRadius() + diff * tickProgress);
+
+             */
         }
     }
 }

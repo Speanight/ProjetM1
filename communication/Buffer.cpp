@@ -28,8 +28,28 @@ void Buffer::addToPlayerList(const Player& player) {
     playerList.push_back(player);
 }
 
-void Buffer::updateNextPlayerState(const Player& player, State state) {
+void Buffer::setNextPlayerState(const Player& player, State state) {
     nextState[player.getName()] = std::move(state);
+}
+
+void Buffer::updateNextPlayerState(const Player& player, State state) {
+    if (auto search = nextState.find(player.getName()); search != nextState.end()) {
+        search->second.setPosition(state.getPosition());
+        search->second.setLastInputsId(state.getLastInputsId());
+        search->second.setRadius(state.getRadius());
+        search->second.setPoint(state.getPoint());
+        search->second.setWpn(state.getWpn().getId());
+        search->second.setTimestamp(state.getTimestamp());
+        search->second.setAttackTimestamp(state.getAttackTimestamp());
+        search->second.setAttack(state.getAttack());
+
+        for (auto& [t, i] : state.getInputs()) {
+            search->second.addInputs(t, i);
+        }
+    }
+    else {
+        nextState[player.getName()] = state;
+    }
 }
 
 // Functions
@@ -168,6 +188,13 @@ State Buffer::getLastState(const Player& player) {
         }
     }
     if (auto search = currentState.find(player.getName()); search != currentState.end()) {
+        return search->second;
+    }
+    return {};
+}
+
+State Buffer::getNextState(const Player& player) {
+    if (auto search = nextState.find(player.getName()); search != nextState.end()) {
         return search->second;
     }
     return {};

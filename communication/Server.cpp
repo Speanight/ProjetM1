@@ -182,59 +182,62 @@ void Server::receiveLoop() {
                     }
 
                     case Pkt::INPUTS: {
+                        // TODO: Fix error margin. Check clocks for that eventually(?)
                         if (clients[port].getStatus() != Status::DEAD) {
                             clients[port].setStatus(Status::DONE);
                         }
-                        int time;
-                        int dtInput;
-                        packet >> time;
 
-                        // Get threads priority
-                        semaphore.acquire();
-                        addLine(
-                            clients[port].getName() + " >>> Server [PING:" + std::to_string(clock.getElapsedTime().asMilliseconds() - time) +"ms] Received inputs of user!",
-                            player.getColor()
-                        );
-                        addToGraph(clock.getElapsedTime().asMilliseconds(), player.getName(), "Server");
-                        semaphore.release();
+                        int amtInputs = 0;
+                        int time, timestampInput, dtInput;
+                        packet >> time;
 
                         // Updates ping of corresponding client:
                         pings[player.getName()] = clock.getElapsedTime().asMilliseconds() - time;
 
-                        while (packet >> dtInput >> inputs) {
-                            // Get the current server state AND last player state (which might be the next server state!)
-                            currentState = buffer.getCurrentState();
-                            semaphore.acquire();
-                            playerState = buffer.getLastState(player);
-                            semaphore.release();
-                            buffer.addInputsToLastState(player, clock.getElapsedTime().asMilliseconds(), inputs);
+                        packet >> timestampInput;
+
+                        // Get the current server state AND last player state (which might be the next server state!)
+                        currentState = buffer.getCurrentState();
+                        semaphore.acquire();
+                        playerState = buffer.getLastState(player);
+                        semaphore.release();
+                        playerState.flushInputs();
+                        playerState.setTimestamp(time);
+
+                        while (packet >> inputs) {
+                            if (!(packet >> dtInput)) {
+                                dtInput = time;
+                            }
+                            amtInputs++;
+                            playerState.addInputs(timestampInput, inputs);
+//                            buffer.addInputsToLastState(player, clock.getElapsedTime().asMilliseconds(), inputs);
 
                             // ====== POSITION ======
                             position = playerState.getPosition();
                             radius = playerState.getRadius();
 
                             // Get time elapsed since last packet from client. Used for consistency in speed and such.
-                            dt = std::min(dtInput - playerState.getTimestamp(), 1000 / static_cast<int>(tickrate));
+                            dt = std::min(dtInput - timestampInput, 1000 / static_cast<int>(tickrate));
 
                             // Adjust client values according to last state and new inputs values.
                             position.move(inputs.getMovementX(), inputs.getMovementY(), dt);
                             playerState.setPosition(position);
 
                             if (inputs.getOnController()) { // If inputs are made through R-stick of controller:
-                                radius = inputs.getRotate(); // Get raw inputs
+                                playerState.setRadius(inputs.getRotate()); // Get raw inputs
                             } else { // Otherwise calculate with rotate speed:
-                                radius += std::fmod(inputs.getRotate() * Const::PLAYER_RADIUS_SPEED * dt,
-                                                    2.f * std::numbers::pi);
+                                playerState.setRadius(playerState.getRadius() + std::fmod(inputs.getRotate() * Const::PLAYER_RADIUS_SPEED * dt, 2.f * std::numbers::pi));
                             }
 
                             // ====== ATTACK ======
-                            bool attack = inputs.getAttack() or playerState.getAttack();
+                            playerState.setAttack(inputs.getAttack() or playerState.getAttack());
 
                             // ====== WEAPON DATAS CHANGE ======
                             if (inputs.getChangeWpn()) {
                                 clients[port].switchWeapon();
+                                playerState.setWpn(player.getWpn().getId());
                             }
-                            currentState[player.getName()].setWpn(player.getWpn().getId());
+//                            currentState[player.getName()].setWpn(player.getWpn().getId());
 
                             // loops of all interaction between players
                             for (auto &[plPort, p]: clients) {
@@ -295,7 +298,7 @@ void Server::receiveLoop() {
                                                     opponent.setPoint(pts);
                                                 }
                                             }
-                                                // If attack has been blocked:
+                                            // If attack has been blocked:
                                             else if (attackResult == 1) {
                                                 // BLOCKED SECTION
                                                 float dirx = std::cos(radius);
@@ -326,20 +329,29 @@ void Server::receiveLoop() {
                                 }
 
                                 semaphore.acquire();
-                                State s = State(time, position, inputs, radius,
-                                                attack, player.getWpn().getId(), playerState.getPoint());
-                                s.setAttackTimestamp(playerState.getAttackTimestamp());
 
                                 // Keeps track of last attack timestamp, to make sure we can't spam attack and be lucky on tick timing:
                                 if (inputs.getAttack() and
                                     clock.getElapsedTime().asMilliseconds() - playerState.getAttackTimestamp() >=
                                     (player.getWpn().getAttackSpeed() + player.getWpn().getReload())) {
-                                    s.setAttackTimestamp(clock.getElapsedTime().asMilliseconds());
+                                    playerState.setAttackTimestamp(clock.getElapsedTime().asMilliseconds());
                                 }
-                                buffer.updateNextPlayerState(player, s);
+                                buffer.updateNextPlayerState(player, playerState);
                                 semaphore.release();
                             }
+
+                            timestampInput = dtInput; // "Refresh" for new inputs
                         }
+
+                        // Get threads priority
+                        semaphore.acquire();
+                        addLine(
+                                clients[port].getName() + " >>> Server [PING:" + std::to_string(clock.getElapsedTime().asMilliseconds() - time) +"ms] Received " + std::to_string(amtInputs) + " inputs of user!",
+                                player.getColor()
+                        );
+                        addToGraph(clock.getElapsedTime().asMilliseconds(), player.getName(), "Server");
+                        semaphore.release();
+
                         break;
                     }
 //                    case Pkt::END_GAME: {
@@ -459,7 +471,7 @@ void Server::sendLoop() {
                             if(demoMode) point =0;
 
                             State s(tick, pos, inputs, angleToCenter, false, 0, point);
-                            buffer.updateNextPlayerState(p, s);
+                            buffer.setNextPlayerState(p, s);
 
                             // Add everything in packet:
                             packet << p.getName() << p.getColor().r << p.getColor().g << p.getColor().b << p.getColor().a;
@@ -547,7 +559,7 @@ void Server::sendLoop() {
             State last = buffer.getLastState(player);
             if(last.getAttack()) {          // setting the attack save into false one so we don't keep the attack signal
                 last.setAttack(false);
-                buffer.updateNextPlayerState(player, last);
+                buffer.setNextPlayerState(player, last);
             }
         }
     }

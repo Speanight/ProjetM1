@@ -63,7 +63,8 @@ private:
     std::thread receiveThread;
 
     std::map<uint32_t, Input> inputs;
-    std::mutex m;
+    std::mutex m_inputs;
+    std::mutex m_states;
 
     Console& console;
 

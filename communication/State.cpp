@@ -94,23 +94,30 @@ void State::addInputs(int timestamp, Input inputs) {
     if (inputs.getId() != 0) {
         this->lastInputsId = inputs.getId();
     }
+
+    if (timestamp > this->timestamp) {
+        this->timestamp = timestamp;
+    }
 }
 
 Input State::getPercentInput(double percent) {
     int begin = this->inputs.begin()->first;
-    int diff = this->inputs.end()->first - begin;
-    float lastPercent;
+    int diff = this->timestamp - begin;
     Input lastIn;
 
     // TODO: Make use of it later (for compensation purposes) - Need optimization!
-//    for (auto & [tps, input] : this->inputs) {
-//        if ((float) tps / (float) diff > percent) {
-//            return lastIn;
-//        }
-//        lastIn = input;
-//    }
+    for (auto & [tps, input] : this->inputs) {
+        if ((float) tps / ((float) tps / (float) diff) > percent) {
+            return input;
+        }
+        lastIn = input;
+    }
 
     return lastIn;
+}
+
+void State::flushInputs() {
+    this->inputs.clear();
 }
 
 sf::Packet& operator<<(sf::Packet &packet, State state) {
@@ -128,9 +135,9 @@ sf::Packet& operator<<(sf::Packet &packet, State state) {
     << size;
 
     // TODO_2: Make use of it later (for compensation purposes) - Need optimization!
-//    for (auto & [timestamp, input] : inputs) {
-//        packet << timestamp << input;
-//    }
+    for (auto & [timestamp, input] : inputs) {
+        packet << int(timestamp) << input;
+    }
 
 
     return packet;
@@ -145,7 +152,7 @@ sf::Packet& operator>>(sf::Packet &packet, State& state) {
     int point;
     int timestamp;
     unsigned int lastInputsId;
-//    Input input;
+    Input input;
 
     packet
     >> lastInputsId
@@ -167,11 +174,11 @@ sf::Packet& operator>>(sf::Packet &packet, State& state) {
     // Get inputs:
     packet >> size;
 
-//    while (size > 0) {
-//        packet >> timestamp >> input;
-//        state.addInputs(timestamp, input);
-//        size--;
-//    }
+    while (size > 0) {
+        packet >> timestamp >> input;
+        state.addInputs(timestamp, input);
+        size--;
+    }
 
     return packet;
 }
