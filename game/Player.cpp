@@ -11,6 +11,7 @@ Player::Player(std::string name, sf::Color color, unsigned short port, std::vect
     this->isAttacking = false;
     this->status = Status::WAITING_FOR_INIT;
     this->wpn = Weapon(weapons[weapon]);
+    this->hasWpn = true;
 }
 
 // Getters
@@ -100,6 +101,11 @@ void Player::setWeapons(std::vector<short> weapons) {
 
 void Player::setWpn(short weapon) {
     short i = 0;
+    if(hasWpn==false) {
+        Weapon wpn;
+        this->wpn = wpn;
+        hasWpn = true;
+    }
     for (auto & wpn : this->weapons) {
         if (wpn == weapon) {
             this->wpn.applyID(weapon);

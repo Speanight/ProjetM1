@@ -221,14 +221,12 @@ void MainWindow::drawTitlescreen() {
 
             ImGui::Text("Nombre de joueurs :");
 
-            // largeur dynamique avec minimum
             float availableWidth = columnWidth - innerPadding * 2;
             float inputWidth = availableWidth * 0.4f;
 
             if (inputWidth < 120.0f) inputWidth = 120.0f; // cancell disapiration
             if (inputWidth > 200.0f) inputWidth = 200.0f; // make it not too large
 
-            // centrage
             ImGui::SetCursorPosX(ImGui::GetCursorPosX() + (availableWidth - inputWidth) * 0.5f);
 
             ImGui::PushItemWidth(inputWidth);
@@ -410,7 +408,7 @@ void MainWindow::gameSetup(int nbPlayers) {
     for(int i = 0; i < nbPlayers; i++) {
         ClientUI* client = new ClientUI(clock, console, "Client"+std::to_string(i), -1, sf::Color::Red);
 
-        if (sf::Joystick::isConnected(0)||sf::Joystick::isConnected(1)||sf::Joystick::isConnected(2)) {
+        if (sf::Joystick::isConnected(controllerAvailable)) {
             std::cout<<"attributing controller "<<controllerAvailable<<"..."<<std::endl;
             client->setKeybinds(Controller::CONTROLLER_MAP[controllerAvailable]);
             client->setController(controllerAvailable);

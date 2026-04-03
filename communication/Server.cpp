@@ -419,6 +419,7 @@ int Server::addClient(const std::string& name, unsigned short port, sf::Color co
                         // Map
                         if(mapID==-1) {
                             mapID = tick%Const::MAP_LINK.size();
+                            setMapID(mapID);
                         }
 
                         ready = true;
@@ -457,6 +458,7 @@ int Server::addClient(const std::string& name, unsigned short port, sf::Color co
                             // Add everything in packet:
                             packet << p.getName() << p.getColor().r << p.getColor().g << p.getColor().b << p.getColor().a;
                             packet << p.getWeapons()[1];
+                            setPlayer(player.getPort(), player);
                             nb++;
                         }
                     }
@@ -538,6 +540,8 @@ int Server::addClient(const std::string& name, unsigned short port, sf::Color co
         // POST MAJ
         for (auto & [name, player] : clients) {
             State last = buffer.getLastState(player);
+            // putting everything of the state in the client to draw the graph 2
+            updateClient(player.getPort(), last);
             if(last.getAttack()) {          // setting the attack save into false one so we don't keep the attack signal
                 last.setAttack(false);
                 buffer.updateNextPlayerState(player, last);

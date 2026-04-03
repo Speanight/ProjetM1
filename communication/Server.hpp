@@ -37,8 +37,8 @@ private:
 
     int maxPlayers = 2;     // TODO : make something better to handle how many players we want before starting the game
 
-    bool gameRunning = false;
-    bool demoMode = false;
+    bool gameRunning = false;       // make the server know if the game is running (stop the players to join while it's true)
+    bool demoMode = false;          // inform the server of the game mode, if true, it mean that we are playing with point and not life
     bool loop = true;
     int mapID=-1;           // -1 stand for not set, mapID going from [0 -> Const::NB_MAP_ID]
 
