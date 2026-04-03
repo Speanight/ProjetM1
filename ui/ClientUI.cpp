@@ -266,7 +266,7 @@ void ClientUI::drawSelectionScreen(ImDrawList* draw_list, ImVec2 min, ImVec2 max
                         break;
                     }
                     case 2: {   // WEAPON
-                        const int weaponCount = 5;
+                        const int weaponCount = 8;
                         if(select.subSelect == 0) {
                             select.selectedWeapon--;
                             if (select.selectedWeapon < 1) select.selectedWeapon = weaponCount;
@@ -463,7 +463,6 @@ void ClientUI::drawSelectionScreen(ImDrawList* draw_list, ImVec2 min, ImVec2 max
         );
 
         switch (demoWeapon.getType()) {
-
             case Weapons::TRIANGLE: {
                 ImVec2 p1 = ImVec2(leftCenter.x, leftCenter.y - h * 0.5f);
                 ImVec2 p2 = ImVec2(leftCenter.x - w * 0.5f, leftCenter.y + h * 0.5f);
@@ -472,16 +471,21 @@ void ClientUI::drawSelectionScreen(ImDrawList* draw_list, ImVec2 min, ImVec2 max
                 draw_list->AddTriangleFilled(p1, p2, p3, weaponColor);
                 break;
             }
+            case Weapons::CIRCLE: {
+                float radius = h * 0.5f;
 
+                draw_list->AddCircleFilled(
+                    leftCenter,
+                    radius,
+                    weaponColor
+                );
+                break;
+            }
             case Weapons::RECTANGLE: {
                 ImVec2 minRect = ImVec2(leftCenter.x - w * 0.5f, leftCenter.y - h * 0.5f);
                 ImVec2 maxRect = ImVec2(leftCenter.x + w * 0.5f, leftCenter.y + h * 0.5f);
 
                 draw_list->AddRectFilled(minRect, maxRect, weaponColor);
-                break;
-            }
-            case Weapons::CIRCLE: {
-                draw_list->AddCircleFilled(leftCenter, h * 0.5f, weaponColor);
                 break;
             }
             default:{
@@ -496,6 +500,7 @@ void ClientUI::drawSelectionScreen(ImDrawList* draw_list, ImVec2 min, ImVec2 max
         switch (demoWeapon.getType()) {
             case Weapons::TRIANGLE: type = "Triangle"; break;
             case Weapons::RECTANGLE: type = "Rectangle"; break;
+            case Weapons::CIRCLE: type = "Circle"; break;
             default: type = "Unknown"; break;
         }
 
@@ -524,7 +529,7 @@ void ClientUI::drawSelectionScreen(ImDrawList* draw_list, ImVec2 min, ImVec2 max
         ));
 
 
-        const int weaponCount = 5;
+        const int weaponCount = 8;
 
         if (ImGui::ArrowButton("##left_weapon", ImGuiDir_Left)) {
             select.selectedWeapon--;
