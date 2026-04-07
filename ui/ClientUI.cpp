@@ -806,11 +806,12 @@ void ClientUI::drawEndScreen(ImDrawList* draw_list, ImVec2 min, ImVec2 max, bool
         title = "DOMMAGE";
         messages = {
             "You can do it !*\n (*statement of friendship only, you may not be able to do it)",
-            "Ah pas loin!",
             "Il a triché t'inquiète",
             "Mais je me fait big gank là c'est quoi ça !",
             "Blammez les JOUEURS pas le jeu...",
-            "La prochaine fois c'est la bonne"
+            "La prochaine fois c'est la bonne",
+            "En vrai, dans la vrai vie il te bat pas t'inquiète",
+            "T'est meilleur en partant de la fin, ça va ^^'"
         };
     }
 
@@ -832,11 +833,6 @@ void ClientUI::drawEndScreen(ImDrawList* draw_list, ImVec2 min, ImVec2 max, bool
             IM_COL32(this->getColor().r, this->getColor().g, this->getColor().b, 255),
             title
         );
-    }
-
-    // PLAYER INFO
-    {
-        // TODO ?
     }
 
     // RANDOM PRAISE
