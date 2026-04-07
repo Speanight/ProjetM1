@@ -90,7 +90,14 @@ void State::setAttackTimestamp(int timestamp) {
 }
 
 void State::addInputs(int timestamp, Input inputs) {
-    this->inputs[timestamp] = inputs;
+    if (!this->inputs.empty()) {
+        if (this->inputs.rend()->second != inputs) {
+            this->inputs.insert(this->inputs.end(), {timestamp, inputs});
+        }
+    }
+    else {
+            this->inputs.insert(this->inputs.end(), {timestamp, inputs});
+    }
     if (inputs.getId() != 0) {
         this->lastInputsId = inputs.getId();
     }
@@ -101,13 +108,12 @@ void State::addInputs(int timestamp, Input inputs) {
 }
 
 Input State::getPercentInput(double percent) {
-    int begin = this->inputs.begin()->first;
-    int diff = this->timestamp - begin;
+    float begin = this->inputs.begin()->first;
+    float diff = this->timestamp - begin;
     Input lastIn;
 
-    // TODO: Make use of it later (for compensation purposes) - Need optimization!
     for (auto & [tps, input] : this->inputs) {
-        if ((float) tps / ((float) tps / (float) diff) > percent) {
+        if ((float(tps)-begin)/diff > percent) {
             return input;
         }
         lastIn = input;

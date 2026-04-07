@@ -92,22 +92,22 @@ void Input::handleInput(int inputCode, float value) {
     switch (inputCode) {
         case Inputs::MOVEMENT_UP:
             if (fabs(value) > Const::CONTROLLER_DEADZONE) {
-                movementY -= value;
+                movementY -= value*100;
             }
             break;
         case Inputs::MOVEMENT_DOWN:
             if (fabs(value) > Const::CONTROLLER_DEADZONE) {
-                movementY += value;
+                movementY += value*100;
             }
             break;
         case Inputs::MOVEMENT_LEFT:
             if (fabs(value) > Const::CONTROLLER_DEADZONE) {
-                movementX -= value;
+                movementX -= value*100;
             }
             break;
         case Inputs::MOVEMENT_RIGHT:
             if (fabs(value) > Const::CONTROLLER_DEADZONE) {
-                movementX += value;
+                movementX += value*100;
             }
             break;
         case Inputs::WPN_CCW:       // Handle the weapon rotation
@@ -155,7 +155,8 @@ sf::Packet& operator>>(sf::Packet &packet, Input& inputs) {
 
 bool Input::operator==(const Input& other) const {
     return this->getMovementX() == other.getMovementX() and this->getMovementY() == other.getMovementY()
-    and this->getRotate() == other.getRotate() and this->getChangeWpn() == other.getChangeWpn();
+    and this->getRotate() == other.getRotate() and this->getChangeWpn() == other.getChangeWpn() and
+    this->getAttack() == other.getAttack();
 }
 
 std::ostream &operator<<(std::ostream& os, const Input& inputs) {

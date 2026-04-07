@@ -10,8 +10,8 @@ class Input {
 private:
     // TODO: unsigned int limit is at 4,294,967,295. This means it should be reset to 0 on round start!
     unsigned int id;
-    float movementX;
-    float movementY;
+    short movementX;
+    short movementY;
     float rotate;
     bool onController;
     bool changeWpn;             // Signal to change weapon

@@ -268,6 +268,7 @@ Input Client::getInputs(bool mode_enable, bool attack_enable) {
  * @return - Error code. (Const. Err:: in Utils.hpp)
  */
 void Client::update() {
+    // TODO: Try a generic clock to time events with same clock at all time! Might fix compensations.
     bool mode_enable = true;    // set the ability to change the weapon to true at the beginning
     bool attack_enable = true;  // set the ability to attack at true at the beginning
 
@@ -306,10 +307,6 @@ void Client::update() {
         }
         m_inputs.unlock();
 
-        // ==========| PACKET HANDLER |========== //
-        // Add latest inputs to queue (for ping simulation)
-//        sendPacket(inputs);
-
         // ==========| COMPENSATIONS (if needed) |========== //
         semaphore.acquire();
         auto compensations = network.compensations;
@@ -326,7 +323,7 @@ void Client::update() {
             inputsBuffer.clear();
         }
         State state(lastUpdate, getPosition(), input, getRadius(), getPlayer().getIsAttacking(), getPlayer().getWpn().getId());
-        inputsBuffer[lastInputId] = state; // We add the last input as it may be used for controller players. (R-stick)
+        inputsBuffer[lastInputId] = state; // We re-add the last input post-deletion, as it may be used for controller players. (R-stick)
         semaphore.release();
 
         lastUpdate = clock.getElapsedTime().asMilliseconds();
@@ -337,14 +334,14 @@ void Client::update() {
             opp.handleTimer_atk(lastUpdate, before);
         }
         before = lastUpdate;
-        sf::sleep(sf::Time()); // Small sleep to make sure everyone send same amount of inputs.
+        sf::sleep(sf::milliseconds(10)); // Small sleep to make sure everyone send same amount of inputs.
     }
 }
 
 void Client::sendLoop() {
     while (running) {
         QueuedPacket pkt;
-        short type;
+        short type = 0;
         pkt.timestamp = clock.getElapsedTime();
         semaphore.acquire();
         uint32_t id = getPacketId();
@@ -512,7 +509,7 @@ int Client::sendPacket(Input inputs) {
     short unsigned int port;
     uint32_t id;
 
-    while (true) {
+    while (running) {
         while (!loop) {sf::sleep(sf::Time());} // Pause if needed
         rawPacket.clear();
         sf::sleep(sf::Time()); // "empty" sleep: required for loops.
@@ -784,27 +781,15 @@ void Client::compensationInterpolation() {
 
             opponents[name].setPosition(pos);
 
-            /*
-            Position pastPos = pastState[name].getPosition();
-            Position currPos = currState[name].getPosition();
-
-            // Position = old one + diff. * (0 at beginning of tick, 1 at end of tick)
-            double tickProgress = std::min(1.0,(clock.getElapsedTime().asMilliseconds() - lastServerTick) / (1000/(double)tickrate));
-            Position pos;
-
-            pos.setX(pastPos.getX() + (currPos.getX() - pastPos.getX()) * tickProgress);
-            pos.setY(pastPos.getY() + (currPos.getY() - pastPos.getY()) * tickProgress);
-
-//            Position opponentPos = resolveCollision(player.getPosition(), pos);
-
-            opponents[name].setPosition(pos);
-
             // If the radius goes through 0, make sure we rotate correctly.
             float diff = currState[name].getRadius() - pastState[name].getRadius();
-            diff = std::fmod(diff + 3 * M_PI, 2 * M_PI) - M_PI;
-            opponents[name].setRadius(pastState[name].getRadius() + diff * tickProgress);
-
-             */
+            if (corrInputs.getOnController()) {
+                radius += diff * tickProgress;
+            }
+            else {
+                radius += Const::PLAYER_RADIUS_SPEED * corrInputs.getRotate() * (clock.getElapsedTime().asMilliseconds() - lastUpdate);
+            }
+            opponents[name].setRadius(radius);
         }
     }
 }
@@ -848,7 +833,9 @@ void Client::compensationPrediction(Input inputs) {
  * @attention Please note that the Reconciliation compensation method cannot work without the Prediction method!
  */
 void Client::compensationReconciliation() {
+    m_states.lock();
     State currentState = bufferOnReceipt.getCurrentState()[getName()];
+    m_states.unlock();
     unsigned int lastReceivedInputs = currentState.getLastInputsId();
 
 
@@ -865,7 +852,7 @@ void Client::compensationReconciliation() {
             // Re-emulates all past positions:
             for (auto& [tick, state] : inputsBuffer) {
                 if (tick > lastReceivedInputs) {
-                    Position pos = state.getPosition();
+                    pos = state.getPosition();
                     pos.setX(pos.getX() - diff.x);
                     pos.setY(pos.getY() - diff.y);
                     inputsBuffer[tick].setPosition(pos);

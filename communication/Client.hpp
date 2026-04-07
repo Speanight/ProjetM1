@@ -71,10 +71,7 @@ private:
     NetworkState network;
     short mapID = 0;
 
-    bool newGame = false;
     bool loop = true;
-    bool newRound = false;
-    bool endGame = false;
 
 protected:
     sf::Clock clock;

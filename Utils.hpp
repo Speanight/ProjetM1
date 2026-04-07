@@ -36,7 +36,7 @@ namespace Const {
     static const int GRAPH_DISPLAY_MS = 1; // Defines how long (in ms) a "graph line" will be worth for in the server's console.
     static const int GRAPH_DISPLAY_VALUES = 200; // Defines how many values are displayed at the same time in server's console. This means console shows the last DISPLAY_VALUES * DISPLAY_MS milliseconds.
 
-    static const float PLAYER_SPEED = .3f;
+    static const float PLAYER_SPEED = .003f;
     static const float PLAYER_RADIUS_SPEED = .003f;
     static const float PLAYER_SIZE = 20.f;
     static const float CONTROLLER_DEADZONE = .2f;

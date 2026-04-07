@@ -197,8 +197,8 @@ void Server::receiveLoop() {
                         packet >> timestampInput;
 
                         // Get the current server state AND last player state (which might be the next server state!)
-                        currentState = buffer.getCurrentState();
                         semaphore.acquire();
+                        currentState = buffer.getCurrentState();
                         playerState = buffer.getLastState(player);
                         semaphore.release();
                         playerState.flushInputs();
@@ -210,7 +210,6 @@ void Server::receiveLoop() {
                             }
                             amtInputs++;
                             playerState.addInputs(timestampInput, inputs);
-//                            buffer.addInputsToLastState(player, clock.getElapsedTime().asMilliseconds(), inputs);
 
                             // ====== POSITION ======
                             position = playerState.getPosition();
@@ -237,7 +236,6 @@ void Server::receiveLoop() {
                                 clients[port].switchWeapon();
                                 playerState.setWpn(player.getWpn().getId());
                             }
-//                            currentState[player.getName()].setWpn(player.getWpn().getId());
 
                             // loops of all interaction between players
                             for (auto &[plPort, p]: clients) {
@@ -518,6 +516,7 @@ void Server::sendLoop() {
                 case Status::DONE: {
                     type = Pkt::GLOBAL;
                     packet << Pkt::GLOBAL << int(buffer.getCurrentTick()) << clock.getElapsedTime().asMilliseconds();
+
                     for (auto & [n, state] : currentState) {
                         packet << n << state;
                     }
@@ -559,8 +558,8 @@ void Server::sendLoop() {
             State last = buffer.getLastState(player);
             if(last.getAttack()) {          // setting the attack save into false one so we don't keep the attack signal
                 last.setAttack(false);
-                buffer.setNextPlayerState(player, last);
             }
+            buffer.setNextPlayerState(player, last);
         }
     }
 }
