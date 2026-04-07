@@ -112,7 +112,6 @@ public:
     short getMapID() const;
     int getTick() const;
 
-
     Input getInputs(bool mode_enable=false, bool attack_enable=true);
 
     void setReceivingPacketLoss(int packetLoss);
@@ -138,8 +137,6 @@ public:
 
     [[noreturn]] void receiveLoop();
     std::optional<QueuedPacket> getLatestQueuedPacket(int status);
-
-    void applyState(std::string name, State state);
 
     // Compensations
     void compensationInterpolation();

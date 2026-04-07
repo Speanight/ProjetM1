@@ -23,6 +23,7 @@ private:
     std::vector<short> weapons = {1, Weapons::SHIELD};
     short weapon = 0; // Index of weapons, points to which weapon is being used right now.
     Weapon wpn;
+    bool hasWpn = false;
 
     // ====== ATTACK ======
     bool isAttacking;           // indicate if the player is attacking or not

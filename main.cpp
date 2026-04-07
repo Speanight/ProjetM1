@@ -13,6 +13,8 @@ int main() {
     XInitThreads(); // Needed for multi-threading.
     sf::Clock clock;
 
+    loadGlobalMaps();
+
     tickrate = 10;
     clientRefreshRate = 50;
     packetID = 0;

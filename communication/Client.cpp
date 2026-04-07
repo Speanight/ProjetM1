@@ -112,7 +112,6 @@ short Client::getMapID() const {
     return this->mapID;
 }
 
-
 std::array<bool,3> Client::getCompensations() const {
     return network.compensations;
 }
@@ -175,7 +174,6 @@ void Client::setController(short controller) {
 void Client::setPlayer(Player player) {
     this->player = player;
 }
-
 
 /**
  * Function that recovers all the users inputs. This uses user's defined keybinds and iterates
@@ -640,34 +638,6 @@ int Client::sendPacket(Input inputs) {
                 }
             }
         }
-    }
-}
-
-void Client::applyState(std::string name, State state){
-    std::unordered_map<std::string, State> currentState = bufferOnReceipt.getCurrentState();
-    std::unordered_map<std::string, State> pastState = bufferOnReceipt.getTState(-1);
-
-    if (name == this->getName()) {
-        this->bufferOnReceipt.updateNextPlayerState(player, state);
-        semaphore.acquire();
-        State currState = bufferOnReceipt.getLastState(player);
-        semaphore.release();
-        if (!this->getCompensations()[Compensation::RECONCILIATION]) {
-            this->player.setPosition(currState.getPosition());
-            this->player.setRadius(state.getRadius());
-        }
-        this->player.setIsAttacking(state.getAttack());
-        this->player.setWpn(state.getWpn().getId());
-        this->player.setPoint(state.getPoint());
-    }
-    else {
-        // Opponent position:
-        this->bufferOnReceipt.updateNextPlayerState(opponents[name], state);
-        opponents[name].setPosition(currentState[name].getPosition());
-        opponents[name].setRadius(currentState[name].getRadius());
-        opponents[name].setIsAttacking(currentState[name].getAttack());
-        opponents[name].setWpn(currentState[name].getWpn().getId());
-        opponents[name].setPoint(currentState[name].getPoint());
     }
 }
 

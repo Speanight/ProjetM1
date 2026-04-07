@@ -39,13 +39,25 @@ protected:
     bool rewind = false; // Compensation method.
     Console& console;
 
+    std::unordered_map<unsigned short, Player> clients;
+    int mapID;
+
 public:
     ServerUI(Console& console);
+
+    // Graph 1
     void addLine(std::string text, sf::Color color = sf::Color::White);
     void addLine(int timestamp, std::string from, std::string to, std::string details, sf::Color color = sf::Color::White);
     void addToGraph(int timestamp, const std::string& from, const std::string& to);
     void draw();
 
+    // Graph 2
+    void setPlayer(unsigned short id, Player player);
+    void updateClient(unsigned short id, State s);
+    void setMapID(int mapID);
+    void drawGame();
+
+    // Graph 3
     void addToData(const std::string& to);
     void removeToData(const std::string& to);
 };

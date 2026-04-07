@@ -40,27 +40,29 @@ void ClientUI::drawGame() { // Game space
                 screenToShow = Screens::LOADING_SCREEN;
                 break;
             }
-            case Status::DONE   : {
+            case Status::DONE: {
                 screenToShow = Screens::GAME;
                 break;
             }
-            case Status::DEAD : {
-                if(waitRetry == 0){waitRetry = getTick()+Const::WAIT_RETRY_TIME;}
+            case Status::DEAD: {
+                if (waitRetry == 0) {
+                    waitRetry = getTick() + Const::WAIT_RETRY_TIME;
+                }
                 screenToShow = Screens::GAME_LOSE;
                 break;
             }
-            case Status::WIN : {
-                if(waitRetry == 0){waitRetry = getTick()+Const::WAIT_RETRY_TIME;}
+            case Status::WIN: {
+                if (waitRetry == 0) { waitRetry = getTick() + Const::WAIT_RETRY_TIME; }
                 screenToShow = Screens::GAME_WIN;
                 break;
             }
-            case Status::END_R : {
+            case Status::END_R: {
                 // screenToShow remain the same;
                 break;
             }
             default: {
-                std::cout<<"Unknown player status to show: #"<<player.getStatus()<<std::endl;
-                drawErrorScreen(draw_list, player, childMin, childMax);
+                std::cout << "Unknown player status to show: #" << player.getStatus() << std::endl;
+                drawErrorScreen(draw_list, childMin, childMax);
                 break;
             }
         }
@@ -77,7 +79,7 @@ void ClientUI::drawGame() { // Game space
             break;
         }
         case Screens::GAME : {
-            drawFightingScreen(draw_list, player, opponents, childMin, childMax);
+            drawFightingScreen(draw_list, player, opponents, childMin, childMax, getMapID());
             break;
         }
         case Screens::GAME_LOSE : {
@@ -90,11 +92,10 @@ void ClientUI::drawGame() { // Game space
         }
         default :{
             std::cout<<"Unknown screen to show"<<std::endl;
-            drawErrorScreen(draw_list, player, childMin, childMax);
+            drawErrorScreen(draw_list, childMin, childMax);
             break;
         }
     }
-
     ImGui::EndChild();
 }
 
@@ -155,8 +156,8 @@ void ClientUI::addOpponent(const std::string& name, sf::Color color) {
 
 /**
  * Make the floating values after the '.' 2 digit long
- * @param v floating value
- * @return the floating value but in a string of macimum 2 digit
+ * @param v : floating value
+ * @return  : the floating value but in a string of macimum 2 digit
  */
 std::string form1(float v) {
     char buf[16];
@@ -164,6 +165,12 @@ std::string form1(float v) {
     return std::string(buf);
 };
 
+/**
+ * draw the screen to select the player we want (color, weapon, name ...)
+ * @param draw_list : will contain all the element that will be print at the end of the program
+ * @param min           : point at the top left of the screen to define the size
+ * @param max           : point at the bottom right of the screen to define the size
+ */
 void ClientUI::drawSelectionScreen(ImDrawList* draw_list, ImVec2 min, ImVec2 max) {
     float window_size = max.x - min.x;
     float scale = window_size / Const::MAP_SIZE_X;
@@ -265,7 +272,7 @@ void ClientUI::drawSelectionScreen(ImDrawList* draw_list, ImVec2 min, ImVec2 max
                         break;
                     }
                     case 2: {   // WEAPON
-                        const int weaponCount = 5;
+                        const int weaponCount = 8;
                         if(select.subSelect == 0) {
                             select.selectedWeapon--;
                             if (select.selectedWeapon < 1) select.selectedWeapon = weaponCount;
@@ -462,7 +469,6 @@ void ClientUI::drawSelectionScreen(ImDrawList* draw_list, ImVec2 min, ImVec2 max
         );
 
         switch (demoWeapon.getType()) {
-
             case Weapons::TRIANGLE: {
                 ImVec2 p1 = ImVec2(leftCenter.x, leftCenter.y - h * 0.5f);
                 ImVec2 p2 = ImVec2(leftCenter.x - w * 0.5f, leftCenter.y + h * 0.5f);
@@ -471,16 +477,21 @@ void ClientUI::drawSelectionScreen(ImDrawList* draw_list, ImVec2 min, ImVec2 max
                 draw_list->AddTriangleFilled(p1, p2, p3, weaponColor);
                 break;
             }
+            case Weapons::CIRCLE: {
+                float radius = h * 0.5f;
 
+                draw_list->AddCircleFilled(
+                    leftCenter,
+                    radius,
+                    weaponColor
+                );
+                break;
+            }
             case Weapons::RECTANGLE: {
                 ImVec2 minRect = ImVec2(leftCenter.x - w * 0.5f, leftCenter.y - h * 0.5f);
                 ImVec2 maxRect = ImVec2(leftCenter.x + w * 0.5f, leftCenter.y + h * 0.5f);
 
                 draw_list->AddRectFilled(minRect, maxRect, weaponColor);
-                break;
-            }
-            case Weapons::CIRCLE: {
-                draw_list->AddCircleFilled(leftCenter, h * 0.5f, weaponColor);
                 break;
             }
             default:{
@@ -495,6 +506,7 @@ void ClientUI::drawSelectionScreen(ImDrawList* draw_list, ImVec2 min, ImVec2 max
         switch (demoWeapon.getType()) {
             case Weapons::TRIANGLE: type = "Triangle"; break;
             case Weapons::RECTANGLE: type = "Rectangle"; break;
+            case Weapons::CIRCLE: type = "Circle"; break;
             default: type = "Unknown"; break;
         }
 
@@ -523,7 +535,7 @@ void ClientUI::drawSelectionScreen(ImDrawList* draw_list, ImVec2 min, ImVec2 max
         ));
 
 
-        const int weaponCount = 5;
+        const int weaponCount = 8;
 
         if (ImGui::ArrowButton("##left_weapon", ImGuiDir_Left)) {
             select.selectedWeapon--;
@@ -602,6 +614,15 @@ void ClientUI::drawSelectionScreen(ImDrawList* draw_list, ImVec2 min, ImVec2 max
     ImGui::PopStyleColor(4);
 }
 
+/**
+ * draw the loading screen
+ * -> when the player is waiting for it's datas
+ * -> when the player is waiting for the other oponents
+ * -> when the player is waiting for the game to start
+ * @param draw_list     : will contain all the element that will be print at the end of the program
+ * @param min           : point at the top left of the screen to define the size
+ * @param max           : point at the bottom right of the screen to define the size
+ */
 void ClientUI::drawLoadingScreen(ImDrawList* draw_list, ImVec2 min, ImVec2 max) {
     float window_size = max.x - min.x;
     float scale = window_size / Const::MAP_SIZE_X;
@@ -736,195 +757,13 @@ void ClientUI::drawLoadingScreen(ImDrawList* draw_list, ImVec2 min, ImVec2 max) 
     }
 }
 
-void ClientUI::drawFightingScreen(ImDrawList* draw_list, Player player, std::map<std::string, Player> opponents, ImVec2 min, ImVec2 max) {
-    // BACKGROUND
-    int selected = getMapID() % Const::MAP_LINK.size();
-
-    static sf::Texture map;
-    if(map.loadFromFile(MAP_LINK[selected])) {
-        draw_list->AddImage(
-    (ImTextureID)map.getNativeHandle(),
-      ImVec2(min.x, min.y),
-      ImVec2(max.x, max.y)
-            );
-    }
-
-    // PLAYERS
-    drawPlayer(draw_list,player , min, max);
-    for (auto & [name, other] : opponents) {
-        drawPlayer(draw_list, other, min, max);
-    }
-}
-void ClientUI::drawPlayer(ImDrawList* draw_list, Player player, ImVec2 min, ImVec2 max) {
-    std::string points;
-    if(player.getStatus() == Status::DEAD || player.getPoint() == -1) {
-        player.setColor(sf::Color::White);                // TODO : handle the death differently ?
-        points = "DEAD";
-    }
-    else {
-        points = std::to_string(player.getPoint());
-    }
-    float window_size = max.x - min.x;
-
-    float scale = window_size / Const::MAP_SIZE_X;
-
-    ImVec2 pl_position = {
-        player.getPosition().getX() * scale + min.x,
-        player.getPosition().getY() * scale + min.y
-    };
-
-    float player_radius = Const::PLAYER_SIZE * scale;
-
-    // ========= PLAYER =========
-    draw_list->AddCircleFilled(
-        pl_position,
-        player_radius,
-        IM_COL32(player.getColor().r, player.getColor().g, player.getColor().b, player.getColor().a)
-    );
-
-    drawWeapon(player, draw_list, pl_position, scale);
-
-    // ========= POINT =========
-
-    float font_size = 16.0f * scale;
-
-    ImFont* font = ImGui::GetFont();
-
-    ImVec2 text_size = font->CalcTextSizeA(
-        font_size,
-        FLT_MAX,
-        0.0f,
-        points.c_str()
-    );
-
-    ImVec2 text_pos = {
-        pl_position.x - text_size.x * 0.5f,
-        pl_position.y - text_size.y * 0.5f
-    };
-
-    draw_list->AddText(
-        font,
-        font_size,
-        text_pos,
-        IM_COL32(0, 0, 0, 255),
-        points.c_str()
-    );
-}
-void ClientUI::drawWeapon(Player player, ImDrawList* draw_list, ImVec2 pl_position, float scale) {
-    float player_radius = Const::PLAYER_SIZE * scale;
-    float distance = player_radius + 2.f * scale;
-    switch (player.getWpn().getType()) {
-        case Weapons::TRIANGLE  : {
-            ImVec2 dir = {cosf(player.getRadius()), sinf(player.getRadius())};
-            float height = player.getWpn().getHeight() * scale;
-            float width = player.getWpn().getWidth() * scale;
-
-            // ======== ATTACK ANIMATIONS ========
-            float offset = 0;
-            if (player.getTimer_atk() != -1) {
-                if (player.getTimer_atk() <= player.getWpn().getAttackSpeed()) {
-                    offset = player.getTimer_atk() / player.getWpn().getAttackSpeed();
-                } else if (player.getTimer_atk() <= player.getWpn().getAttackSpeed() + player.getWpn().getReload()) {
-                    offset = 1 - player.getTimer_atk() / (player.getWpn().getAttackSpeed() + player.getWpn().getReload());
-                }
-            }
-
-            ImVec2 bottom = {
-                    pl_position.x + dir.x * (distance + (offset * player.getWpn().getRange()) * scale),
-                    pl_position.y + dir.y * (distance + (offset * player.getWpn().getRange()) * scale)
-            };
-            ImVec2 top = {
-                    pl_position.x + dir.x * (distance + (offset * player.getWpn().getRange()) * scale + height),
-                    pl_position.y + dir.y * (distance + (offset * player.getWpn().getRange()) * scale + height)
-            };
-
-            ImVec2 perp = {-dir.y, dir.x};
-            ImVec2 left = {bottom.x + perp.x * (width * 0.5f), bottom.y + perp.y * (width * 0.5f)};
-            ImVec2 right = {bottom.x - perp.x * (width * 0.5f), bottom.y - perp.y * (width * 0.5f)};
-
-            draw_list->AddTriangleFilled(
-                    top,
-                    left,
-                    right,
-                    IM_COL32(player.getColor().r, player.getColor().g, player.getColor().b, player.getColor().a)
-            );
-            break;
-        }
-        case Weapons::RECTANGLE : {
-            float baseAngle = player.getRadius();
-
-            float height = player.getWpn().getHeight() * scale;
-            float width  = player.getWpn().getWidth() * scale;
-            float range  = player.getWpn().getRange();
-
-            float offset = 0.f;
-
-            if (player.getTimer_atk() != -1) {
-                float atk = player.getWpn().getAttackSpeed();
-                float reload = player.getWpn().getReload();
-
-                if (player.getTimer_atk() <= atk) {
-                    offset = player.getTimer_atk() / atk;
-                } else if (player.getTimer_atk() <= atk + reload) {
-                    offset = 1.f - (player.getTimer_atk() - atk) / reload;
-                }
-            }
-
-            float angle = baseAngle + offset * range;
-
-            ImVec2 dir = { cosf(angle), sinf(angle) };  // rectangle direction
-            ImVec2 perp = { -dir.y, dir.x };
-
-            ImVec2 center = {
-                    pl_position.x + dir.x * distance,
-                    pl_position.y + dir.y * distance
-            };
-
-            ImVec2 p1 = { center.x + perp.x * (width * 0.5f), center.y + perp.y * (width * 0.5f) }; // top left
-            ImVec2 p2 = { center.x - perp.x * (width * 0.5f), center.y - perp.y * (width * 0.5f) }; // top right
-
-            ImVec2 p3 = { p2.x + dir.x * height, p2.y + dir.y * height };                           // bottom left
-            ImVec2 p4 = { p1.x + dir.x * height, p1.y + dir.y * height };                           // bottom right
-
-            draw_list->AddQuadFilled(
-                    p1, p2, p3, p4,
-                    IM_COL32(
-                            player.getColor().r,
-                            player.getColor().g,
-                            player.getColor().b,
-                            player.getColor().a
-                    )
-            );
-
-            break;
-        }
-        /*--------------------------------------------*/
-        case Weapons::SHIELD    : {
-            float arcWidth = 0.8f;
-            float a_min = player.getRadius() - arcWidth;
-            float a_max = player.getRadius() + arcWidth;
-
-            draw_list->PathArcTo(
-                    pl_position,
-                    distance + 1.f*scale,
-                    a_min,
-                    a_max,
-                    24
-            );
-
-            draw_list->PathStroke(
-                    IM_COL32(player.getColor().r, player.getColor().g, player.getColor().b, player.getColor().a),
-                    false,
-                    4.f * scale
-            );
-            break;
-        }
-        /*--------------------------------------------*/
-        default:
-            std::cout << "Unknown weapon type: " << player.getWpn().getType() << std::endl;
-    }
-}
-
+/**
+ * draw the game over screen with the two buttons to retry or change the player
+ * @param draw_list     : will contain all the element that will be print at the end of the program
+ * @param min           : point at the top left of the screen to define the size
+ * @param max           : point at the bottom right of the screen to define the size
+ * @param victory       : print the screen depending on the victory or defeat of the player
+ */
 void ClientUI::drawEndScreen(ImDrawList* draw_list, ImVec2 min, ImVec2 max, bool victory) {
     ImGui::PushStyleColor(ImGuiCol_ButtonActive, IM_COL32(255, 255, 255, 180));
     ImGui::PushStyleColor(ImGuiCol_ButtonHovered, IM_COL32(255, 255, 255, 200));
@@ -967,11 +806,12 @@ void ClientUI::drawEndScreen(ImDrawList* draw_list, ImVec2 min, ImVec2 max, bool
         title = "DOMMAGE";
         messages = {
             "You can do it !*\n (*statement of friendship only, you may not be able to do it)",
-            "Ah pas loin!",
             "Il a triché t'inquiète",
             "Mais je me fait big gank là c'est quoi ça !",
             "Blammez les JOUEURS pas le jeu...",
-            "La prochaine fois c'est la bonne"
+            "La prochaine fois c'est la bonne",
+            "En vrai, dans la vrai vie il te bat pas t'inquiète",
+            "T'est meilleur en partant de la fin, ça va ^^'"
         };
     }
 
@@ -993,11 +833,6 @@ void ClientUI::drawEndScreen(ImDrawList* draw_list, ImVec2 min, ImVec2 max, bool
             IM_COL32(this->getColor().r, this->getColor().g, this->getColor().b, 255),
             title
         );
-    }
-
-    // PLAYER INFO
-    {
-        // TODO ?
     }
 
     // RANDOM PRAISE

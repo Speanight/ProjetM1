@@ -207,10 +207,9 @@ void ServerUI::draw() {
                 ImGui::EndTable();
             }
         } else if (selectedGraph == 1) {
-            ImGui::Text("Server Game");
+            drawGame();
             // TODO : make the game being draw using the server remaining datas
             // Game zone
-
 
         } else if (selectedGraph == 2) {
             console.setPause(pauseConsole);
@@ -222,4 +221,86 @@ void ServerUI::draw() {
     ImGui::EndTable();
 
     ImGui::EndChild();
+}
+
+// ============= GRAPH 2 =============
+/**
+ * Set the player on the database of the serverUI (copy)
+ * @param id        : port of the player to find it in the player list
+ * @param player    : data of the player [color, position, weapon ...]
+ */
+void ServerUI::setPlayer(unsigned short id, Player player) {
+    clients[id] = player;
+}
+
+/**
+ * Update the client data based on the actual state contained in the server
+ * @param id    : port of the player used as an ID
+ * @param s     : state of the player in the server
+ */
+void ServerUI::updateClient(unsigned short id, State s) {
+    auto it = clients.find(id);
+    if (it == clients.end()) return; // security
+
+    Player& player = it->second;
+
+    player.setPosition(s.getPosition());
+    player.setRadius(s.getRadius());
+    player.setIsAttacking(s.getAttack());
+    player.setPoint(s.getPoint());
+
+    player.getWpn().applyID(s.getWpn().getId());
+}
+
+/**
+ * Get the mapID and set it
+ * @param mapID : id of the map to find it in the GLOBAL_MAP_TEXTURES
+ */
+void ServerUI::setMapID(int mapID) {
+    this->mapID = mapID;
+}
+
+/**
+ * Draw the graph (game area on the server)
+ */
+void ServerUI::drawGame() {
+    ImVec2 avail = ImGui::GetContentRegionAvail();
+
+    float size = std::min(avail.x, avail.y);
+    size = std::max(size, 200.f); // MINIMUM GAME SIZE
+
+
+    float offsetX = (avail.x - size) * 0.5f;
+    ImGui::SetCursorPosX(ImGui::GetCursorPosX() + offsetX);
+
+    ImGui::BeginChild("##game", ImVec2(size, size), true);
+
+    ImVec2 childMin = ImGui::GetWindowPos();
+    ImVec2 childMax = {
+        childMin.x + size,
+        childMin.y + size
+    };
+    // DRAW
+    ImDrawList* draw_list = ImGui::GetWindowDrawList();
+    // drawErrorScreen(draw_list, childMin, childMax);
+    if (!clients.empty()) {
+        auto it = clients.begin();
+
+        Player player = it->second;
+
+        std::map<std::string, Player> opponents;
+        ++it;
+
+        for (; it != clients.end(); ++it) {
+            const Player& p = it->second;
+
+            std::string name = p.getName();
+            opponents[name] = p;
+        }
+
+        drawFightingScreen(draw_list, player, opponents, childMin, childMax, mapID);
+    }
+
+    ImGui::EndChild();
+
 }

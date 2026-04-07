@@ -13,11 +13,15 @@
 #include <unordered_map>
 #include <variant>
 #include <SFML/Window/Keyboard.hpp>
+#include <SFML/Graphics/Texture.hpp>
+#include <iostream>
+
 
 extern unsigned short tickrate;
 extern unsigned short clientRefreshRate;
 extern uint32_t packetID;
 extern std::mutex m;
+extern std::vector<sf::Texture> GLOBAL_MAP_TEXTURES;
 
 namespace Const {
     static const std::string SERVER_IP = "127.0.0.1";
@@ -226,5 +230,6 @@ namespace Utils {
 
 sf::Color convertImUToSfColor(ImU32 im_color);
 uint32_t getPacketId();
+void loadGlobalMaps();
 
 #endif
