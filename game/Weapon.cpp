@@ -25,7 +25,6 @@ Weapon::Weapon(const Weapon& other)
 }
 
 // ===== GETTERS =====
-
 short Weapon::getId() const {
     return w_id;
 }
@@ -63,6 +62,16 @@ float Weapon::getTransform() const {
 }
 
 // ===== INTERNAL FUNCTION =====
+/**
+ * adapt the weapon depending on the id we give to it, that way we only have to know the Weapon ID to get all the datas about it (make the weapon changement and selection easier)
+ * [0] shield
+ * [1-3] knives (triangle weapon)
+ * [4-5] sticks (rectagle weapon)
+ * [6-8] rocks (circle weapon)
+ * [10-12] special weapons (any)
+ * default => return to weapon 1 (triangle)
+ * @param id    : int that goes from 0 to 12 to inform the weapon the user have
+ */
 void Weapon::applyID(short id) {
     w_id = id;
     switch (id) {
@@ -215,7 +224,7 @@ void Weapon::applyID(short id) {
             w_id = 1;
             w_height = 16.f;
             w_width = 24.f;
-            w_type = Weapons::RECTANGLE;
+            w_type = Weapons::TRIANGLE;
             w_atk_speed = 70.f;
             w_rld = 200.f;
             w_range = 15.f;

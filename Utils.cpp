@@ -1,5 +1,10 @@
 #include "Utils.hpp"
 
+/**
+ * Transform the colors from ImU32 colors (most used on ImgUI) to rgb list (most used for SFML conversation with the server)
+ * @param im_color  : color system for ImGui
+ * @return          : list of RGBA
+ */
 sf::Color convertImUToSfColor(ImU32 im_color) {
     uint8_t r = (im_color >> 0) & 0xFF;
     uint8_t g = (im_color >> 8) & 0xFF;
