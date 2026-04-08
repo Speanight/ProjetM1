@@ -59,6 +59,11 @@ void Console::addPacket(uint32_t id, short type, unsigned short client, int time
     m.unlock();
 }
 
+void Console::refreshConsole() {
+    clients.clear();
+    packets.clear();
+}
+
 
 void Console::draw() {
     static ImPlotSpec spec(ImPlotProp_Marker, ImPlotMarker_Auto);

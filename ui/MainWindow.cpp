@@ -22,14 +22,21 @@ MainWindow::~MainWindow() {
     ImGui::SFML::Shutdown();
     ImPlot::DestroyContext();
     ImGui::DestroyContext();
-    ImGui::SFML::Shutdown();
+    // ImGui::SFML::Shutdown();
 }
 
+/**
+ * Add clients in the mainWindow database so it know what to print
+ * @param client    : ClientUI element that contain the data to print
+ */
 void MainWindow::addClient(ClientUI* client) {
     clients.push_back(client);
     client->init();
 }
 
+/**
+ * Draw the main area with the game and the server zones.
+ */
 void MainWindow::drawGame() {
     // SIZE CONFIGURATION
     ImVec2 avail = ImGui::GetContentRegionAvail();
@@ -108,7 +115,6 @@ void MainWindow::drawGame() {
         server.draw();
         ImGui::EndChild();
     }
-    ImGui::End();
 }
 
 /**
@@ -266,25 +272,97 @@ void MainWindow::drawTitlescreen() {
 
         ImGui::EndChild();
     }
-
-    ImGui::End();
 }
 
-void MainWindow::drawPlayerSelect() {
-//    int players = 2;
-//
-//    ImGui::SliderInt("How many players will play?", &players, 0, Const::AMT_PLAYERS_MAX);
-//    players = std::max(std::min(0, players), Const::AMT_PLAYERS_MAX);
-//
-//    ImGui::Columns(players);
-//    for (int i = 0; i <= players; i++) {
-//         // TODO: Selection personnages, manettes / claviers, ...
-//    }
+/**
+ * Pop up that ask the user if he want to close the window, going back to the selection of game mode or going back on the game (can be used as a 'pause' button)
+ */
+void MainWindow::drawConfirmClose() {
+    ImVec2 avail = ImGui::GetContentRegionAvail();
+    ImDrawList* draw_list = ImGui::GetWindowDrawList();
+    ImVec2 min = ImGui::GetWindowPos();
+    ImVec2 max = ImVec2(min.x + avail.x, min.y + avail.y);
+    draw_list->AddRectFilled(min, max, IM_COL32(20, 20, 20, 240));
+
+    float titleHeight = avail.y * 0.4f;
+    float buttonZoneHeight = avail.y * 0.6f;
+
+    // TITLE
+    ImGui::BeginChild("TitleZone", ImVec2(0, titleHeight), false);
+    {
+        float fontSize = std::max(avail.x * 0.05f, 30.0f);
+        ImGui::SetWindowFontScale(fontSize / ImGui::GetFontSize());
+
+        const char* title = "Are you sure you want to quit ?";
+        ImVec2 textSize = ImGui::CalcTextSize(title);
+
+        ImGui::SetCursorPosX((avail.x - textSize.x) * 0.5f);
+        ImGui::SetCursorPosY((titleHeight - textSize.y) * 0.5f);
+
+        ImGui::Text("%s", title);
+
+        ImGui::SetWindowFontScale(1.0f);
+    }
+    ImGui::EndChild();
+
+    // BUTTONS
+    ImGui::BeginChild("BottomZone", ImVec2(0, buttonZoneHeight), false);
+    {
+        float totalWidth = ImGui::GetContentRegionAvail().x;
+        float gap = 20.0f;
+
+        float buttonWidth = (totalWidth - 2 * gap) / 3.0f;
+        float buttonHeight = 60.0f;
+
+        float startX = (totalWidth - (3 * buttonWidth + 2 * gap)) * 0.5f;
+        float y = (buttonZoneHeight - buttonHeight) * 0.5f;
+
+        ImGui::SetCursorPos(ImVec2(startX, y));
+
+        // CANCEL
+        {
+            if (ImGui::Button("Cancel", ImVec2(buttonWidth, buttonHeight))) {
+                screen = previousScreen;
+            }
+        }
+
+        ImGui::SameLine(0, gap);
+
+        // RETURN MENU
+        {
+            if (ImGui::Button("Return Menu", ImVec2(buttonWidth, buttonHeight))) {
+                server.refreshServer();
+                clients.clear();
+                screen = Screens::TITLE_SCREEN;
+            }
+        }
+
+        ImGui::SameLine(0, gap);
+
+        // QUIT
+        {
+            ImGui::PushStyleColor(ImGuiCol_Button,        IM_COL32(150, 0, 0, 255));
+            ImGui::PushStyleColor(ImGuiCol_ButtonHovered, IM_COL32(200, 50, 50, 255));
+            ImGui::PushStyleColor(ImGuiCol_ButtonActive,  IM_COL32(120, 0, 0, 255));
+
+            if (ImGui::Button("QUIT", ImVec2(buttonWidth, buttonHeight))) {
+                window->close();
+            }
+
+            ImGui::PopStyleColor(3);
+        }
+
+    }
+    ImGui::EndChild();
 }
 
 void MainWindow::loop() {
-    sf::RenderWindow window(sf::VideoMode({1280, 880}), "Projet M1");
-    window.setPosition({0,0});
+    window = std::make_unique<sf::RenderWindow>(
+        sf::VideoMode({1280, 880}),
+        "Projet M1"
+    );
+
+    window->setPosition({0,0});
 
     // check imgui OK
     IMGUI_CHECKVERSION();
@@ -292,7 +370,7 @@ void MainWindow::loop() {
     ImPlot::CreateContext();
     ImGui::StyleColorsDark();
 
-    if (!ImGui::SFML::Init(window)) {
+    if (!ImGui::SFML::Init(*window)) {
         return;
         // TODO: Error handler
     }
@@ -301,28 +379,35 @@ void MainWindow::loop() {
     sf::Time delta;
 
     // thread of window
-    while (window.isOpen()) {
+    while (window->isOpen()) {
         delta = deltaClock.restart();
         // Closing window
-        while (auto event = window.pollEvent()) {
-            ImGui::SFML::ProcessEvent(window, *event);
-            if (event->is<sf::Event::Closed>())
-                window.close();
+        while (auto event = window->pollEvent()) {
+            ImGui::SFML::ProcessEvent(*window, *event);
+            if (event->is<sf::Event::Closed>()) {
+                if(screen==Screens::CONFIRM_CLOSE) {
+                    window->close();
+                }
+                else {
+                    previousScreen = screen;
+                    screen = Screens::CONFIRM_CLOSE;
+                }
+            }
         }
 
         ImGuiIO& io = ImGui::GetIO();
         io.DeltaTime = deltaClock.restart().asSeconds();
 
-        auto size = window.getSize();
+        auto size = window->getSize();
         io.DisplaySize = ImVec2((float)size.x, (float)size.y);
 
-        auto mouse = sf::Mouse::getPosition(window);
+        auto mouse = sf::Mouse::getPosition(*window);
         io.MousePos = ImVec2((float)mouse.x, (float)mouse.y);
         io.MouseDown[0] = sf::Mouse::isButtonPressed(sf::Mouse::Button::Left);
 
-        ImGui::SFML::Update(window, delta);
+        ImGui::SFML::Update(*window, delta);
 
-        window.clear();
+        window->clear();
 
         ImGui::SetNextWindowPos(ImVec2(0, 0));
 
@@ -335,22 +420,38 @@ void MainWindow::loop() {
                      ImGuiWindowFlags_NoTitleBar);
 
         draw(screen);
+        ImGui::End();
 
         glClearColor(0.15f, 0.15f, 0.15f, 1.f);
         glClear(GL_COLOR_BUFFER_BIT);
 
-        window.setView(window.getDefaultView());
+        window->setView(window->getDefaultView());
 
-        ImGui::SFML::Render(window);
-        window.display();
+        ImGui::SFML::Render(*window);
+        window->display();
     }
 
 }
 
 void MainWindow::draw(short screen) {
-    if (screen == Screens::TITLE_SCREEN) {drawTitlescreen();}
-    if (screen == Screens::PLAYER_SELECT) {drawPlayerSelect();}
-    if (screen == Screens::GAME) {drawGame();}
+    switch (screen) {
+        case Screens::TITLE_SCREEN  : {
+            drawTitlescreen();
+            break;
+        }
+        case Screens::CONFIRM_CLOSE : {
+            drawConfirmClose();
+            break;
+        }
+        case Screens::GAME_WINDOW   : {
+            drawGame();
+            break;
+        }
+        default                     : {
+            drawTitlescreen();
+            break;
+        }
+    }
 }
 
 /**
@@ -393,7 +494,7 @@ void MainWindow::demoSetup() {
     this->server.setMaxPlayers(2);
     this->server.setDemoMode(true);
 
-    screen = Screens::GAME;
+    screen = Screens::GAME_WINDOW;
 }
 
 /**
@@ -425,5 +526,5 @@ void MainWindow::gameSetup(int nbPlayers) {
     }
     this->server.setMaxPlayers(nbPlayers);
     this->server.setDemoMode(false);
-    screen = Screens::GAME;
+    screen = Screens::GAME_WINDOW;
 }

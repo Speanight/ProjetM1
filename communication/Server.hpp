@@ -51,6 +51,7 @@ public:
     void setDemoMode(bool demoMode);
 
     // Functions
+    void refreshServer();
     int addClient(const std::string& name, unsigned short port, sf::Color color, short weapon);
     [[noreturn]] void sendLoop();
     [[noreturn]] void receiveLoop();
