@@ -279,7 +279,7 @@ int Server::addClient(const std::string& name, unsigned short port, sf::Color co
                                             semaphore.release();
 
                                             if(demoMode) {
-                                                int pts = currentState[player.getName()].getPoint() + 1;
+                                                int pts = currentState[player.getName()].getPoint() + 10;
                                                 currentState[player.getName()].setPoint(pts);
                                                 playerState.setPoint(pts);
                                             }
