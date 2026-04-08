@@ -90,8 +90,9 @@ void State::setAttackTimestamp(int timestamp) {
 }
 
 void State::addInputs(int timestamp, Input inputs) {
+    m.lock();
     if (!this->inputs.empty()) {
-        if (this->inputs.rend()->second != inputs) {
+        if (std::prev(this->inputs.end())->second != inputs) {
             this->inputs.insert(this->inputs.end(), {timestamp, inputs});
         }
     }
@@ -105,6 +106,7 @@ void State::addInputs(int timestamp, Input inputs) {
     if (timestamp > this->timestamp) {
         this->timestamp = timestamp;
     }
+    m.unlock();
 }
 
 Input State::getPercentInput(double percent) {

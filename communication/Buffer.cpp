@@ -32,7 +32,7 @@ void Buffer::setNextPlayerState(const Player& player, State state) {
     nextState[player.getName()] = std::move(state);
 }
 
-void Buffer::updateNextPlayerState(const Player& player, State state) {
+void Buffer::updateNextPlayerState(const Player& player, const State& state) {
     if (auto search = nextState.find(player.getName()); search != nextState.end()) {
         search->second.setPosition(state.getPosition());
         search->second.setLastInputsId(state.getLastInputsId());
@@ -43,8 +43,11 @@ void Buffer::updateNextPlayerState(const Player& player, State state) {
         search->second.setAttackTimestamp(state.getAttackTimestamp());
         search->second.setAttack(state.getAttack());
 
+
         for (auto& [t, i] : state.getInputs()) {
-            search->second.addInputs(t, i);
+            if (i.getId() != 0) {
+                search->second.addInputs(t, i);
+            }
         }
     }
     else {
@@ -82,7 +85,23 @@ void Buffer::push(int clockState) {
     }
     currentTick = clockState;
     currentState = nextState;
-    nextState.clear();
+
+    // Keep only the last input for nextState:
+    for (auto &[p, s] : currentState) {
+        // TODO: Fix state containing input of value = 0 (or something else?), causing prediction to never rollback if needed.
+        if (!s.getInputs().empty()) {
+            // Get last input
+            auto val = std::prev(s.getInputs().end());
+            int t = val->first;
+            Input i = val->second;
+
+            if (i.getId() != 0) {
+                nextState[p].flushInputs();
+                nextState[p].addInputs(t, i);
+            }
+        }
+    }
+
     m.unlock();
 }
 

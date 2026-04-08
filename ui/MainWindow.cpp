@@ -16,6 +16,7 @@ MainWindow::MainWindow(sf::Clock clock, bool quickLaunch) : console(), server(co
 //}
 
 MainWindow::~MainWindow() {
+    std::cout << "Destroying main window..." << std::endl;
     if (thread.joinable()) {
         thread.join();
     }

@@ -142,7 +142,7 @@ public:
 
     // Compensations
     void compensationInterpolation();
-    void compensationPrediction(Input inputs);
+    void compensationPrediction(Input inputs, int now);
     void compensationReconciliation();
 };
 

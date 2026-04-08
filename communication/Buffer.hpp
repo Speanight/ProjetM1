@@ -36,7 +36,7 @@ public:
     State getNextState(const Player& player);
     State getLastState(const Player& player);
     void setNextPlayerState(const Player& player, State state);
-    void updateNextPlayerState(const Player& player, State state);
+    void updateNextPlayerState(const Player& player, const State& state);
     void push(int clockState);
     void addClient(Player p);
     void addInputsToLastState(const Player& player, int timestamp, Input inputs);

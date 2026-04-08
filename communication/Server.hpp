@@ -56,6 +56,8 @@ public:
     void sendLoop();
     void receiveLoop();
     int shutdown();
+
+    void handleInput(const Player& player, Input inputs, int t, int dt);
 };
 
 

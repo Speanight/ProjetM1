@@ -278,6 +278,7 @@ void Client::update() {
         while (!loop) {sf::sleep(sf::Time());} // Pause if needed
         // ==========| INPUTS |========== //
         Input input = this->getInputs(mode_enable, attack_enable);
+        int t = clock.getElapsedTime().asMilliseconds();
         mode_enable = input.getModeEnable();
         attack_enable = input.getAttackEnable();
 
@@ -287,7 +288,7 @@ void Client::update() {
             if (input.getRotate() == -999) { // If user on controller and not moving stick:
                 input.setRotate(player.getRadius()); // Get last radius pos.
             }
-            State state(clock.getElapsedTime().asMilliseconds(), getPlayer().getPosition(), input, radius, getPlayer().getIsAttacking(), getPlayer().getWpn().getId());
+            State state(t, getPlayer().getPosition(), input, radius, getPlayer().getIsAttacking(), getPlayer().getWpn().getId());
             input.setId(lastInputId);
             inputsBuffer[lastInputId] = state;
             lastInputId++;
@@ -299,11 +300,20 @@ void Client::update() {
         m_inputs.lock();
         if (!inputs.empty()) {
             if (input != std::prev(inputs.end())->second) {
-                inputs.insert({clock.getElapsedTime().asMilliseconds(), input});
+                inputs.insert({t, input});
+                if (getName() == "Client A") {
+                    std::cout << "[CLIENT]: Input #" << input.getId() << " plays @" << t << std::endl;
+                }
+            }
+            else {
+                lastInputId--;
             }
         }
         else {
-            inputs.insert({clock.getElapsedTime().asMilliseconds(), input});
+            inputs.insert({t, input});
+            if (getName() == "Client A" and input.getMovementX() != 0 and input.getMovementY() != 0) {
+                std::cout << "[CLIENT]: Input #" << input.getId() << " plays @" << t << std::endl;
+            }
         }
         m_inputs.unlock();
 
@@ -314,7 +324,7 @@ void Client::update() {
             compensationInterpolation();
         }
         if (getCompensationEnabled(Compensation::PREDICTION)) {
-            compensationPrediction(input);
+            compensationPrediction(input, t);
         }
         if (getCompensationEnabled(Compensation::RECONCILIATION)) {
             compensationReconciliation();
@@ -806,9 +816,7 @@ void Client::compensationInterpolation() {
  * @attention Depending of ping, a "rollback" might appear when enabling Prediction without Reconciliation. This is
  * expected, and caused by the server still having the "last word" regarding the client's position.
  */
-void Client::compensationPrediction(Input inputs) {
-    int now = clock.getElapsedTime().asMilliseconds();
-
+void Client::compensationPrediction(Input inputs, int now) {
     Position pos = getPlayer().getPosition();
     pos.move(inputs.getMovementX(), inputs.getMovementY(), now-lastUpdate);
     player.setPosition(pos);

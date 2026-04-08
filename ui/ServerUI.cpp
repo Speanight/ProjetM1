@@ -57,6 +57,7 @@ void ServerUI::addToGraph(int timestamp, const std::string& from, const std::str
         int toPush = (timestamp - lastTimestamp) / Const::GRAPH_DISPLAY_MS; // amt. of values to "push"
 
         // If we're in to the next displayed bar:
+        m.lock();
         for (auto & [f, t] : data) {
                 data[f].insert(data[f].end(), toPush, FLT_EPSILON);
 
@@ -64,9 +65,10 @@ void ServerUI::addToGraph(int timestamp, const std::string& from, const std::str
                 data[f].erase(data[f].begin(), data[f].begin() + toPush + 1);
             }
         }
-
         // Finally, we insert the value in last place:
         data[from].push_back(100.0f);
+        m.unlock();
+
         lastTimestamp = timestamp;
     }
 }
