@@ -14,8 +14,8 @@ int main() {
     XInitThreads(); // Needed for multi-threading.
     sf::Clock clock;
 
-    tickrate = 10;
-    clientRefreshRate = 50;
+    tickrate = 5;
+    clientRefreshRate = 10;
     packetID = 0;
 
     // Define maps to avoid drawing them constantly:

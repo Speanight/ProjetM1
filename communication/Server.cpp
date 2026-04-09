@@ -182,7 +182,6 @@ void Server::receiveLoop() {
                     }
 
                     case Pkt::INPUTS: {
-                        // TODO: Fix error margin. Check clocks for that eventually(?)
                         if (clients[port].getStatus() != Status::DEAD) {
                             clients[port].setStatus(Status::DONE);
                         }
@@ -202,43 +201,32 @@ void Server::receiveLoop() {
                         semaphore.release();
                         playerState.setTimestamp(time);
 
-                        // TODO: Fix - this executes every time server receives data from client, AKA inputs repeat themselves (tickrate client / tickrate server) times!
-                        if (!playerState.getInputs().empty()) {
-                            auto initState = std::prev(playerState.getInputs().end());
-                            dt = timestampInput - initState->first;
-                            inputs = initState->second;
-                            if (clients[port].getName() == "Client A" and inputs.getMovementX() != 0 and inputs.getMovementY() != 0) {
-                                std::cout << "[R] Input #" << inputs.getId() << " plays for " << dt << "(" << timestampInput
-                                          << " - " << initState->first << ")" << std::endl;
-                            }
-                            // Handle last input for remaining time:
-                            handleInput(player, inputs, initState->first, dt);
+                        if (player.getName() == "Client A") {
+                            std::cout << "S: Received inputs! Init. pos: " << playerState.getPosition() << std::endl;
                         }
 
                         while (packet >> inputs) {
                             amtInputs++;
                             if (!(packet >> dtInput)) {
-                                // TODO: Last input: push it in the next packet instead?
                                 dtInput = time + pings[player.getName()];
                             }
-                            else {
-//                            playerState.addInputs(timestampInput, inputs);
+                            // Get time elapsed since last packet from client. Used for consistency in speed and such.
+                            dt = std::min(dtInput - timestampInput - 1, 1000 / static_cast<int>(tickrate));
 
-                                // ====== POSITION ======
+                            handleInput(player, inputs, timestampInput, dt);
 
-                                // Get time elapsed since last packet from client. Used for consistency in speed and such.
-                                dt = std::min(dtInput - timestampInput, 1000 / static_cast<int>(tickrate));
-                                if (clients[port].getName() == "Client A") {
-                                    std::cout << "Input #" << inputs.getId() << " plays for " << dt << "(" << dtInput
-                                              << " - " << timestampInput << ")" << std::endl;
-                                }
-
-                                handleInput(player, inputs, timestampInput, dt);
+                            if (player.getName() == "Client A") {
+                                std::cout << "S: handled input #" << inputs.getId() << " for t=" << dt << "(" << dtInput << " - " << timestampInput << "): player is at: " << buffer.getNextState(player).getPosition() << std::endl;
                             }
+
                             buffer.addInputsToLastState(player, timestampInput, inputs);
 
                             timestampInput = dtInput; // "Refresh" for new inputs
                         }
+
+                        State s = buffer.getNextState(player);
+                        s.setTimestamp(time);
+                        buffer.setNextPlayerState(player, s);
 
                         // Get threads priority
                         semaphore.acquire();
@@ -397,6 +385,7 @@ void Server::handleInput(const Player& player, Input inputs, int t, int dt) {
             (player.getWpn().getAttackSpeed() + player.getWpn().getReload())) {
             playerState.setAttackTimestamp(clock.getElapsedTime().asMilliseconds());
         }
+        playerState.setTimestamp(t+dt);
         buffer.updateNextPlayerState(player, playerState);
         semaphore.release();
     }

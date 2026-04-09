@@ -289,33 +289,30 @@ void Client::update() {
                 input.setRotate(player.getRadius()); // Get last radius pos.
             }
             State state(t, getPlayer().getPosition(), input, radius, getPlayer().getIsAttacking(), getPlayer().getWpn().getId());
+
             input.setId(lastInputId);
-            inputsBuffer[lastInputId] = state;
             lastInputId++;
+
+            m_inputs.lock();
+            if (!inputs.empty()) {
+                if (input != std::prev(inputs.end())->second) {
+//                    inputsBuffer[lastInputId] = state;
+                    inputs.insert({t, input});
+                }
+                else {
+                    lastInputId--;
+                }
+            }
+            else {
+//                inputsBuffer[lastInputId] = state;
+                inputs.insert({t, input});
+            }
+            m_inputs.unlock();
         }
         else {
             lastInputId = 0;
             inputsBuffer.clear();
         }
-        m_inputs.lock();
-        if (!inputs.empty()) {
-            if (input != std::prev(inputs.end())->second) {
-                inputs.insert({t, input});
-                if (getName() == "Client A") {
-                    std::cout << "[CLIENT]: Input #" << input.getId() << " plays @" << t << std::endl;
-                }
-            }
-            else {
-                lastInputId--;
-            }
-        }
-        else {
-            inputs.insert({t, input});
-            if (getName() == "Client A" and input.getMovementX() != 0 and input.getMovementY() != 0) {
-                std::cout << "[CLIENT]: Input #" << input.getId() << " plays @" << t << std::endl;
-            }
-        }
-        m_inputs.unlock();
 
         // ==========| COMPENSATIONS (if needed) |========== //
         semaphore.acquire();
@@ -333,6 +330,11 @@ void Client::update() {
             inputsBuffer.clear();
         }
         State state(lastUpdate, getPosition(), input, getRadius(), getPlayer().getIsAttacking(), getPlayer().getWpn().getId());
+        if (getName() == "Client A") {
+            if (inputsBuffer[lastInputId].getPosition() == state.getPosition()) {
+                std::cout << "C: adding input #" << lastInputId << ": position = " << state.getPosition() << " @" << clock.getElapsedTime().asMilliseconds() << std::endl;
+            }
+        }
         inputsBuffer[lastInputId] = state; // We re-add the last input post-deletion, as it may be used for controller players. (R-stick)
         semaphore.release();
 
@@ -391,7 +393,9 @@ void Client::sendLoop() {
                 for (auto & [dt, input] : inputs) {
                     pkt.packet << int(dt) << input;
                 }
+                Input lastInput = std::prev(inputs.end())->second;
                 inputs.clear();
+                inputs.insert({pkt.timestamp.asMilliseconds(), lastInput});
                 m_inputs.unlock();
                 break;
             }
@@ -613,6 +617,9 @@ int Client::sendPacket(Input inputs) {
                                     m_states.unlock();
 
                                     if (name == this->getName()) {
+                                        if (getName() == "Client A") {
+                                            std::cout << "> received state from server: pos = " << state.getPosition() << " @" << state.getTimestamp() << " with last input: #" << state.getLastInputsId() << std::endl;
+                                        }
                                         this->bufferOnReceipt.setNextPlayerState(player, state);
                                         m_states.lock();
                                         State currState = bufferOnReceipt.getLastState(player);
@@ -718,12 +725,14 @@ Client::Client(const Client& other) : server(other.server), semaphore(1),
 }
 
 Client& Client::operator=(const Client& other) {
-    this->player.setName(other.player.getName());
-    this->player.setColor(other.player.getColor());
-    this->player.setPosition(other.player.getPosition());
-    this->player.setRadius(other.player.getRadius());
-    this->player.setWpn(other.player.getWpn().getId());
-    this->player.setWeapons(other.player.getWeapons());
+    if (this != &other) {
+        this->player.setName(other.player.getName());
+        this->player.setColor(other.player.getColor());
+        this->player.setPosition(other.player.getPosition());
+        this->player.setRadius(other.player.getRadius());
+        this->player.setWpn(other.player.getWpn().getId());
+        this->player.setWeapons(other.player.getWeapons());
+    }
 
     return *this;
 }
@@ -827,6 +836,10 @@ void Client::compensationPrediction(Input inputs, int now) {
     else {
         player.setRadius(getPlayer().getRadius() + inputs.getRotate() * Const::PLAYER_RADIUS_SPEED * (now - lastUpdate));
     }
+
+    State state(now, player.getPosition(), inputs, player.getRadius(), player.getIsAttacking(), player.getWpn().getId(), player.getPoint());
+
+    inputsBuffer[lastInputId] = state;
 }
 
 /**
@@ -846,13 +859,18 @@ void Client::compensationReconciliation() {
     m_states.unlock();
     unsigned int lastReceivedInputs = currentState.getLastInputsId();
 
-
     if (inputsBuffer.begin()->first <= lastReceivedInputs) {
+        std::cout << "|----------- RECONCILIATION ----------|" << std::endl;
+        std::cout << "last received inputs: " << lastReceivedInputs << std::endl;
+
         // If 1st element of buffer < last state received by server. (AKA if need to check for reconciliation)
         Position p = inputsBuffer[lastReceivedInputs].getPosition();
         Position q = currentState.getPosition();
-        ImVec2 diff = {p.getX() - q.getX(), p.getY() - q.getY()};
-        if (sqrt(pow(diff.x, 2) + pow(diff.y, 2)) > Const::PLAYER_SPEED * 20) { // If diff. of pos > eq. of 20ms of movement:
+
+       ImVec2 diff = {p.getX() - q.getX(), p.getY() - q.getY()};
+
+        if (sqrt(pow(diff.x, 2) + pow(diff.y, 2)) > Const::PLAYER_SPEED * 10) { // If diff. of pos > eq. of 20ms of movement:
+            std::cout << "Diff of: " << diff.x << "; " << diff.y << std::endl;
             Position pos = getPosition();
             pos.setX(pos.getX() - diff.x);
             pos.setY(pos.getY() - diff.y);
@@ -875,7 +893,7 @@ void Client::compensationReconciliation() {
 
         // Delete all frames up to this one (as it has already been processed)
         auto it = inputsBuffer.begin();
-        while (it != inputsBuffer.end() and it->first <= lastReceivedInputs) {
+        while (it != inputsBuffer.end() and it->first < lastReceivedInputs) {
             ++it;
         }
         inputsBuffer.erase(inputsBuffer.begin(), ++it);

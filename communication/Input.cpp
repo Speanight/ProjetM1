@@ -159,6 +159,20 @@ bool Input::operator==(const Input& other) const {
     this->getAttack() == other.getAttack();
 }
 
+Input& Input::operator=(const Input& other) {
+    if (this != &other) {
+        setId(other.getId());
+        setMovementX(other.getMovementX());
+        setMovementY(other.getMovementY());
+        setRotate(other.getRotate());
+        setChangeWpn(other.getChangeWpn());
+        setAttack(other.getAttack());
+        setOnController(other.getOnController());
+        setModeEnable(other.getModeEnable());
+    }
+}
+
+
 std::ostream &operator<<(std::ostream& os, const Input& inputs) {
     return os << "#" << inputs.getId() << " x=" << inputs.getMovementX() << "; y=" << inputs.getMovementY() << " ATK=" << inputs.getAttack() << " " << inputs.getRotate() << "°";
 }
