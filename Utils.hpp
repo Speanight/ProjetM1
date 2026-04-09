@@ -197,17 +197,26 @@ namespace Status {
     static constexpr short END_R = 6;
 }
 
+/**
+ * different scren that can be showed in general or specifically in the player game
+ * [0]      : error screen that is showed when a problem occurs
+ * [1-9]    : screens dedicated for the mainWindow
+ * [10-19]  : screens dedicated for the game area
+ */
 namespace Screens {
     static constexpr short ERROR_SCREEN         = 0;
 
+    // General UI to print
     static constexpr short TITLE_SCREEN         = 1;
+    static constexpr short GAME_WINDOW          = 2;
+    static constexpr short CONFIRM_CLOSE        = 3;
 
     // Client UI to print
-    static constexpr short PLAYER_SELECT        = 2;
-    static constexpr short LOADING_SCREEN       = 3;
-    static constexpr short GAME                 = 4;
-    static constexpr short GAME_WIN             = 5;
-    static constexpr short GAME_LOSE            = 6;
+    static constexpr short PLAYER_SELECT        = 10;
+    static constexpr short LOADING_SCREEN       = 11;
+    static constexpr short GAME                 = 12;
+    static constexpr short GAME_WIN             = 13;
+    static constexpr short GAME_LOSE            = 14;
 
 
 }

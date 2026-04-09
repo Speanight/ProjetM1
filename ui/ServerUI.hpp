@@ -44,6 +44,7 @@ protected:
 
 public:
     ServerUI(Console& console);
+    void refreshServerUI();
 
     // Graph 1
     void addLine(std::string text, sf::Color color = sf::Color::White);

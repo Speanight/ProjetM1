@@ -140,17 +140,9 @@ void drawFightingScreen(ImDrawList* draw_list, Player player, std::map<std::stri
     }
 }
 void drawPlayer(ImDrawList* draw_list, Player player, ImVec2 min, ImVec2 max) {
-    std::string points;
-    if(player.getStatus() == Status::DEAD || player.getPoint() == -1) {
-        player.setColor(sf::Color::White);                // TODO : handle the death differently ?
-        points = "DEAD";
-    }
-    else {
-        points = std::to_string(player.getPoint());
-    }
     float window_size = max.x - min.x;
-
     float scale = window_size / Const::MAP_SIZE_X;
+    ImFont* font = ImGui::GetFont();
 
     ImVec2 pl_position = {
         player.getPosition().getX() * scale + min.x,
@@ -160,39 +152,97 @@ void drawPlayer(ImDrawList* draw_list, Player player, ImVec2 min, ImVec2 max) {
     float player_radius = Const::PLAYER_SIZE * scale;
 
     // ========= PLAYER =========
-    draw_list->AddCircleFilled(
-        pl_position,
-        player_radius,
-        IM_COL32(player.getColor().r, player.getColor().g, player.getColor().b, player.getColor().a)
-    );
+    {
+        draw_list->AddCircleFilled(
+            pl_position,
+            player_radius,
+            IM_COL32(player.getColor().r, player.getColor().g, player.getColor().b, player.getColor().a)
+        );
 
-    drawWeapon(player, draw_list, pl_position, scale);
+        drawWeapon(player, draw_list, pl_position, scale);
+    }
 
-    // ========= POINT =========
+    // ========= HEALTH BAR =========
+    int hp = player.getPoint();
+    {
+        float barWidth  = player_radius * 1.2f;
+        float barHeight = player_radius * 0.5f;
 
-    float font_size = 16.0f * scale;
+        ImVec2 barPos = {
+            pl_position.x - barWidth * 0.5f,
+            pl_position.y - barHeight * 0.5f
+        };
 
-    ImFont* font = ImGui::GetFont();
+        if(hp==-1) {
+        }
+        else {
+            hp = hp%101;
+            float hpPercent = hp / 100.0f;
 
-    ImVec2 text_size = font->CalcTextSizeA(
-        font_size,
-        FLT_MAX,
-        0.0f,
-        points.c_str()
-    );
+            draw_list->AddRectFilled(
+                barPos,
+                ImVec2(barPos.x + barWidth, barPos.y + barHeight),
+                IM_COL32(80, 80, 80, 200)
+            );
 
-    ImVec2 text_pos = {
-        pl_position.x - text_size.x * 0.5f,
-        pl_position.y - text_size.y * 0.5f
-    };
+            draw_list->AddRectFilled(
+                barPos,
+                ImVec2(barPos.x + barWidth, barPos.y + barHeight),
+                IM_COL32(180, 0, 0, 200)
+            );
 
-    draw_list->AddText(
-        font,
-        font_size,
-        text_pos,
-        IM_COL32(0, 0, 0, 255),
-        points.c_str()
-    );
+            draw_list->AddRectFilled(
+                barPos,
+                ImVec2(barPos.x + barWidth * hpPercent, barPos.y + barHeight),
+                IM_COL32(0, 200, 0, 220)
+            );
+
+            draw_list->AddRect(
+                barPos,
+                ImVec2(barPos.x + barWidth, barPos.y + barHeight),
+                IM_COL32(0, 0, 0, 255)
+            );
+        }
+    }
+
+    // ========= NAME =========
+    {
+        std::string name;
+        sf::Color color;
+        if(hp==-1) {
+            name = "DEAD";
+            color = sf::Color::Red;
+        }
+        else {
+            name = player.getName();
+            if(name != "Client A" && name != "Client B") {
+                name = name.substr(0, name.size() - 5); // suppress the port (not esthetic)
+            }
+            color = sf::Color::White;
+        }
+
+        float name_font_size = player_radius;
+
+        ImVec2 name_size = font->CalcTextSizeA(
+            name_font_size,
+            FLT_MAX,
+            0.0f,
+            name.c_str()
+        );
+
+        ImVec2 name_pos = {
+            pl_position.x - name_size.x * 0.5f,
+            pl_position.y - player_radius - name_size.y - (player_radius * 0.2f)
+        };
+
+        draw_list->AddText(
+            font,
+            name_font_size,
+            name_pos,
+            IM_COL32(color.r, color.g, color.b, color.a),
+            name.c_str()
+        );
+    }
 }
 void drawWeapon(Player player, ImDrawList* draw_list, ImVec2 pl_position, float scale) {
     float player_radius = Const::PLAYER_SIZE * scale;
@@ -403,7 +453,7 @@ short resolveAttacks(State attacker, State opponent) {
 
     switch (attacker.getWpn().getType()) {
         case Weapons::TRIANGLE : {
-            ImVec2 start = {
+            ImVec2 player = {
                 attacker.getPosition().getX(),
                 attacker.getPosition().getY()
             };
@@ -413,172 +463,146 @@ short resolveAttacks(State attacker, State opponent) {
                 opponent.getPosition().getY()
             };
 
-            float attackReach =
-                PLAYER_SIZE +
-                attacker.getWpn().getHeight() +
-                attacker.getWpn().getRange();
+            // ===== DISTANCE PLAYER -> ENEMY =====
+            float a = std::sqrt(
+                (enemy.x - player.x)*(enemy.x - player.x) +
+                (enemy.y - player.y)*(enemy.y - player.y)
+            );
 
-            // weapon direction
-            ImVec2 attackDir = dir;
-
+            // ===== ANGLE =====
             ImVec2 toEnemy = {
-                enemy.x - start.x,
-                enemy.y - start.y
+                enemy.x - player.x,
+                enemy.y - player.y
             };
 
             float dist = std::sqrt(toEnemy.x*toEnemy.x + toEnemy.y*toEnemy.y);
-            if (dist == 0) return -1;
-
-            toEnemy.x /= dist;
-            toEnemy.y /= dist;
-
-            // ===== 1. CHECK DIRECTION =====
-            float dot = attackDir.x * toEnemy.x + attackDir.y * toEnemy.y;
-
-            if (dot < 0.8f) // touch direction tolerance
-                return -1;
-
-            ImVec2 end = {
-                start.x + attackDir.x * attackReach,
-                start.y + attackDir.y * attackReach
-            };
-
-            ImVec2 AB = { end.x - start.x, end.y - start.y };
-            ImVec2 AE = { enemy.x - start.x, enemy.y - start.y };
-
-            float ab2 = AB.x*AB.x + AB.y*AB.y;
-
-            float t = (AE.x*AB.x + AE.y*AB.y) / ab2;
-
-            if (t < 0.0f || t > 1.0f)
-                return -1;
-
-            ImVec2 closest = {
-                start.x + AB.x * t,
-                start.y + AB.y * t
-            };
-
-            float dx = closest.x - enemy.x;
-            float dy = closest.y - enemy.y;
-
-            float radius = PLAYER_SIZE * (1.0f + WEAPON_GRACE_PERCENT);
-
-            // ===== 3. DISTANCE =====
-            if (dx*dx + dy*dy > radius*radius)
-                return -1;
-
-            // ===== 4. SHIELD =====
-            if (opponent.getWpn().getId() == Weapons::SHIELD) {
-
-                float impactAngle = std::atan2(
-                    start.y - enemy.y,
-                    start.x - enemy.x
-                );
-
-                impactAngle = normalize(impactAngle);
-
-                float opponentAngle = normalize(opponent.getRadius());
-
-                float shieldStart = normalize(opponentAngle - 0.8f);
-                float shieldEnd   = normalize(opponentAngle + 0.8f);
-
-                bool blocked;
-                if (shieldStart < shieldEnd)
-                    blocked = (impactAngle >= shieldStart && impactAngle <= shieldEnd);
-                else
-                    blocked = (impactAngle >= shieldStart || impactAngle <= shieldEnd);
-
-                if (blocked)
-                    return 1;
-            }
-
-            return 0;
-        }
-        case Weapons::CIRCLE : {
-            ImVec2 start = {
-                attacker.getPosition().getX(),
-                attacker.getPosition().getY()
-            };
-
-            ImVec2 enemy = {
-                opponent.getPosition().getX(),
-                opponent.getPosition().getY()
-            };
-
-            // ===== 1. DIRECTION CHECK =====
-            ImVec2 toEnemy = {
-                enemy.x - start.x,
-                enemy.y - start.y
-            };
-
-            float dist = std::sqrt(toEnemy.x*toEnemy.x + toEnemy.y*toEnemy.y);
-            if (dist == 0) return -1;
-
             toEnemy.x /= dist;
             toEnemy.y /= dist;
 
             float dot = dir.x * toEnemy.x + dir.y * toEnemy.y;
 
-            if (dot < 0.8f) // weapon touch tolerance
+            if (dot > 1.0f) dot = 1.0f;
+            if (dot < -1.0f) dot = -1.0f;
+
+            float angle = std::acos(dot);
+            // checking if the angle is in the right plage of hit
+            if(angle > 0.8 || angle < -0.8) {
                 return -1;
-
-            // ===== 2. TRAJECTORY =====
-            float attackReach = 10000.0f; // all direction
-
-            ImVec2 end = {
-                start.x + dir.x * attackReach,
-                start.y + dir.y * attackReach
-            };
-
-            ImVec2 AB = { end.x - start.x, end.y - start.y };
-            ImVec2 AE = { enemy.x - start.x, enemy.y - start.y };
-
-            float ab2 = AB.x*AB.x + AB.y*AB.y;
-
-            float t = (AE.x*AB.x + AE.y*AB.y) / ab2;
-
-            if (t < 0.0f)
-                return -1;
-
-            ImVec2 closest = {
-                start.x + AB.x * t,
-                start.y + AB.y * t
-            };
-
-            float dx = closest.x - enemy.x;
-            float dy = closest.y - enemy.y;
-
-            float radius = PLAYER_SIZE * (1.0f + WEAPON_GRACE_PERCENT);
-
-            if (dx*dx + dy*dy > radius*radius)
-                return -1;
-
-            // ===== 3. SHIELD =====
-            if (opponent.getWpn().getId() == Weapons::SHIELD) {
-
-                float impactAngle = std::atan2(
-                    start.y - enemy.y,
-                    start.x - enemy.x
-                );
-
-                impactAngle = normalize(impactAngle);
-
-                float opponentAngle = normalize(opponent.getRadius());
-
-                float shieldStart = normalize(opponentAngle - 0.8f);
-                float shieldEnd   = normalize(opponentAngle + 0.8f);
-
-                bool blocked;
-                if (shieldStart < shieldEnd)
-                    blocked = (impactAngle >= shieldStart && impactAngle <= shieldEnd);
-                else
-                    blocked = (impactAngle >= shieldStart || impactAngle <= shieldEnd);
-
-                if (blocked)
-                    return 1;
             }
 
-            return 0;
+            // ===== HAUTEUR =====
+            float h = a * std::sin(angle);
+
+            float enemyRadius = PLAYER_SIZE * (1.0f + WEAPON_GRACE_PERCENT);
+
+            // ===== CHECK HIT =====
+            if (h <= enemyRadius) {
+                // ===== SHIELD =====
+                if (opponent.getWpn().getId() == Weapons::SHIELD) {
+
+                    float attackAngle = std::atan2(
+                        player.y - enemy.y,
+                        player.x - enemy.x
+                    );
+
+                    attackAngle = normalize(attackAngle);
+
+                    float opponentAngle = normalize(opponent.getRadius());
+
+                    float shieldStart = normalize(opponentAngle - 0.8f);
+                    float shieldEnd   = normalize(opponentAngle + 0.8f);
+
+                    bool blocked;
+                    if (shieldStart < shieldEnd)
+                        blocked = (attackAngle >= shieldStart && attackAngle <= shieldEnd);
+                    else
+                        blocked = (attackAngle >= shieldStart || attackAngle <= shieldEnd);
+
+                    if (blocked) {
+                        return 1;
+                    }
+                }
+
+                return 0;
+            }
+
+            return -1;
+        }
+        case Weapons::CIRCLE : {
+            ImVec2 player = {
+                attacker.getPosition().getX(),
+                attacker.getPosition().getY()
+            };
+
+            ImVec2 enemy = {
+                opponent.getPosition().getX(),
+                opponent.getPosition().getY()
+            };
+
+            // ===== DISTANCE PLAYER -> ENEMY =====
+            float a = std::sqrt(
+                (enemy.x - player.x)*(enemy.x - player.x) +
+                (enemy.y - player.y)*(enemy.y - player.y)
+            );
+
+            // ===== ANGLE =====
+            ImVec2 toEnemy = {
+                enemy.x - player.x,
+                enemy.y - player.y
+            };
+
+            float dist = std::sqrt(toEnemy.x*toEnemy.x + toEnemy.y*toEnemy.y);
+            toEnemy.x /= dist;
+            toEnemy.y /= dist;
+
+            float dot = dir.x * toEnemy.x + dir.y * toEnemy.y;
+
+            if (dot > 1.0f) dot = 1.0f;
+            if (dot < -1.0f) dot = -1.0f;
+
+            float angle = std::acos(dot);
+            // checking if the angle is in the right plage of hit
+            if(angle > 0.7 || angle < -0.7) {
+                return -1;
+            }
+
+            // ===== HAUTEUR =====
+            float h = a * std::sin(angle);
+
+            float enemyRadius = PLAYER_SIZE * (1.0f + WEAPON_GRACE_PERCENT);
+
+            // ===== CHECK HIT =====
+            if (h <= enemyRadius) {
+                // ===== SHIELD =====
+                if (opponent.getWpn().getId() == Weapons::SHIELD) {
+
+                    float attackAngle = std::atan2(
+                        player.y - enemy.y,
+                        player.x - enemy.x
+                    );
+
+                    attackAngle = normalize(attackAngle);
+
+                    float opponentAngle = normalize(opponent.getRadius());
+
+                    float shieldStart = normalize(opponentAngle - 0.8f);
+                    float shieldEnd   = normalize(opponentAngle + 0.8f);
+
+                    bool blocked;
+                    if (shieldStart < shieldEnd)
+                        blocked = (attackAngle >= shieldStart && attackAngle <= shieldEnd);
+                    else
+                        blocked = (attackAngle >= shieldStart || attackAngle <= shieldEnd);
+
+                    if (blocked) {
+                        return 1;
+                    }
+                }
+
+                return 0;
+            }
+
+            return -1;
         }
         case Weapons::RECTANGLE : {
             ImVec2 attackerPos = {

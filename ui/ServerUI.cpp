@@ -8,6 +8,18 @@ ServerUI::ServerUI(Console& console) : console(console) {
     lastTimestamp = 0;
 }
 
+void ServerUI::refreshServerUI() {
+    clients.clear();
+    lines.clear();
+    data.clear();
+    console.refreshConsole();
+
+    // resseting the server datas
+    std::vector<float> vec(Const::GRAPH_DISPLAY_VALUES, FLT_EPSILON);
+    data["Server"] = vec;
+}
+
+
 /**
  * Adds a line to the Server's console.
  *

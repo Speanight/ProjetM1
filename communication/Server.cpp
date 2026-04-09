@@ -37,6 +37,28 @@ void Server::setDemoMode(bool demoMode) {
     this->demoMode = demoMode;
 }
 
+/**
+ * Clear everything in the server so it can restart peacfully
+ */
+void Server::refreshServer() {
+    for (auto & [port, player] : clients) {
+        semaphore.acquire();
+        buffer.removeFromPlayerList(player);
+        semaphore.release();
+    }
+
+
+    clients.clear();
+    refreshServerUI();
+
+    this->maxPlayers = 2;
+
+    this->gameRunning = false;
+    this->demoMode = false;
+    this->loop = true;
+    this->mapID=-1;
+}
+
 
 /**
  * Allows to add clients to the server's tracked routes. This means the server will send and receive queuedPackets from the
@@ -281,7 +303,7 @@ void Server::receiveLoop() {
                                             semaphore.release();
 
                                             if(demoMode) {
-                                                int pts = currentState[player.getName()].getPoint() + 1;
+                                                int pts = currentState[player.getName()].getPoint() + 10;
                                                 currentState[player.getName()].setPoint(pts);
                                                 playerState.setPoint(pts);
                                             }

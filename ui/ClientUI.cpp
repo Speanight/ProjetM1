@@ -285,7 +285,7 @@ void ClientUI::drawSelectionScreen(ImDrawList* draw_list, ImVec2 min, ImVec2 max
                     case 3: {   // CONFIRM
                         std::string finalName;
                         if (strlen(select.nameBuffer) == 0) {
-                            finalName = "Client-";
+                            finalName = "Client ";
                         } else {
                             finalName = select.nameBuffer ;
                         }
@@ -581,7 +581,7 @@ void ClientUI::drawSelectionScreen(ImDrawList* draw_list, ImVec2 min, ImVec2 max
         if (ImGui::Button("CONFIRMER", ImVec2(buttonWidth, 40))) {
             std::string finalName;
             if (strlen(select.nameBuffer) == 0) {
-                finalName = "Client-";
+                finalName = "Client ";
             } else {
                 finalName = select.nameBuffer ;
             }
@@ -721,7 +721,7 @@ void ClientUI::drawLoadingScreen(ImDrawList* draw_list, ImVec2 min, ImVec2 max) 
             "Attente de rachat par EA..."
         };
 
-        static int selected = player.getPort() % messages.size();
+        int selected = player.getPort() % messages.size();
         std::string msg = messages[selected];
 
         float msg_size = 18.0f*scale;
@@ -837,7 +837,7 @@ void ClientUI::drawEndScreen(ImDrawList* draw_list, ImVec2 min, ImVec2 max, bool
 
     // RANDOM PRAISE
     {
-        static int selected = this->getPlayer().getPort() % messages.size();
+        int selected = this->getPlayer().getPort() % messages.size();
         std::string msg = messages[selected];
 
         float msg_size = 18.0f*scale;

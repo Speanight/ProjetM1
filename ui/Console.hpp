@@ -33,6 +33,8 @@ public:
     void addClient(unsigned short portToAdd);
     void addPacket(uint32_t id, short type, unsigned short client, int timestamp, bool received = false);
 
+    void refreshConsole();
+
     void draw();
 };
 

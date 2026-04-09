@@ -20,10 +20,12 @@ private:
     Server server;
     std::vector<ClientUI*> clients;
     short screen = 0;
+    short previousScreen = 0;
     int remainingPlayers = 0;
     Console console;
 
     sf::Clock clock;
+    std::unique_ptr<sf::RenderWindow> window;
 
 public:
 //    sf::RenderWindow window;
@@ -38,12 +40,11 @@ public:
     // Screens
     void draw(short screen);
     void drawTitlescreen();
-    void drawPlayerSelect();
+    void drawConfirmClose();
     void drawGame();
 
     void demoSetup();
     void gameSetup(int nbPlayers = 2);
-    // void createDefaultClients(int count, sf::Clock clock);
 };
 
 
