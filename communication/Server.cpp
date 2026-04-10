@@ -208,15 +208,15 @@ void Server::receiveLoop() {
                         while (packet >> inputs) {
                             amtInputs++;
                             if (!(packet >> dtInput)) {
-                                dtInput = time + pings[player.getName()];
+                                dtInput = time;
                             }
                             // Get time elapsed since last packet from client. Used for consistency in speed and such.
-                            dt = std::min(dtInput - timestampInput - 1, 1000 / static_cast<int>(tickrate));
+                            dt = std::min(dtInput-timestampInput-1, 1000/static_cast<int>(tickrate));
 
                             handleInput(player, inputs, timestampInput, dt);
 
                             if (player.getName() == "Client A") {
-                                std::cout << "S: handled input #" << inputs.getId() << " for t=" << dt << "(" << dtInput << " - " << timestampInput << "): player is at: " << buffer.getNextState(player).getPosition() << std::endl;
+                                std::cout << "S: handled input #" << inputs.getId() << " for t=" << dt << "(" << dtInput-1 << " - " << timestampInput << "): player is at: " << buffer.getNextState(player).getPosition() << std::endl;
                             }
 
                             buffer.addInputsToLastState(player, timestampInput, inputs);

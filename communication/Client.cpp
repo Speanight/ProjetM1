@@ -273,6 +273,7 @@ void Client::update() {
     bool attack_enable = true;  // set the ability to attack at true at the beginning
 
     int before = 0;
+    Input oldInput;
 
     while (running) {
         while (!loop) {sf::sleep(sf::Time());} // Pause if needed
@@ -316,12 +317,19 @@ void Client::update() {
 
         // ==========| COMPENSATIONS (if needed) |========== //
         semaphore.acquire();
-        auto compensations = network.compensations;
+        State state(lastUpdate, getPosition(), input, getRadius(), getPlayer().getIsAttacking(), getPlayer().getWpn().getId());
+        if (getName() == "Client A") {
+            std::cout << "C: adding input #" << lastInputId << ": position = " << state.getPosition() << " @" << t << std::endl;
+        }
+        inputsBuffer[lastInputId] = state; // We re-add the last input post-deletion, as it may be used for controller players. (R-stick)
+
+//        auto compensations = network.compensations;
         if (getCompensationEnabled(Compensation::INTERPOLATION)) {
             compensationInterpolation();
         }
         if (getCompensationEnabled(Compensation::PREDICTION)) {
-            compensationPrediction(input, t);
+            compensationPrediction(oldInput, t+(oldInput==input));
+//            compensationPrediction(input, t);
         }
         if (getCompensationEnabled(Compensation::RECONCILIATION)) {
             compensationReconciliation();
@@ -329,16 +337,10 @@ void Client::update() {
         else { // If not reconciliation, we empty inputsBuffer to avoid SIGSEGV/huge memory alloc.:
             inputsBuffer.clear();
         }
-        State state(lastUpdate, getPosition(), input, getRadius(), getPlayer().getIsAttacking(), getPlayer().getWpn().getId());
-        if (getName() == "Client A") {
-            if (inputsBuffer[lastInputId].getPosition() == state.getPosition()) {
-                std::cout << "C: adding input #" << lastInputId << ": position = " << state.getPosition() << " @" << clock.getElapsedTime().asMilliseconds() << std::endl;
-            }
-        }
-        inputsBuffer[lastInputId] = state; // We re-add the last input post-deletion, as it may be used for controller players. (R-stick)
         semaphore.release();
 
-        lastUpdate = clock.getElapsedTime().asMilliseconds();
+        lastUpdate = t;
+        oldInput = input;
 
         // ===== ATTACK =====
         player.handleTimer_atk(lastUpdate, before);
@@ -346,7 +348,7 @@ void Client::update() {
             opp.handleTimer_atk(lastUpdate, before);
         }
         before = lastUpdate;
-        sf::sleep(sf::milliseconds(10)); // Small sleep to make sure everyone send same amount of inputs.
+        sf::sleep(sf::milliseconds(1000/Const::DISPLAY_REFRESH_RATE)); // Small sleep to make sure everyone send same amount of inputs.
     }
 }
 
@@ -397,6 +399,10 @@ void Client::sendLoop() {
                 inputs.clear();
                 inputs.insert({pkt.timestamp.asMilliseconds(), lastInput});
                 m_inputs.unlock();
+
+                if (getName() == "Client A") {
+                    std::cout << "C: Sending data #" << lastInputId << " w/ position: " << getPosition() << std::endl;
+                }
                 break;
             }
             case Status::DEAD: {
@@ -827,6 +833,7 @@ void Client::compensationInterpolation() {
  */
 void Client::compensationPrediction(Input inputs, int now) {
     Position pos = getPlayer().getPosition();
+    std::cout << "C: Pred.: " << inputs.getMovementX() << "; " << inputs.getMovementY() << " -> t=" << now << "-" << lastUpdate << " = " << now-lastUpdate << std::endl;
     pos.move(inputs.getMovementX(), inputs.getMovementY(), now-lastUpdate);
     player.setPosition(pos);
 
@@ -869,7 +876,7 @@ void Client::compensationReconciliation() {
 
        ImVec2 diff = {p.getX() - q.getX(), p.getY() - q.getY()};
 
-        if (sqrt(pow(diff.x, 2) + pow(diff.y, 2)) > Const::PLAYER_SPEED * 10) { // If diff. of pos > eq. of 20ms of movement:
+        if (sqrt(pow(diff.x, 2) + pow(diff.y, 2)) >= Const::PLAYER_SPEED * 1) { // If diff. of pos > eq. of 20ms of movement:
             std::cout << "Diff of: " << diff.x << "; " << diff.y << std::endl;
             Position pos = getPosition();
             pos.setX(pos.getX() - diff.x);

@@ -52,6 +52,8 @@ namespace Const {
     static const int WAIT_RETRY_TIME = 3000;
 
     static const int AMT_PLAYERS_MAX = 4;
+
+    static const short DISPLAY_REFRESH_RATE = 100;
 }
 
 namespace Err {
