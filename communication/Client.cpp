@@ -268,7 +268,6 @@ Input Client::getInputs(bool mode_enable, bool attack_enable) {
  * @return - Error code. (Const. Err:: in Utils.hpp)
  */
 void Client::update() {
-    // TODO: Try a generic clock to time events with same clock at all time! Might fix compensations.
     bool mode_enable = true;    // set the ability to change the weapon to true at the beginning
     bool attack_enable = true;  // set the ability to attack at true at the beginning
 
@@ -317,19 +316,12 @@ void Client::update() {
 
         // ==========| COMPENSATIONS (if needed) |========== //
         semaphore.acquire();
-        State state(lastUpdate, getPosition(), input, getRadius(), getPlayer().getIsAttacking(), getPlayer().getWpn().getId());
-        if (getName() == "Client A") {
-            std::cout << "C: adding input #" << lastInputId << ": position = " << state.getPosition() << " @" << t << std::endl;
-        }
-        inputsBuffer[lastInputId] = state; // We re-add the last input post-deletion, as it may be used for controller players. (R-stick)
 
-//        auto compensations = network.compensations;
         if (getCompensationEnabled(Compensation::INTERPOLATION)) {
             compensationInterpolation();
         }
         if (getCompensationEnabled(Compensation::PREDICTION)) {
-            compensationPrediction(oldInput, t+(oldInput==input));
-//            compensationPrediction(input, t);
+            compensationPrediction(oldInput, t);
         }
         if (getCompensationEnabled(Compensation::RECONCILIATION)) {
             compensationReconciliation();
@@ -337,6 +329,13 @@ void Client::update() {
         else { // If not reconciliation, we empty inputsBuffer to avoid SIGSEGV/huge memory alloc.:
             inputsBuffer.clear();
         }
+
+        State state(t, getPosition(), input, getRadius(), getPlayer().getIsAttacking(), getPlayer().getWpn().getId());
+        if (getName() == "Client A") {
+            std::cout << "C: adding input #" << lastInputId << ": position = " << state.getPosition() << " @" << t << std::endl;
+        }
+        inputsBuffer[lastInputId] = state; // We re-add the last input post-deletion, as it may be used for controller players. (R-stick)
+
         semaphore.release();
 
         lastUpdate = t;
@@ -356,7 +355,10 @@ void Client::sendLoop() {
     while (running) {
         QueuedPacket pkt;
         short type = 0;
-        pkt.timestamp = clock.getElapsedTime();
+        pkt.timestamp = sf::milliseconds(lastUpdate);
+        if (getName() == "Client A") {
+            std::cout << "sendLoop w/ packet at: " << lastUpdate << std::endl;
+        }
         semaphore.acquire();
         uint32_t id = getPacketId();
         pkt.packet << id;
@@ -389,16 +391,25 @@ void Client::sendLoop() {
             }
             // Game has been started:
             case Status::DONE: {
+                Input lastInput;
                 type = Pkt::INPUTS;
                 pkt.packet << Pkt::INPUTS << int(pkt.timestamp.asMilliseconds());
                 m_inputs.lock();
                 for (auto & [dt, input] : inputs) {
                     pkt.packet << int(dt) << input;
                 }
-                Input lastInput = std::prev(inputs.end())->second;
+
+                if (!inputs.empty()) {
+                    lastInput = std::prev(inputs.end())->second;
+                }
                 inputs.clear();
                 inputs.insert({pkt.timestamp.asMilliseconds(), lastInput});
                 m_inputs.unlock();
+
+                // Check if last input is not empty:
+                if (lastInput != Input()) {
+                    lastInputId++;
+                }
 
                 if (getName() == "Client A") {
                     std::cout << "C: Sending data #" << lastInputId << " w/ position: " << getPosition() << std::endl;
@@ -866,7 +877,7 @@ void Client::compensationReconciliation() {
     m_states.unlock();
     unsigned int lastReceivedInputs = currentState.getLastInputsId();
 
-    if (inputsBuffer.begin()->first <= lastReceivedInputs) {
+    if (inputsBuffer.begin()->first <= lastReceivedInputs and inputsBuffer.contains(lastReceivedInputs)) {
         std::cout << "|----------- RECONCILIATION ----------|" << std::endl;
         std::cout << "last received inputs: " << lastReceivedInputs << std::endl;
 
@@ -876,7 +887,7 @@ void Client::compensationReconciliation() {
 
        ImVec2 diff = {p.getX() - q.getX(), p.getY() - q.getY()};
 
-        if (sqrt(pow(diff.x, 2) + pow(diff.y, 2)) >= Const::PLAYER_SPEED * 1) { // If diff. of pos > eq. of 20ms of movement:
+        if (sqrt(pow(diff.x, 2) + pow(diff.y, 2)) >= Const::PLAYER_SPEED * 1) { // If diff. of pos > eq. of x ms of movement:
             std::cout << "Diff of: " << diff.x << "; " << diff.y << std::endl;
             Position pos = getPosition();
             pos.setX(pos.getX() - diff.x);
