@@ -33,6 +33,8 @@ private:
     std::thread receiveThread;
     std::binary_semaphore semaphore;
 
+    std::mutex m_gameLogic; // Used to avoid "unsyncs" between send and receive loops.
+
     std::unordered_map<unsigned short, Player> clients;
     std::unordered_map<std::string, int> pings;
 

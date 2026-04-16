@@ -1,7 +1,7 @@
 #include "Input.hpp"
 
 
-Input::Input(unsigned int id, float x, float y, float r, bool mode, bool attack, bool onController) {
+Input::Input(unsigned int id, short x, short y, float r, bool mode, bool attack, bool onController) {
     this->id = id;
     this->movementX = x;
     this->movementY = y;

@@ -126,6 +126,18 @@ Input State::getPercentInput(double percent) {
     return lastIn;
 }
 
+//Position State::getPositionPercent(double percent) {
+//    float begin = this->inputs.begin()->first;
+//    float diff = this->timestamp - begin;
+//    Position pos = this->getPosition();
+//
+//    for (auto& [tps, input]: this->inputs) {
+//        if ((float(tps)-begin) / diff < percent) {
+//
+//        }
+//    }
+//}
+
 void State::flushInputs() {
     this->inputs.clear();
 }

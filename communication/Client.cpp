@@ -222,22 +222,25 @@ Input Client::getInputs(bool mode_enable, bool attack_enable) {
                 if(value > 0.f && !mode_enable && this->player.getTimer_atk() == -1) {
                     input.setChangeWpn(true);
                 }
-
                 input.setModeEnable(value > 0.f);
                 break;
+
             case Inputs::ATTACK:
                 if(value > 0.f && !attack_enable && this->player.getTimer_atk() == -1) {
                     input.setAttack(true);
                 }
                 input.setAttackEnable(value > 0.f);
                 break;
+
             case Inputs::WPN_ANGLE_NS:
                 input.setOnController(true);
-                weaponAngle.x = value;
+                weaponAngle.x = value*100;
+                break;
 
             case Inputs::WPN_ANGLE_WE:
                 input.setOnController(true);
-                weaponAngle.y = value;
+                weaponAngle.y = value*100;
+                break;
 
             default:
                 input.handleInput(i.first, value);
@@ -290,6 +293,33 @@ void Client::update() {
             }
             State state(t, getPlayer().getPosition(), input, radius, getPlayer().getIsAttacking(), getPlayer().getWpn().getId());
 
+            // Input ID setter:
+            // We change input ID if inputs held different than last ones, or if held for more than 100ms
+            input.setId(lastInputId);
+            m_inputs.lock();
+            if (!inputs.empty()) {
+                // TODO: Update input ID with heartbeat system (like before). Eventually do +1 to ID and re-simulate states?
+                auto it = inputs.lower_bound(lastSentTick);
+                if (it != inputs.begin()) {
+                    auto lastBelow = std::prev(it)->second;
+                    inputs.erase(inputs.begin(), it);
+
+//                    lastBelow.setId(lastInputId++);
+                    inputs[lastSentTick] = lastBelow;
+                }
+
+                // or t - std::prev(inputs.end())->first > 50
+                if (input != std::prev(inputs.end())->second) {
+                    input.setId(lastInputId++);
+                    inputs.insert({t, input});
+                }
+            }
+            else if (input != Input()) { // If inputs is empty and user holding a key:
+                input.setId(lastInputId++);
+                inputs.insert({t, input});
+            }
+
+            /* LAST INPUT ID SETTER (past)
             input.setId(lastInputId);
             lastInputId++;
 
@@ -308,6 +338,7 @@ void Client::update() {
                 inputs.insert({t, input});
             }
             m_inputs.unlock();
+         */
         }
         else {
             lastInputId = 0;
@@ -335,10 +366,11 @@ void Client::update() {
             std::cout << "C: adding input #" << lastInputId << ": position = " << state.getPosition() << " @" << t << std::endl;
         }
         inputsBuffer[lastInputId] = state; // We re-add the last input post-deletion, as it may be used for controller players. (R-stick)
-
-        semaphore.release();
+        m_inputs.unlock();
 
         lastUpdate = t;
+        semaphore.release();
+
         oldInput = input;
 
         // ===== ATTACK =====
@@ -351,15 +383,22 @@ void Client::update() {
     }
 }
 
+
+/**
+ * Loop that executes every tick rate: client will calculate if packet must be dropped or not, and sends packet of
+ * position to the server. This function shouldn't return, except if the server stops and the client should stop
+ * executing.
+ */
 void Client::sendLoop() {
     while (running) {
         QueuedPacket pkt;
         short type = 0;
+        semaphore.acquire();
         pkt.timestamp = sf::milliseconds(lastUpdate);
+        lastSentTick = lastUpdate;
         if (getName() == "Client A") {
             std::cout << "sendLoop w/ packet at: " << lastUpdate << std::endl;
         }
-        semaphore.acquire();
         uint32_t id = getPacketId();
         pkt.packet << id;
         pkt.packetID = id;
@@ -398,18 +437,9 @@ void Client::sendLoop() {
                 for (auto & [dt, input] : inputs) {
                     pkt.packet << int(dt) << input;
                 }
-
-                if (!inputs.empty()) {
-                    lastInput = std::prev(inputs.end())->second;
-                }
-                inputs.clear();
-                inputs.insert({pkt.timestamp.asMilliseconds(), lastInput});
+                // Empty inputs packet (that way client will re-add it for next packet.)
+//                inputs.clear();
                 m_inputs.unlock();
-
-                // Check if last input is not empty:
-                if (lastInput != Input()) {
-                    lastInputId++;
-                }
 
                 if (getName() == "Client A") {
                     std::cout << "C: Sending data #" << lastInputId << " w/ position: " << getPosition() << std::endl;
@@ -451,87 +481,7 @@ void Client::sendLoop() {
     }
 }
 
-/**
- * Loop that executes every tick rate: client will calculate if packet must be dropped or not, and sends packet of
- * position to the server. This function shouldn't return, except if the server stops and the client should stop
- * executing.
- */
-int Client::sendPacket(Input inputs) {
-    QueuedPacket pkt;
-    short type;
-    pkt.timestamp = clock.getElapsedTime();
-    semaphore.acquire();
-    uint32_t id = getPacketId();
-    pkt.packet << id;
-    pkt.packetID = id;
-    semaphore.release();
-
-    switch (player.getStatus()) {
-        // Player sends their data to the server, waiting for ACK:
-        case Status::WAITING_FOR_INIT: {
-            type = Pkt::NEW_PLAYER;
-            pkt.packet << Pkt::NEW_PLAYER;
-            pkt.packet << player.getName() << player.getColor().r << player.getColor().g << player.getColor().b << player.getColor().a;
-            pkt.packet << player.getWeapons()[1]; // Add current weapon as well.
-            break;
-        }
-
-        // Player is waiting for data of their opponents:
-        case Status::WAITING_FOR_OPPONENTS: {
-            type = Pkt::ACK;
-            // Tells the server it ACKd that it has been added to the players pool.
-            pkt.packet << Pkt::ACK << Pkt::NEW_PLAYER;
-            break;
-        }
-
-        // Player is ready to start and gives the info to the server:
-        case Status::READY_TO_START: {
-            type = Pkt::ACK;
-            pkt.packet << Pkt::ACK << Pkt::READY_R << int(opponents.size());
-            break;
-        }
-        // Game has been started:
-        case Status::DONE: {
-            type = Pkt::INPUTS;
-            pkt.packet << Pkt::INPUTS << int(pkt.timestamp.asMilliseconds()) << inputs << player.getPort();
-            break;
-        }
-        case Status::DEAD: {
-            type = Pkt::END_R;
-            pkt.packet << Pkt::END_R;
-            break;
-        }
-        case Status::WIN: {
-            type = Pkt::END_R;
-            pkt.packet << Pkt::END_R;
-            break;
-        }
-        // Unrecognized player status.
-        default: {
-            std::cout << "Unhandled player status: status #" << player.getStatus() << std::endl;
-            return Err::PLAYER_STATUS_UNSYNCED;
-        }
-    }
-
-    semaphore.acquire();
-    console.addPacket(pkt.packetID, type, player.getPort(), pkt.timestamp.asMilliseconds());
-    queuedPackets[SENT].push_back(pkt); // Adds the packet to the array of packets.
-    auto packetToSend = getLatestQueuedPacket(SENT);
-
-    int packetLossChance = std::experimental::randint(1, 100);
-    // Only executes if packet loss % is respected (randomly generated number)
-    if (packetLossChance > network.packetLoss[1]) {
-        if (packetToSend.has_value()) {
-            socket.send(packetToSend.value().packet, server, COMM_PORT_SERVER);
-        }
-    }
-
-    semaphore.release();
-
-    return Err::ERR_NONE;
-}
-
-[[noreturn]] void Client::receiveLoop() {
+void Client::receiveLoop() {
     std::optional<sf::IpAddress> sender = sf::IpAddress::resolve(SERVER_IP);
     sf::Packet rawPacket;
     sf::Packet packet;
@@ -697,36 +647,6 @@ int Client::sendPacket(Input inputs) {
     }
 }
 
-void Client::applyState(std::string name, State state){
-    m_states.lock();
-    std::unordered_map<std::string, State> currentState = bufferOnReceipt.getCurrentState();
-    std::unordered_map<std::string, State> pastState = bufferOnReceipt.getTState(-1);
-    m_states.unlock();
-
-    if (name == this->getName()) {
-        this->bufferOnReceipt.setNextPlayerState(player, state);
-        semaphore.acquire();
-        State currState = bufferOnReceipt.getLastState(player);
-        semaphore.release();
-        if (!this->getCompensations()[Compensation::RECONCILIATION]) {
-            this->player.setPosition(currState.getPosition());
-            this->player.setRadius(state.getRadius());
-        }
-        this->player.setIsAttacking(state.getAttack());
-        this->player.setWpn(state.getWpn().getId());
-        this->player.setPoint(state.getPoint());
-    }
-    else {
-        // Opponent position:
-        this->bufferOnReceipt.setNextPlayerState(opponents[name], state);
-        opponents[name].setPosition(currentState[name].getPosition());
-        opponents[name].setRadius(currentState[name].getRadius());
-        opponents[name].setIsAttacking(currentState[name].getAttack());
-        opponents[name].setWpn(currentState[name].getWpn().getId());
-        opponents[name].setPoint(currentState[name].getPoint());
-    }
-}
-
 sf::Color Client::getColor() {
     return this->player.getColor();
 }
@@ -811,8 +731,9 @@ void Client::compensationInterpolation() {
             float radius = opponents[name].getRadius();
 
             // TODO: Fix interpolation to have it to work while receiving all inputs from server.
+            // TODO: Correct inputs are in current state, not past one! Get state from past and inputs from current!
             double tickProgress = std::min(1.0,(clock.getElapsedTime().asMilliseconds() - lastServerTick) / (1000/(double)tickrate));
-            Input corrInputs = pastState[name].getPercentInput(tickProgress);
+            Input corrInputs = currState[name].getPercentInput(tickProgress);
             pos.move(corrInputs.getMovementX(), corrInputs.getMovementY(), clock.getElapsedTime().asMilliseconds() - lastUpdate);
 
             opponents[name].setPosition(pos);
@@ -884,6 +805,9 @@ void Client::compensationReconciliation() {
         // If 1st element of buffer < last state received by server. (AKA if need to check for reconciliation)
         Position p = inputsBuffer[lastReceivedInputs].getPosition();
         Position q = currentState.getPosition();
+        // We roll-back one input:
+
+
 
        ImVec2 diff = {p.getX() - q.getX(), p.getY() - q.getY()};
 

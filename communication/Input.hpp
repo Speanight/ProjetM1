@@ -20,7 +20,7 @@ private:
     bool attack_enable;         // Permit to know if we can attack again or not
 public:
     // Constructors
-    Input(unsigned int id=0, float x=0, float y=0, float r=0, bool mode=false, bool attack=false, bool onController = false);
+    Input(unsigned int id=0, short x=0, short y=0, float r=0, bool mode=false, bool attack=false, bool onController = false);
 
     // Getters
     unsigned int getId() const;

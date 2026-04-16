@@ -80,6 +80,7 @@ protected:
 
     std::map<unsigned int, State> inputsBuffer;
 
+    unsigned int lastSentTick = 0;
     int lastServerTick;
     unsigned int lastInputId = 0;
 //    bool created = false;
@@ -133,12 +134,9 @@ public:
 
     void update();
     void sendLoop();
-    int sendPacket(Input inputs);
 
-    [[noreturn]] void receiveLoop();
+    void receiveLoop();
     std::optional<QueuedPacket> getLatestQueuedPacket(int status);
-
-    void applyState(std::string name, State state);
 
     // Compensations
     void compensationInterpolation();

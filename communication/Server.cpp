@@ -205,6 +205,7 @@ void Server::receiveLoop() {
                             std::cout << "S: Received inputs! Init. pos: " << playerState.getPosition() << std::endl;
                         }
 
+                        m_gameLogic.lock();
                         while (packet >> inputs) {
                             amtInputs++;
                             if (!(packet >> dtInput)) {
@@ -227,6 +228,7 @@ void Server::receiveLoop() {
                         State s = buffer.getNextState(player);
                         s.setTimestamp(time);
                         buffer.setNextPlayerState(player, s);
+                        m_gameLogic.unlock();
 
                         // Get threads priority
                         semaphore.acquire();
@@ -527,11 +529,13 @@ void Server::sendLoop() {
 
                 case Status::DONE: {
                     type = Pkt::GLOBAL;
+                    m_gameLogic.lock();
                     packet << Pkt::GLOBAL << int(buffer.getCurrentTick()) << clock.getElapsedTime().asMilliseconds();
 
                     for (auto & [n, state] : currentState) {
                         packet << n << state;
                     }
+                    m_gameLogic.unlock();
 
                     semaphore.acquire();
                     addLine(
