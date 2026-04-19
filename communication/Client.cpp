@@ -190,7 +190,7 @@ void Client::setPlayer(Player player) {
 Input Client::getInputs(bool mode_enable, bool attack_enable) {
     // TODO: Fix SIGSEGV error when closing game caused by this (??)
     Input input;
-    float value;
+    float value = 0;
     ImVec2 weaponAngle = {};
 
     for (const std::pair<const int, std::variant<sf::Keyboard::Key, sf::Joystick::Axis, int>> & i : keybinds) {
@@ -275,7 +275,7 @@ void Client::update() {
     bool attack_enable = true;  // set the ability to attack at true at the beginning
 
     int before = 0;
-    Input oldInput;
+    // Input oldInput;
 
     while (running) {
         while (!loop) {sf::sleep(sf::Time());} // Pause if needed
@@ -287,58 +287,39 @@ void Client::update() {
 
         // Storing recent local positions to re-adjust if needed.
         if (player.getStatus() == Status::DONE) {
-            float radius = getRadius();
+            // float radius = getRadius();
             if (input.getRotate() == -999) { // If user on controller and not moving stick:
                 input.setRotate(player.getRadius()); // Get last radius pos.
             }
-            State state(t, getPlayer().getPosition(), input, radius, getPlayer().getIsAttacking(), getPlayer().getWpn().getId());
+            // State state(t, getPlayer().getPosition(), input, radius, getPlayer().getIsAttacking(), getPlayer().getWpn().getId());
 
-            // Input ID setter:
             // We change input ID if inputs held different than last ones, or if held for more than 100ms
             input.setId(lastInputId);
             m_inputs.lock();
             if (!inputs.empty()) {
-                // TODO: Update input ID with heartbeat system (like before). Eventually do +1 to ID and re-simulate states?
-                auto it = inputs.lower_bound(lastSentTick);
-                if (it != inputs.begin()) {
+                auto it = inputs.lower_bound(lastSentTick); // Get last input < last tick sent to server
+                if (it != inputs.begin()) { // If inputs array is not empty:
                     auto lastBelow = std::prev(it)->second;
-                    inputs.erase(inputs.begin(), it);
+                    inputs.erase(inputs.begin(), it); // We erase all inputs before last tick sent
 
-//                    lastBelow.setId(lastInputId++);
-                    inputs[lastSentTick] = lastBelow;
+                    // If the last input erased isn't empty:
+                    if (lastBelow != Input()) {
+                        lastBelow.setId(lastInputId++); // We increment its ID for next packet
+                    }
+                    inputs[lastSentTick] = lastBelow; // We re-add last input in array:
                 }
 
-                // or t - std::prev(inputs.end())->first > 50
-                if (input != std::prev(inputs.end())->second) {
+                // If input is different than last one, or is held for more than 50ms AND not empty:
+                if (input != std::prev(inputs.end())->second or (t - std::prev(inputs.end())->first > 50 and input != Input())) {
+                    // We do +1 to ID and add it to inputs array.
                     input.setId(lastInputId++);
                     inputs.insert({t, input});
                 }
             }
-            else if (input != Input()) { // If inputs is empty and user holding a key:
+            else if (input != Input()) { // If input isn't empty and user holding a key:
                 input.setId(lastInputId++);
                 inputs.insert({t, input});
             }
-
-            /* LAST INPUT ID SETTER (past)
-            input.setId(lastInputId);
-            lastInputId++;
-
-            m_inputs.lock();
-            if (!inputs.empty()) {
-                if (input != std::prev(inputs.end())->second) {
-//                    inputsBuffer[lastInputId] = state;
-                    inputs.insert({t, input});
-                }
-                else {
-                    lastInputId--;
-                }
-            }
-            else {
-//                inputsBuffer[lastInputId] = state;
-                inputs.insert({t, input});
-            }
-            m_inputs.unlock();
-         */
         }
         else {
             lastInputId = 0;
@@ -352,7 +333,7 @@ void Client::update() {
             compensationInterpolation();
         }
         if (getCompensationEnabled(Compensation::PREDICTION)) {
-            compensationPrediction(oldInput, t);
+            compensationPrediction(input, t);
         }
         if (getCompensationEnabled(Compensation::RECONCILIATION)) {
             compensationReconciliation();
@@ -363,15 +344,15 @@ void Client::update() {
 
         State state(t, getPosition(), input, getRadius(), getPlayer().getIsAttacking(), getPlayer().getWpn().getId());
         if (getName() == "Client A") {
-            std::cout << "C: adding input #" << lastInputId << ": position = " << state.getPosition() << " @" << t << std::endl;
+            std::cout << "C: adding input #" << input.getId() << ": position = " << state.getPosition() << " @" << t << std::endl;
         }
-        inputsBuffer[lastInputId] = state; // We re-add the last input post-deletion, as it may be used for controller players. (R-stick)
+        inputsBuffer[input.getId()] = state; // We re-add the last input post-deletion, as it may be used for controller players. (R-stick)
         m_inputs.unlock();
 
         lastUpdate = t;
         semaphore.release();
 
-        oldInput = input;
+        // oldInput = input;
 
         // ===== ATTACK =====
         player.handleTimer_atk(lastUpdate, before);
@@ -487,7 +468,7 @@ void Client::receiveLoop() {
     sf::Packet packet;
     short type;
     short typeAck;
-    short unsigned int port;
+    unsigned short port;
     uint32_t id;
 
     while (running) {
@@ -803,15 +784,16 @@ void Client::compensationReconciliation() {
         std::cout << "last received inputs: " << lastReceivedInputs << std::endl;
 
         // If 1st element of buffer < last state received by server. (AKA if need to check for reconciliation)
-        Position p = inputsBuffer[lastReceivedInputs].getPosition();
-        Position q = currentState.getPosition();
-        // We roll-back one input:
-
+        Position p = inputsBuffer[lastReceivedInputs].getPosition(); // Local pos.
+        Position q = currentState.getPosition(); // Server pos. [received]
+        // We roll-back to be at same timestamp than server:
+        int dt = inputsBuffer[lastReceivedInputs].getTimestamp() - currentState.getTimestamp();
+        p.move(inputsBuffer[lastReceivedInputs].getInputs()[0].getMovementX(), inputsBuffer[lastReceivedInputs].getInputs()[0].getMovementY(), -dt);
 
 
        ImVec2 diff = {p.getX() - q.getX(), p.getY() - q.getY()};
 
-        if (sqrt(pow(diff.x, 2) + pow(diff.y, 2)) >= Const::PLAYER_SPEED * 1) { // If diff. of pos > eq. of x ms of movement:
+        if (sqrt(pow(diff.x, 2) + pow(diff.y, 2)) >= Const::PLAYER_SPEED * 100 * 15) { // If diff. of pos > eq. of x ms of movement:
             std::cout << "Diff of: " << diff.x << "; " << diff.y << std::endl;
             Position pos = getPosition();
             pos.setX(pos.getX() - diff.x);

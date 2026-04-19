@@ -212,12 +212,14 @@ void Server::receiveLoop() {
                                 dtInput = time;
                             }
                             // Get time elapsed since last packet from client. Used for consistency in speed and such.
-                            dt = std::min(dtInput-timestampInput-1, 1000/static_cast<int>(tickrate));
+                            dt = std::min(dtInput-timestampInput, 1000/static_cast<int>(tickrate));
+
+                            inputs.setId(inputs.getId()+1);
 
                             handleInput(player, inputs, timestampInput, dt);
 
                             if (player.getName() == "Client A") {
-                                std::cout << "S: handled input #" << inputs.getId() << " for t=" << dt << "(" << dtInput-1 << " - " << timestampInput << "): player is at: " << buffer.getNextState(player).getPosition() << std::endl;
+                                std::cout << "S: handled input #" << inputs.getId() << " for t=" << dt << "(" << dtInput << " - " << timestampInput << "): player is at: " << buffer.getNextState(player).getPosition() << std::endl;
                             }
 
                             buffer.addInputsToLastState(player, timestampInput, inputs);
@@ -408,6 +410,10 @@ void Server::sendLoop() {
         while (!loop) {sf::sleep(sf::Time());} // Pause if needed
         sf::sleep(std::chrono::milliseconds(1000 / tickrate));
 
+        semaphore.acquire();
+        buffer.push(clock.getElapsedTime().asMilliseconds());
+        semaphore.release();
+
         std::unordered_map<std::string, State> currentState = buffer.getCurrentState();
 
         int tick = clock.getElapsedTime().asMilliseconds();
@@ -566,9 +572,9 @@ void Server::sendLoop() {
             console.addPacket(id, type, COMM_PORT_SERVER, clock.getElapsedTime().asMilliseconds());
             semaphore.release();
         }
-        semaphore.acquire();
-        buffer.push(clock.getElapsedTime().asMilliseconds());
-        semaphore.release();
+        // semaphore.acquire();
+        // buffer.push(clock.getElapsedTime().asMilliseconds());
+        // semaphore.release();
         // POST MAJ
         for (auto & [name, player] : clients) {
             State last = buffer.getLastState(player);
