@@ -328,6 +328,7 @@ void Client::update() {
 
         // ==========| COMPENSATIONS (if needed) |========== //
         semaphore.acquire();
+        State state(t, getPosition(), input, getRadius(), getPlayer().getIsAttacking(), getPlayer().getWpn().getId());
 
         if (getCompensationEnabled(Compensation::INTERPOLATION)) {
             compensationInterpolation();
@@ -342,10 +343,6 @@ void Client::update() {
             inputsBuffer.clear();
         }
 
-        State state(t, getPosition(), input, getRadius(), getPlayer().getIsAttacking(), getPlayer().getWpn().getId());
-        if (getName() == "Client A") {
-            std::cout << "C: adding input #" << input.getId() << ": position = " << state.getPosition() << " @" << t << std::endl;
-        }
         inputsBuffer[input.getId()] = state; // We re-add the last input post-deletion, as it may be used for controller players. (R-stick)
         m_inputs.unlock();
 
@@ -377,9 +374,6 @@ void Client::sendLoop() {
         semaphore.acquire();
         pkt.timestamp = sf::milliseconds(lastUpdate);
         lastSentTick = lastUpdate;
-        if (getName() == "Client A") {
-            std::cout << "sendLoop w/ packet at: " << lastUpdate << std::endl;
-        }
         uint32_t id = getPacketId();
         pkt.packet << id;
         pkt.packetID = id;
@@ -418,13 +412,8 @@ void Client::sendLoop() {
                 for (auto & [dt, input] : inputs) {
                     pkt.packet << int(dt) << input;
                 }
-                // Empty inputs packet (that way client will re-add it for next packet.)
-//                inputs.clear();
                 m_inputs.unlock();
 
-                if (getName() == "Client A") {
-                    std::cout << "C: Sending data #" << lastInputId << " w/ position: " << getPosition() << std::endl;
-                }
                 break;
             }
             case Status::DEAD: {
@@ -565,9 +554,6 @@ void Client::receiveLoop() {
                                     m_states.unlock();
 
                                     if (name == this->getName()) {
-                                        if (getName() == "Client A") {
-                                            std::cout << "> received state from server: pos = " << state.getPosition() << " @" << state.getTimestamp() << " with last input: #" << state.getLastInputsId() << std::endl;
-                                        }
                                         this->bufferOnReceipt.setNextPlayerState(player, state);
                                         m_states.lock();
                                         State currState = bufferOnReceipt.getLastState(player);
@@ -739,14 +725,13 @@ void Client::compensationInterpolation() {
  * user runs its own "game simulation". According to the given inputs and the last position, it will move the character
  * to the newly established position without waiting for server confirmation.
  *
- * @param inputs - Inputs played by the player at that corresponding frame.
+ * @param inputs Inputs played by the player at that corresponding frame.
  *
  * @attention Depending of ping, a "rollback" might appear when enabling Prediction without Reconciliation. This is
  * expected, and caused by the server still having the "last word" regarding the client's position.
  */
 void Client::compensationPrediction(Input inputs, int now) {
     Position pos = getPlayer().getPosition();
-    std::cout << "C: Pred.: " << inputs.getMovementX() << "; " << inputs.getMovementY() << " -> t=" << now << "-" << lastUpdate << " = " << now-lastUpdate << std::endl;
     pos.move(inputs.getMovementX(), inputs.getMovementY(), now-lastUpdate);
     player.setPosition(pos);
 
@@ -780,20 +765,16 @@ void Client::compensationReconciliation() {
     unsigned int lastReceivedInputs = currentState.getLastInputsId();
 
     if (inputsBuffer.begin()->first <= lastReceivedInputs and inputsBuffer.contains(lastReceivedInputs)) {
-        std::cout << "|----------- RECONCILIATION ----------|" << std::endl;
-        std::cout << "last received inputs: " << lastReceivedInputs << std::endl;
-
         // If 1st element of buffer < last state received by server. (AKA if need to check for reconciliation)
-        Position p = inputsBuffer[lastReceivedInputs].getPosition(); // Local pos.
+        auto lastLocalInputs = inputsBuffer[lastReceivedInputs];
+        Position p = lastLocalInputs.getPosition(); // Local pos.
         Position q = currentState.getPosition(); // Server pos. [received]
         // We roll-back to be at same timestamp than server:
-        int dt = inputsBuffer[lastReceivedInputs].getTimestamp() - currentState.getTimestamp();
-        p.move(inputsBuffer[lastReceivedInputs].getInputs()[0].getMovementX(), inputsBuffer[lastReceivedInputs].getInputs()[0].getMovementY(), -dt);
-
-
+        int dt = currentState.getTimestamp() - lastLocalInputs.getTimestamp();
+        p.move(lastLocalInputs.getInputs().begin()->second.getMovementX(), lastLocalInputs.getInputs().begin()->second.getMovementY(), dt);
        ImVec2 diff = {p.getX() - q.getX(), p.getY() - q.getY()};
 
-        if (sqrt(pow(diff.x, 2) + pow(diff.y, 2)) >= Const::PLAYER_SPEED * 100 * 15) { // If diff. of pos > eq. of x ms of movement:
+        if (sqrt(pow(diff.x, 2) + pow(diff.y, 2)) >= Const::PLAYER_SPEED * 100 * 5) { // If diff. of pos > eq. of x ms of movement:
             std::cout << "Diff of: " << diff.x << "; " << diff.y << std::endl;
             Position pos = getPosition();
             pos.setX(pos.getX() - diff.x);

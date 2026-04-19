@@ -201,10 +201,6 @@ void Server::receiveLoop() {
                         semaphore.release();
                         playerState.setTimestamp(time);
 
-                        if (player.getName() == "Client A") {
-                            std::cout << "S: Received inputs! Init. pos: " << playerState.getPosition() << std::endl;
-                        }
-
                         m_gameLogic.lock();
                         while (packet >> inputs) {
                             amtInputs++;
@@ -214,13 +210,9 @@ void Server::receiveLoop() {
                             // Get time elapsed since last packet from client. Used for consistency in speed and such.
                             dt = std::min(dtInput-timestampInput, 1000/static_cast<int>(tickrate));
 
-                            inputs.setId(inputs.getId()+1);
+                            inputs.setId(inputs.getId());
 
                             handleInput(player, inputs, timestampInput, dt);
-
-                            if (player.getName() == "Client A") {
-                                std::cout << "S: handled input #" << inputs.getId() << " for t=" << dt << "(" << dtInput << " - " << timestampInput << "): player is at: " << buffer.getNextState(player).getPosition() << std::endl;
-                            }
 
                             buffer.addInputsToLastState(player, timestampInput, inputs);
 

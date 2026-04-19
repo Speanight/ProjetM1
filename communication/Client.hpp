@@ -78,7 +78,7 @@ protected:
     std::map<std::string, Player> opponents;
     Buffer bufferOnReceipt;
 
-    std::map<unsigned int, State> inputsBuffer;
+    std::map<unsigned int, State> inputsBuffer; // Dictionnary: {timestamp, state (before)}
 
     unsigned int lastSentTick = 0;
     int lastServerTick;

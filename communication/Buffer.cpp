@@ -34,19 +34,19 @@ void Buffer::setNextPlayerState(const Player& player, State state) {
 
 void Buffer::updateNextPlayerState(const Player& player, const State& state) {
     if (auto search = nextState.find(player.getName()); search != nextState.end()) {
-        search->second.setPosition(state.getPosition());
-        search->second.setLastInputsId(state.getLastInputsId());
-        search->second.setRadius(state.getRadius());
-        search->second.setPoint(state.getPoint());
-        search->second.setWpn(state.getWpn().getId());
-        search->second.setTimestamp(state.getTimestamp());
-        search->second.setAttackTimestamp(state.getAttackTimestamp());
-        search->second.setAttack(state.getAttack());
+        nextState[player.getName()].setPosition(state.getPosition());
+        nextState[player.getName()].setLastInputsId(state.getLastInputsId());
+        nextState[player.getName()].setRadius(state.getRadius());
+        nextState[player.getName()].setPoint(state.getPoint());
+        nextState[player.getName()].setWpn(state.getWpn().getId());
+        nextState[player.getName()].setTimestamp(state.getTimestamp());
+        nextState[player.getName()].setAttackTimestamp(state.getAttackTimestamp());
+        nextState[player.getName()].setAttack(state.getAttack());
 
 
         for (auto& [t, i] : state.getInputs()) {
             if (i.getId() != 0) {
-                search->second.addInputs(t, i);
+                nextState[player.getName()].addInputs(t, i);
             }
         }
     }
@@ -223,9 +223,16 @@ void Buffer::addInputsToLastState(const Player& player, int timestamp, Input inp
     if (auto search = nextState.find(player.getName()); search != nextState.end()) {
         nextState[player.getName()].addInputs(timestamp, inputs);
     }
-    else if (auto search = currentState.find(player.getName()); search != currentState.end()) {
-        currentState[player.getName()].addInputs(timestamp, inputs);
+    // Else, we create the next state:
+    else {
+        State st = currentState[player.getName()];
+        st.flushInputs();
+        st.addInputs(timestamp, inputs);
+        nextState[player.getName()] = st;
     }
+    // else if (auto search = currentState.find(player.getName()); search != currentState.end()) {
+    //     currentState[player.getName()].addInputs(timestamp, inputs);
+    // }
 }
 
 void Buffer::addClient(Player p) {
