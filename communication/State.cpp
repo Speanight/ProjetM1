@@ -110,11 +110,14 @@ void State::addInputs(int timestamp, Input inputs) {
 }
 
 Input State::getPercentInput(double percent) {
+    // If no input in state just return empty input:
+    if (this->inputs.empty()) {
+        return {};
+    }
+
     float begin = this->inputs.begin()->first;
     float diff = this->timestamp - begin;
     Input lastIn = this->inputs.begin()->second;
-
-    std::cout << "searching input @ " << percent<< "%: [" << begin << " :> " << diff << "]" << std::endl;
 
     for (auto & [tps, input] : this->inputs) {
         if ((float(tps)-begin)/diff > percent) {

@@ -87,19 +87,8 @@ void Buffer::push(int clockState) {
     currentState = nextState;
 
     // Keep only the last input for nextState:
-    for (auto &[p, s] : currentState) {
-        // TODO: Fix state containing input of value = 0 (or something else?), causing prediction to never rollback if needed.
-        if (!s.getInputs().empty()) {
-            // Get last input
-            auto val = std::prev(s.getInputs().end());
-            int t = val->first;
-            Input i = val->second;
-
-            if (i.getId() != 0) {
-                nextState[p].flushInputs();
-                nextState[p].addInputs(t, i);
-            }
-        }
+    for (auto &[p, s] : nextState) {
+        nextState[p].flushInputs();
     }
 
     m.unlock();

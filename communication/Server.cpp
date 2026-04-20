@@ -187,7 +187,8 @@ void Server::receiveLoop() {
                         }
 
                         int amtInputs = 0;
-                        int time, timestampInput, dtInput;
+                        int time, timestampInput, dtInput, dtInputTot;
+                        dtInputTot = 0;
                         packet >> time;
 
                         // Updates ping of corresponding client:
@@ -206,11 +207,17 @@ void Server::receiveLoop() {
                             amtInputs++;
                             if (!(packet >> dtInput)) {
                                 dtInput = time;
+                                dtInputTot += dtInput;
                             }
                             // Get time elapsed since last packet from client. Used for consistency in speed and such.
                             dt = std::min(dtInput-timestampInput, 1000/static_cast<int>(tickrate));
 
-                            inputs.setId(inputs.getId());
+                            // In case of cheating, or huge packet loss, we "cancel" movement opportunities that are unreal.
+                            if (dtInputTot > tickrate) {
+                                dt = 0;
+                            }
+
+//                            inputs.setId(inputs.getId());
 
                             handleInput(player, inputs, timestampInput, dt);
 
@@ -564,13 +571,10 @@ void Server::sendLoop() {
             console.addPacket(id, type, COMM_PORT_SERVER, clock.getElapsedTime().asMilliseconds());
             semaphore.release();
         }
-        // semaphore.acquire();
-        // buffer.push(clock.getElapsedTime().asMilliseconds());
-        // semaphore.release();
         // POST MAJ
         for (auto & [name, player] : clients) {
             State last = buffer.getLastState(player);
-            if(last.getAttack()) {          // setting the attack save into false one so we don't keep the attack signal
+            if(last.getAttack()) { // setting the attack save into false one so we don't keep the attack signal
                 last.setAttack(false);
             }
             buffer.setNextPlayerState(player, last);

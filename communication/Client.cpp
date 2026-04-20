@@ -275,7 +275,6 @@ void Client::update() {
     bool attack_enable = true;  // set the ability to attack at true at the beginning
 
     int before = 0;
-    // Input oldInput;
 
     while (running) {
         while (!loop) {sf::sleep(sf::Time());} // Pause if needed
@@ -291,7 +290,6 @@ void Client::update() {
             if (input.getRotate() == -999) { // If user on controller and not moving stick:
                 input.setRotate(player.getRadius()); // Get last radius pos.
             }
-            // State state(t, getPlayer().getPosition(), input, radius, getPlayer().getIsAttacking(), getPlayer().getWpn().getId());
 
             // We change input ID if inputs held different than last ones, or if held for more than 100ms
             input.setId(lastInputId);
@@ -310,7 +308,7 @@ void Client::update() {
                 }
 
                 // If input is different than last one, or is held for more than 50ms AND not empty:
-                if (input != std::prev(inputs.end())->second or (t - std::prev(inputs.end())->first > 50 and input != Input())) {
+                if (input != std::prev(inputs.end())->second or (t - std::prev(inputs.end())->first > tickrate/2 and input != Input())) {
                     // We do +1 to ID and add it to inputs array.
                     input.setId(lastInputId++);
                     inputs.insert({t, input});
@@ -348,8 +346,6 @@ void Client::update() {
 
         lastUpdate = t;
         semaphore.release();
-
-        // oldInput = input;
 
         // ===== ATTACK =====
         player.handleTimer_atk(lastUpdate, before);
@@ -567,12 +563,17 @@ void Client::receiveLoop() {
                                         this->player.setWpn(state.getWpn().getId());
                                         this->player.setPoint(state.getPoint());
                                     } else {
+                                        if (getName() == "Client B" and state.getInputs().size() > 1) {
+                                            std::cout << "?" << std::endl;
+                                        }
                                         // Opponent position:
                                         this->bufferOnReceipt.setNextPlayerState(opponents[name], state);
+//                                        if (!this->getCompensationEnabled(Compensation::INTERPOLATION)) {
                                         opponents[name].setPosition(currentState[name].getPosition());
                                         opponents[name].setRadius(currentState[name].getRadius());
-                                        opponents[name].setIsAttacking(currentState[name].getAttack());
+//                                        }
                                         opponents[name].setWpn(currentState[name].getWpn().getId());
+                                        opponents[name].setIsAttacking(currentState[name].getAttack());
                                         opponents[name].setPoint(currentState[name].getPoint());
                                     }
                                 }
@@ -697,8 +698,6 @@ void Client::compensationInterpolation() {
             Position pos = opponents[name].getPosition();
             float radius = opponents[name].getRadius();
 
-            // TODO: Fix interpolation to have it to work while receiving all inputs from server.
-            // TODO: Correct inputs are in current state, not past one! Get state from past and inputs from current!
             double tickProgress = std::min(1.0,(clock.getElapsedTime().asMilliseconds() - lastServerTick) / (1000/(double)tickrate));
             Input corrInputs = currState[name].getPercentInput(tickProgress);
             pos.move(corrInputs.getMovementX(), corrInputs.getMovementY(), clock.getElapsedTime().asMilliseconds() - lastUpdate);
