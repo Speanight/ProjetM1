@@ -364,6 +364,7 @@ void Client::update() {
  * executing.
  */
 void Client::sendLoop() {
+    while (!loop) {sf::sleep(sf::Time());} // Pause if needed
     while (running) {
         QueuedPacket pkt;
         short type = 0;
@@ -382,6 +383,7 @@ void Client::sendLoop() {
                 pkt.packet << Pkt::NEW_PLAYER;
                 pkt.packet << player.getName() << player.getColor().r << player.getColor().g << player.getColor().b << player.getColor().a;
                 pkt.packet << player.getWeapons()[1]; // Add current weapon as well.
+
                 break;
             }
 

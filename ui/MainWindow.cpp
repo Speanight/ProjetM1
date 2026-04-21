@@ -382,6 +382,7 @@ void MainWindow::loop() {
             if (event->is<sf::Event::Closed>()) {
                 if(screen==Screens::CONFIRM_CLOSE) {
                     window->close();
+                    // TODO : add proper close system here
                 }
                 else {
                     previousScreen = screen;
@@ -486,8 +487,12 @@ void MainWindow::demoSetup() {
         clientB->setKeybinds(Controller::KEYBIND_MAP[1]);
     }
 
+    clientA->setLoop(true);
+    clientB->setLoop(true);
+
     addClient(clientA);
     addClient(clientB);
+
 
     this->server.setMaxPlayers(2);
     this->server.setDemoMode(true);
@@ -519,7 +524,7 @@ void MainWindow::gameSetup(int nbPlayers) {
             keyboardAvailable++;
         }
 
-        client->setLoop(true);
+        client->setLoop(false);
         addClient(client);
     }
     this->server.setMaxPlayers(nbPlayers);

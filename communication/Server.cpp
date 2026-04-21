@@ -41,22 +41,25 @@ void Server::setDemoMode(bool demoMode) {
  * Clear everything in the server so it can restart peacfully
  */
 void Server::refreshServer() {
-    for (auto & [port, player] : clients) {
+    for (auto& [port, player] : clients) {
         semaphore.acquire();
         buffer.removeFromPlayerList(player);
         semaphore.release();
     }
 
+    semaphore.acquire();
+    buffer.refresh();
+    semaphore.release();
 
     clients.clear();
-    refreshServerUI();
 
     this->maxPlayers = 2;
-
     this->gameRunning = false;
     this->demoMode = false;
     this->loop = true;
-    this->mapID=-1;
+    this->mapID = -1;
+
+    refreshServerUI();
 }
 
 
@@ -73,6 +76,7 @@ int Server::addClient(const std::string& name, unsigned short port, sf::Color co
     player.setName(name);
     player.setColor(color);
     player.setWeapons({Weapons::SHIELD, weapon});
+    player.setWpn(weapon);
 
     clients[port] = player;
     pings[name] = 0;
@@ -501,7 +505,7 @@ void Server::sendLoop() {
                             int point = 100;
                             if(demoMode) point =0;
 
-                            State s(tick, pos, inputs, angleToCenter, false, 0, point);
+                            State s(tick, pos, inputs, angleToCenter, false, p.getWpn().getId(), point);
                             buffer.setNextPlayerState(p, s);
 
                             // Add everything in packet:

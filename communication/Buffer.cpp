@@ -227,3 +227,13 @@ void Buffer::addInputsToLastState(const Player& player, int timestamp, Input inp
 void Buffer::addClient(Player p) {
     playerList.push_back(p);
 }
+
+void Buffer::refresh() {
+    currentState.clear();
+    nextState.clear();
+    pastStates.clear();
+    playerList.clear();
+
+    // Reset tick
+    currentTick = 0;
+}

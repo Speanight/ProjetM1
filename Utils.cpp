@@ -32,3 +32,8 @@ void loadGlobalMaps() {
         }
     }
 }
+
+
+void break_point() {
+    std::cout << "BREAK"<<std::endl;
+}
