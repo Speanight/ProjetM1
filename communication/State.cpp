@@ -159,7 +159,6 @@ sf::Packet& operator<<(sf::Packet &packet, State state) {
     << state.getTimestamp()
     << size;
 
-    // TODO_2: Make use of it later (for compensation purposes) - Need optimization!
     for (auto & [timestamp, input] : inputs) {
         packet << int(timestamp) << input;
     }

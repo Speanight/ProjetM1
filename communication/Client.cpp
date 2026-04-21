@@ -303,12 +303,14 @@ void Client::update() {
                     // If the last input erased isn't empty:
                     if (lastBelow != Input()) {
                         lastBelow.setId(lastInputId++); // We increment its ID for next packet
+                        lastBelow.setChangeWpn(false);
+                        lastBelow.setAttack(false);
                     }
                     inputs[lastSentTick] = lastBelow; // We re-add last input in array:
                 }
 
                 // If input is different than last one, or is held for more than 50ms AND not empty:
-                if (input != std::prev(inputs.end())->second or (t - std::prev(inputs.end())->first > tickrate/2 and input != Input())) {
+                if (input != std::prev(inputs.end())->second or (t - std::prev(inputs.end())->first > 500/tickrate and input != Input())) {
                     // We do +1 to ID and add it to inputs array.
                     input.setId(lastInputId++);
                     inputs.insert({t, input});
@@ -562,10 +564,8 @@ void Client::receiveLoop() {
                                         this->player.setIsAttacking(state.getAttack());
                                         this->player.setWpn(state.getWpn().getId());
                                         this->player.setPoint(state.getPoint());
-                                    } else {
-                                        if (getName() == "Client B" and state.getInputs().size() > 1) {
-                                            std::cout << "?" << std::endl;
-                                        }
+                                    }
+                                    else {
                                         // Opponent position:
                                         this->bufferOnReceipt.setNextPlayerState(opponents[name], state);
 //                                        if (!this->getCompensationEnabled(Compensation::INTERPOLATION)) {
@@ -576,6 +576,8 @@ void Client::receiveLoop() {
                                         opponents[name].setIsAttacking(currentState[name].getAttack());
                                         opponents[name].setPoint(currentState[name].getPoint());
                                     }
+
+                                    state.flushInputs();
                                 }
                                 m_states.lock();
                                 this->bufferOnReceipt.push(tick);
