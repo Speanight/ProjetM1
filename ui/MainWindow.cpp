@@ -342,6 +342,7 @@ void MainWindow::drawConfirmClose() {
             ImGui::PushStyleColor(ImGuiCol_ButtonActive,  IM_COL32(120, 0, 0, 255));
 
             if (ImGui::Button("QUIT", ImVec2(buttonWidth, buttonHeight))) {
+                    std::cout<<"QUIT BUTTON PRESSED"<<std::endl;
                 window->close();
             }
 
@@ -382,6 +383,7 @@ void MainWindow::loop() {
             if (event->is<sf::Event::Closed>()) {
                 if(screen==Screens::CONFIRM_CLOSE) {
                     window->close();
+                    std::cout<<"QUIT BUTTON PRESSED"<<std::endl;
                     // TODO : add proper close system here
                 }
                 else {

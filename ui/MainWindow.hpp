@@ -16,6 +16,8 @@
 
 class MainWindow {
 private:
+    std::atomic<bool> running = true;
+    std::atomic<bool> requestClose = false;
     std::thread thread;
     Server server;
     std::vector<ClientUI*> clients;
