@@ -33,10 +33,12 @@ private:
     std::thread receiveThread;
     std::binary_semaphore semaphore;
 
+    std::mutex m_gameLogic; // Used to avoid "unsyncs" between send and receive loops.
+
     std::unordered_map<unsigned short, Player> clients;
     std::unordered_map<std::string, int> pings;
 
-    int maxPlayers = 2;     // TODO : make something better to handle how many players we want before starting the game
+    int maxPlayers = 2;
 
     bool gameRunning = false;       // make the server know if the game is running (stop the players to join while it's true)
     bool demoMode = false;          // inform the server of the game mode, if true, it mean that we are playing with point and not life
@@ -57,6 +59,8 @@ public:
     void sendLoop();
     void receiveLoop();
     int shutdown();
+
+    void handleInput(const Player& player, Input inputs, int t, int dt);
 };
 
 

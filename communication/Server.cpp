@@ -110,7 +110,7 @@ void Server::receiveLoop() {
         if (socket.receive(packet, sender, port) == sf::Socket::Status::Done) {
             packet >> id >> type;
             if (type == Pkt::NEW_PLAYER) {
-                if(gameRunning==false) {
+                if(!gameRunning) {
                     // name << r g b a << wpn
                     std::string pname;
                     std::uint8_t r, g, b, a;
@@ -207,157 +207,52 @@ void Server::receiveLoop() {
                         if (clients[port].getStatus() != Status::DEAD) {
                             clients[port].setStatus(Status::DONE);
                         }
-                        int time;
-                        packet >> time >> inputs;
 
-                        // Get threads priority
-                        semaphore.acquire();
-                        addLine(
-                            clients[port].getName() + " >>> Server [PING:" + std::to_string(clock.getElapsedTime().asMilliseconds() - time) +"ms] "
-                            + " | inputs: x=" + std::to_string(inputs.getMovementX()) +
-                            "; y=" + std::to_string(inputs.getMovementY()) +
-                            "; rotate = " + std::to_string(inputs.getRotate()) +
-                            "; changeWpn = " + std::to_string(inputs.getChangeWpn()) +
-                            "; attack = " + std::to_string(inputs.getAttack()) +
-                            "; inputs #" + std::to_string(inputs.getId()),
-                            player.getColor()
-                        );
-                        addToGraph(clock.getElapsedTime().asMilliseconds(), player.getName(), "Server");
-                        semaphore.release();
+                        int amtInputs = 0;
+                        int time, timestampInput, dtInput;
+                        packet >> time;
 
                         // Updates ping of corresponding client:
                         pings[player.getName()] = clock.getElapsedTime().asMilliseconds() - time;
 
+                        packet >> timestampInput;
+
                         // Get the current server state AND last player state (which might be the next server state!)
-                        currentState = buffer.getCurrentState();
                         semaphore.acquire();
                         playerState = buffer.getLastState(player);
                         semaphore.release();
-                        buffer.addInputsToLastState(player, clock.getElapsedTime().asMilliseconds(), inputs);
+                        playerState.setTimestamp(time);
 
-                        // ====== POSITION ======
-                        position = playerState.getPosition();
-                        radius = playerState.getRadius();
-
-                        // Get time elapsed since last packet from client. Used for consistency in speed and such.
-                        dt = std::min(time - playerState.getTimestamp(), 1000/static_cast<int>(tickrate));
-
-                        // Adjust client values according to last state and new inputs values.
-                        position.move(inputs.getMovementX(), inputs.getMovementY(), dt);
-                        playerState.setPosition(position);
-
-                        if (inputs.getOnController()) { // If inputs are made through R-stick of controller:
-                            radius = inputs.getRotate(); // Get raw inputs
-                        }
-                        else { // Otherwise calculate with rotate speed:
-                            radius += std::fmod(inputs.getRotate() * Const::PLAYER_RADIUS_SPEED * dt, 2.f * std::numbers::pi);
-                        }
-
-                        // ====== ATTACK ======
-                        bool attack = inputs.getAttack() or playerState.getAttack();
-
-                        // ====== WEAPON DATAS CHANGE ======
-                        if (inputs.getChangeWpn()) {
-                            clients[port].switchWeapon();
-                        }
-                        currentState[player.getName()].setWpn(player.getWpn().getId());
-
-                        // loops of all interaction between players
-                        for (auto &[plPort, p]: clients) {
-                            if (port != plPort) {
-                                bool interaction = false;
-                                // Check if there is a collision between players (and therefor if it should be resolved)
-                                Position opponentPos = currentState[p.getName()].getPosition();
-//                                Position opponentPos = buffer.getStateAtTimestamp(p, clock.getElapsedTime().asMilliseconds()-pings[player.getName()]).getPosition();
-                                opponentPos = resolveCollision(position, opponentPos);
-
-                                // If yes, we re-adjust the new position of said opponent:
-                                if (opponentPos != currentState[p.getName()].getPosition()) {
-                                    interaction = true;
-                                }
-
-
-                                // If user clicks attack button AND not in attack animation still:
-                                if(inputs.getAttack() and clock.getElapsedTime().asMilliseconds() - playerState.getAttackTimestamp() >= (player.getWpn().getAttackSpeed() + player.getWpn().getReload())) {
-                                    interaction = true;
-                                    semaphore.acquire();
-                                    State stO;
-                                    if (rewind) {
-                                        stO = buffer.getStateAtTimestamp(p, clock.getElapsedTime().asMilliseconds() - pings[player.getName()] - pings[p.getName()]);
-                                    }
-                                    else {
-                                        stO = buffer.getLastState(p);
-                                    }
-                                    semaphore.release();
-
-                                    // Process the attack only if value in buffer (aka. max amt. of lag taken into consideration)
-                                    if (stO.getTimestamp() != 0) {
-                                        short attackResult = resolveAttacks(playerState, stO);
-
-                                        // If attack has not been blocked and is hitting:
-                                        if (attackResult == 0) {
-                                            // HIT SECTION
-                                            // TODO : section that choose how the point react depending on the game type we are
-                                            semaphore.acquire();
-                                            auto opponent = buffer.getLastState(p.getName());
-                                            semaphore.release();
-
-                                            if(demoMode) {
-                                                int pts = currentState[player.getName()].getPoint() + 10;
-                                                currentState[player.getName()].setPoint(pts);
-                                                playerState.setPoint(pts);
-                                            }
-                                            else {
-                                                int pts = opponent.getPoint()-currentState[player.getName()].getWpn().getDamage();
-                                                if(pts <= 0) {
-                                                    pts = -1;
-                                                    clients[plPort].setStatus(Status::DEAD);
-                                                }
-                                                currentState[p.getName()].setPoint(pts);
-                                                opponent.setPoint(pts);
-                                            }
-                                        }
-                                        // If attack has been blocked:
-                                        else if (attackResult == 1) {
-                                            // BLOCKED SECTION
-                                            float dirx = std::cos(radius);
-                                            float diry = std::sin(radius);
-
-                                            // knockback distance = 2x range
-                                            float knockbackDist = currentState[p.getName()].getWpn().getRange() * 2.f;
-
-                                            // new position of the player
-                                            position.setX(position.getX() - dirx * knockbackDist);
-                                            position.setY(position.getY() - diry * knockbackDist);
-                                        }
-                                    }
-                                }
-
-                                if(interaction) {
-                                    // TODO: Fix attack that "rewinds" player back few pos. Perhaps "display it" if ticked server-wise?
-                                    State s = State(currentState[p.getName()].getTimestamp(),
-                                        opponentPos, inputs,
-                                        currentState[p.getName()].getRadius(),
-                                        currentState[p.getName()].getAttack(),
-                                        currentState[p.getName()].getWpn().getId(),
-                                        currentState[p.getName()].getPoint());
-
-                                    buffer.updateNextPlayerState(p, s);
-                                }
+                        m_gameLogic.lock();
+                        while (packet >> inputs) {
+                            amtInputs++;
+                            if (!(packet >> dtInput)) {
+                                dtInput = time;
                             }
+                            // Get time elapsed since last packet from client. Used for consistency in speed and such.
+                            dt = std::min(dtInput-timestampInput, 1000/static_cast<int>(tickrate));
 
-                            semaphore.acquire();
-                            State s = State(time, position, inputs, radius,
-                                attack, player.getWpn().getId(), playerState.getPoint());
-                            s.setAttackTimestamp(playerState.getAttackTimestamp());
+                            handleInput(player, inputs, timestampInput, dt);
 
-                            // Keeps track of last attack timestamp, to make sure we can't spam attack and be lucky on tick timing:
-                            if (inputs.getAttack() and clock.getElapsedTime().asMilliseconds() - playerState.getAttackTimestamp() >= (player.getWpn().getAttackSpeed() + player.getWpn().getReload())) {
-                                s.setAttackTimestamp(clock.getElapsedTime().asMilliseconds());
-                            }
-                            buffer.updateNextPlayerState(player, s);
-                            semaphore.release();
+                            buffer.addInputsToLastState(player, timestampInput, inputs);
+
+                            timestampInput = dtInput; // "Refresh" for new inputs
                         }
+
+                        State s = buffer.getNextState(player);
+                        s.setTimestamp(time);
+                        buffer.setNextPlayerState(player, s);
+                        m_gameLogic.unlock();
+
+                        // Get threads priority
+                        semaphore.acquire();
+                        addLine(
+                                clients[port].getName() + " >>> Server [PING:" + std::to_string(clock.getElapsedTime().asMilliseconds() - time) +"ms] Received " + std::to_string(amtInputs) + " inputs of user!",
+                                player.getColor()
+                        );
+                        addToGraph(clock.getElapsedTime().asMilliseconds(), player.getName(), "Server");
+                        semaphore.release();
+
                         break;
                     }
 //                    case Pkt::END_GAME: {
@@ -387,6 +282,131 @@ void Server::receiveLoop() {
     }
 }
 
+void Server::handleInput(const Player& player, Input inputs, int t, int dt) {
+    std::unordered_map<std::string, State> currentState = buffer.getCurrentState();
+    State playerState = buffer.getLastState(player);
+    Position pos = playerState.getPosition();
+    float rad = playerState.getRadius();
+
+    pos.move(inputs.getMovementX(), inputs.getMovementY(), dt);
+    playerState.setPosition(pos);
+
+    if (inputs.getOnController()) { // If inputs are made through R-stick of controller:
+        playerState.setRadius(inputs.getRotate()); // Get raw inputs
+    } else { // Otherwise calculate with rotate speed:
+        playerState.setRadius(playerState.getRadius() +
+                              std::fmod(inputs.getRotate() * Const::PLAYER_RADIUS_SPEED * dt, 2.f * std::numbers::pi));
+    }
+
+    // ====== ATTACK ======
+    playerState.setAttack(inputs.getAttack() or playerState.getAttack());
+
+    // ====== WEAPON DATAS CHANGE ======
+    if (inputs.getChangeWpn()) {
+        clients[player.getPort()].switchWeapon();
+        playerState.setWpn(player.getWpn().getId());
+    }
+
+    // loops of all interaction between players
+    for (auto &[plPort, p]: clients) {
+        if (player.getPort() != plPort) {
+            bool interaction = false;
+            // Check if there is a collision between players (and therefor if it should be resolved)
+            Position opponentPos = currentState[p.getName()].getPosition();
+            opponentPos = resolveCollision(pos, opponentPos);
+
+            // If yes, we re-adjust the new position of said opponent:
+            if (opponentPos != currentState[p.getName()].getPosition()) {
+                interaction = true;
+            }
+
+
+            // If user clicks attack button AND not in attack animation still:
+            if (inputs.getAttack() and
+            clock.getElapsedTime().asMilliseconds() - playerState.getAttackTimestamp() >=
+            (player.getWpn().getAttackSpeed() + player.getWpn().getReload())) {
+                interaction = true;
+                semaphore.acquire();
+                State stO;
+                if (rewind) {
+                    stO = buffer.getStateAtTimestamp(p,
+                                                     clock.getElapsedTime().asMilliseconds() -
+                                                     pings[player.getName()] -
+                                                     pings[p.getName()]);
+                } else {
+                    stO = buffer.getLastState(p);
+                }
+                semaphore.release();
+
+                // Process the attack only if value in buffer (aka. max amt. of lag taken into consideration)
+                if (stO.getTimestamp() != 0) {
+                    short attackResult = resolveAttacks(playerState, stO);
+
+                    // If attack has not been blocked and is hitting:
+                    if (attackResult == 0) {
+                        // HIT SECTION
+                        semaphore.acquire();
+                        auto opponent = buffer.getLastState(p.getName());
+                        semaphore.release();
+
+                        if (demoMode) {
+                            int pts = currentState[player.getName()].getPoint() + 10;
+                            currentState[player.getName()].setPoint(pts);
+                            playerState.setPoint(pts);
+                        }
+                        else {
+                            int pts = opponent.getPoint() - currentState[player.getName()].getWpn().getDamage();
+                            if (pts <= 0) {
+                                pts = -1;
+                                clients[plPort].setStatus(Status::DEAD);
+                            }
+                            currentState[p.getName()].setPoint(pts);
+                            opponent.setPoint(pts);
+                        }
+                    }
+                        // If attack has been blocked:
+                    else if (attackResult == 1) {
+                        // BLOCKED SECTION
+                        float dirx = std::cos(rad);
+                        float diry = std::sin(rad);
+
+                        // knockback distance = 2x range
+                        float knockbackDist = currentState[p.getName()].getWpn().getRange() * 2.f;
+
+                        // new position of the player
+                        pos.setX(pos.getX() - dirx * knockbackDist);
+                        pos.setY(pos.getY() - diry * knockbackDist);
+                    }
+                }
+            }
+
+            if (interaction) {
+                // TODO: Fix attack that "rewinds" player back few pos. Perhaps "display it" if ticked server-wise?
+                State s = State(currentState[p.getName()].getTimestamp(),
+                                opponentPos, inputs,
+                                currentState[p.getName()].getRadius(),
+                                currentState[p.getName()].getAttack(),
+                                currentState[p.getName()].getWpn().getId(),
+                                currentState[p.getName()].getPoint());
+
+                buffer.updateNextPlayerState(p, s);
+            }
+        }
+
+        semaphore.acquire();
+
+        // Keeps track of last attack timestamp, to make sure we can't spam attack and be lucky on tick timing:
+        if (inputs.getAttack() and
+            clock.getElapsedTime().asMilliseconds() - playerState.getAttackTimestamp() >=
+            (player.getWpn().getAttackSpeed() + player.getWpn().getReload())) {
+            playerState.setAttackTimestamp(clock.getElapsedTime().asMilliseconds());
+        }
+        playerState.setTimestamp(t+dt);
+        buffer.updateNextPlayerState(player, playerState);
+        semaphore.release();
+    }
+}
+
 /**
  * Loop that executes every tick rate: Needed info will be sent to the clients whenever needed. This is in a while loop.
  *
@@ -401,6 +421,10 @@ void Server::sendLoop() {
     while (running) {
         while (!loop) {sf::sleep(sf::Time());} // Pause if needed
         sf::sleep(std::chrono::milliseconds(1000 / tickrate));
+
+        semaphore.acquire();
+        buffer.push(clock.getElapsedTime().asMilliseconds());
+        semaphore.release();
 
         std::unordered_map<std::string, State> currentState = buffer.getCurrentState();
 
@@ -478,7 +502,7 @@ void Server::sendLoop() {
                             if(demoMode) point =0;
 
                             State s(tick, pos, inputs, angleToCenter, false, 0, point);
-                            buffer.updateNextPlayerState(p, s);
+                            buffer.setNextPlayerState(p, s);
 
                             // Add everything in packet:
                             packet << p.getName() << p.getColor().r << p.getColor().g << p.getColor().b << p.getColor().a;
@@ -525,10 +549,13 @@ void Server::sendLoop() {
 
                 case Status::DONE: {
                     type = Pkt::GLOBAL;
+                    m_gameLogic.lock();
                     packet << Pkt::GLOBAL << int(buffer.getCurrentTick()) << clock.getElapsedTime().asMilliseconds();
+
                     for (auto & [n, state] : currentState) {
                         packet << n << state;
                     }
+                    m_gameLogic.unlock();
 
                     semaphore.acquire();
                     addLine(
@@ -559,18 +586,15 @@ void Server::sendLoop() {
             console.addPacket(id, type, COMM_PORT_SERVER, clock.getElapsedTime().asMilliseconds());
             semaphore.release();
         }
-        semaphore.acquire();
-        buffer.push(clock.getElapsedTime().asMilliseconds());
-        semaphore.release();
         // POST MAJ
         for (auto & [name, player] : clients) {
             State last = buffer.getLastState(player);
             // putting everything of the state in the client to draw the graph 2
             updateClient(player.getPort(), last);
-            if(last.getAttack()) {          // setting the attack save into false one so we don't keep the attack signal
+            if(last.getAttack()) { // setting the attack save into false one so we don't keep the attack signal
                 last.setAttack(false);
-                buffer.updateNextPlayerState(player, last);
             }
+            buffer.setNextPlayerState(player, last);
         }
     }
 }

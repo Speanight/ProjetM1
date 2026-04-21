@@ -15,8 +15,8 @@ int main() {
 
     loadGlobalMaps();
 
-    tickrate = 10;
-    clientRefreshRate = 50;
+    tickrate = 5;
+    clientRefreshRate = 10;
     packetID = 0;
 
     std::cout << "Tickrate changes " << tickrate << " times per second." << std::endl;

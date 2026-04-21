@@ -58,29 +58,29 @@ private:
     short controllerNumber = -1;
 
     std::atomic<bool> running = true;
-//    std::thread updateThread;
+    std::thread updateThread;
     std::thread sendThread;
     std::thread receiveThread;
 
-    Input inputs;
+    std::map<uint32_t, Input> inputs;
+    std::mutex m_inputs;
+    std::mutex m_states;
 
     Console& console;
 
     NetworkState network;
     short mapID = 0;
 
-    bool newGame = false;
     bool loop = true;
-    bool newRound = false;
-    bool endGame = false;
 
 protected:
     sf::Clock clock;
     std::map<std::string, Player> opponents;
     Buffer bufferOnReceipt;
 
-    std::map<unsigned int, State> inputsBuffer;
+    std::map<unsigned int, State> inputsBuffer; // Dictionnary: {timestamp, state (before)}
 
+    unsigned int lastSentTick = 0;
     int lastServerTick;
     unsigned int lastInputId = 0;
 //    bool created = false;
@@ -133,14 +133,13 @@ public:
 
     void update();
     void sendLoop();
-    int sendPacket(Input inputs);
 
-    [[noreturn]] void receiveLoop();
+    void receiveLoop();
     std::optional<QueuedPacket> getLatestQueuedPacket(int status);
 
     // Compensations
     void compensationInterpolation();
-    void compensationPrediction(Input inputs);
+    void compensationPrediction(Input inputs, int now);
     void compensationReconciliation();
 };
 

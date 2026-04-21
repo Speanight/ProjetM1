@@ -90,27 +90,59 @@ void State::setAttackTimestamp(int timestamp) {
 }
 
 void State::addInputs(int timestamp, Input inputs) {
-    this->inputs[timestamp] = inputs;
+    m.lock();
+    if (!this->inputs.empty()) {
+        if (std::prev(this->inputs.end())->second != inputs) {
+            this->inputs.insert(this->inputs.end(), {timestamp, inputs});
+        }
+    }
+    else {
+            this->inputs.insert(this->inputs.end(), {timestamp, inputs});
+    }
     if (inputs.getId() != 0) {
         this->lastInputsId = inputs.getId();
     }
+
+    if (timestamp > this->timestamp) {
+        this->timestamp = timestamp;
+    }
+    m.unlock();
 }
 
 Input State::getPercentInput(double percent) {
-    int begin = this->inputs.begin()->first;
-    int diff = this->inputs.end()->first - begin;
-    float lastPercent;
-    Input lastIn;
+    // If no input in state just return empty input:
+    if (this->inputs.empty()) {
+        return {};
+    }
 
-    // TODO: Make use of it later (for compensation purposes) - Need optimization!
-//    for (auto & [tps, input] : this->inputs) {
-//        if ((float) tps / (float) diff > percent) {
-//            return lastIn;
-//        }
-//        lastIn = input;
-//    }
+    float begin = this->inputs.begin()->first;
+    float diff = this->timestamp - begin;
+    Input lastIn = this->inputs.begin()->second;
+
+    for (auto & [tps, input] : this->inputs) {
+        if ((float(tps)-begin)/diff > percent) {
+            return lastIn;
+        }
+        lastIn = input;
+    }
 
     return lastIn;
+}
+
+//Position State::getPositionPercent(double percent) {
+//    float begin = this->inputs.begin()->first;
+//    float diff = this->timestamp - begin;
+//    Position pos = this->getPosition();
+//
+//    for (auto& [tps, input]: this->inputs) {
+//        if ((float(tps)-begin) / diff < percent) {
+//
+//        }
+//    }
+//}
+
+void State::flushInputs() {
+    this->inputs.clear();
 }
 
 sf::Packet& operator<<(sf::Packet &packet, State state) {
@@ -127,10 +159,9 @@ sf::Packet& operator<<(sf::Packet &packet, State state) {
     << state.getTimestamp()
     << size;
 
-    // TODO_2: Make use of it later (for compensation purposes) - Need optimization!
-//    for (auto & [timestamp, input] : inputs) {
-//        packet << timestamp << input;
-//    }
+    for (auto & [timestamp, input] : inputs) {
+        packet << int(timestamp) << input;
+    }
 
 
     return packet;
@@ -145,7 +176,7 @@ sf::Packet& operator>>(sf::Packet &packet, State& state) {
     int point;
     int timestamp;
     unsigned int lastInputsId;
-//    Input input;
+    Input input;
 
     packet
     >> lastInputsId
@@ -167,11 +198,14 @@ sf::Packet& operator>>(sf::Packet &packet, State& state) {
     // Get inputs:
     packet >> size;
 
-//    while (size > 0) {
-//        packet >> timestamp >> input;
-//        state.addInputs(timestamp, input);
-//        size--;
-//    }
+    if (size < 50) {
+        while (size > 0) {
+            packet >> timestamp >> input;
+            state.addInputs(timestamp, input);
+            size--;
+        }
+    }
+
 
     return packet;
 }

@@ -23,6 +23,8 @@ extern uint32_t packetID;
 extern std::mutex m;
 extern std::vector<sf::Texture> GLOBAL_MAP_TEXTURES;
 
+extern std::vector<sf::Texture> textureMaps;
+
 namespace Const {
     static const std::string SERVER_IP = "127.0.0.1";
     static constexpr unsigned short COMM_PORT_SERVER = 35496;
@@ -38,7 +40,7 @@ namespace Const {
     static const int GRAPH_DISPLAY_MS = 1; // Defines how long (in ms) a "graph line" will be worth for in the server's console.
     static const int GRAPH_DISPLAY_VALUES = 200; // Defines how many values are displayed at the same time in server's console. This means console shows the last DISPLAY_VALUES * DISPLAY_MS milliseconds.
 
-    static const float PLAYER_SPEED = .3f;
+    static const float PLAYER_SPEED = .003f;
     static const float PLAYER_RADIUS_SPEED = .003f;
     static const float PLAYER_SIZE = 20.f;
     static const float CONTROLLER_DEADZONE = .2f;
@@ -54,6 +56,8 @@ namespace Const {
     static const int WAIT_RETRY_TIME = 3000;
 
     static const int AMT_PLAYERS_MAX = 4;
+
+    static const short DISPLAY_REFRESH_RATE = 100;
 }
 
 namespace Err {
