@@ -222,7 +222,6 @@ void ServerUI::draw() {
             }
         } else if (selectedGraph == 1) {
             drawGame();
-            // TODO : make the game being draw using the server remaining datas
             // Game zone
 
         } else if (selectedGraph == 2) {

@@ -73,6 +73,7 @@ int Server::addClient(const std::string& name, unsigned short port, sf::Color co
     player.setName(name);
     player.setColor(color);
     player.setWeapons({Weapons::SHIELD, weapon});
+    player.setWpn(1);
 
     clients[port] = player;
     pings[name] = 0;
@@ -283,8 +284,8 @@ void Server::receiveLoop() {
 }
 
 void Server::handleInput(const Player& player, Input inputs, int t, int dt) {
-    std::unordered_map<std::string, State> currentState = buffer.getCurrentState();
-    State playerState = buffer.getLastState(player);
+//    std::unordered_map<std::string, State> currentState = buffer.getCurrentState();
+    State playerState = buffer.getNextState(player);
     Position pos = playerState.getPosition();
     float rad = playerState.getRadius();
 
@@ -309,14 +310,15 @@ void Server::handleInput(const Player& player, Input inputs, int t, int dt) {
 
     // loops of all interaction between players
     for (auto &[plPort, p]: clients) {
+        auto opponentState = buffer.getNextState(p);
         if (player.getPort() != plPort) {
             bool interaction = false;
             // Check if there is a collision between players (and therefor if it should be resolved)
-            Position opponentPos = currentState[p.getName()].getPosition();
+            Position opponentPos = opponentState.getPosition();
             opponentPos = resolveCollision(pos, opponentPos);
 
             // If yes, we re-adjust the new position of said opponent:
-            if (opponentPos != currentState[p.getName()].getPosition()) {
+            if (opponentPos != opponentState.getPosition()) {
                 interaction = true;
             }
 
@@ -350,17 +352,15 @@ void Server::handleInput(const Player& player, Input inputs, int t, int dt) {
                         semaphore.release();
 
                         if (demoMode) {
-                            int pts = currentState[player.getName()].getPoint() + 10;
-                            currentState[player.getName()].setPoint(pts);
-                            playerState.setPoint(pts);
+                            playerState.setPoint(playerState.getPoint() + 10);
                         }
                         else {
-                            int pts = opponent.getPoint() - currentState[player.getName()].getWpn().getDamage();
+                            int pts = opponent.getPoint() - playerState.getWpn().getDamage();
                             if (pts <= 0) {
                                 pts = -1;
                                 clients[plPort].setStatus(Status::DEAD);
                             }
-                            currentState[p.getName()].setPoint(pts);
+                            opponentState.setPoint(pts);
                             opponent.setPoint(pts);
                         }
                     }
@@ -371,7 +371,7 @@ void Server::handleInput(const Player& player, Input inputs, int t, int dt) {
                         float diry = std::sin(rad);
 
                         // knockback distance = 2x range
-                        float knockbackDist = currentState[p.getName()].getWpn().getRange() * 2.f;
+                        float knockbackDist = opponentState.getWpn().getRange() * 2.f;
 
                         // new position of the player
                         pos.setX(pos.getX() - dirx * knockbackDist);
@@ -381,30 +381,28 @@ void Server::handleInput(const Player& player, Input inputs, int t, int dt) {
             }
 
             if (interaction) {
-                // TODO: Fix attack that "rewinds" player back few pos. Perhaps "display it" if ticked server-wise?
-                State s = State(currentState[p.getName()].getTimestamp(),
+                State s = State(opponentState.getTimestamp(),
                                 opponentPos, inputs,
-                                currentState[p.getName()].getRadius(),
-                                currentState[p.getName()].getAttack(),
-                                currentState[p.getName()].getWpn().getId(),
-                                currentState[p.getName()].getPoint());
+                                opponentState.getRadius(),
+                                opponentState.getAttack(),
+                                opponentState.getWpn().getId(),
+                                opponentState.getPoint());
 
                 buffer.updateNextPlayerState(p, s);
             }
         }
-
-        semaphore.acquire();
-
-        // Keeps track of last attack timestamp, to make sure we can't spam attack and be lucky on tick timing:
-        if (inputs.getAttack() and
-            clock.getElapsedTime().asMilliseconds() - playerState.getAttackTimestamp() >=
-            (player.getWpn().getAttackSpeed() + player.getWpn().getReload())) {
-            playerState.setAttackTimestamp(clock.getElapsedTime().asMilliseconds());
-        }
-        playerState.setTimestamp(t+dt);
-        buffer.updateNextPlayerState(player, playerState);
-        semaphore.release();
     }
+    semaphore.acquire();
+
+    // Keeps track of last attack timestamp, to make sure we can't spam attack and be lucky on tick timing:
+    if (inputs.getAttack() and
+        clock.getElapsedTime().asMilliseconds() - playerState.getAttackTimestamp() >=
+        (player.getWpn().getAttackSpeed() + player.getWpn().getReload())) {
+        playerState.setAttackTimestamp(clock.getElapsedTime().asMilliseconds());
+    }
+    playerState.setTimestamp(t+dt);
+    buffer.updateNextPlayerState(player, playerState);
+    semaphore.release();
 }
 
 /**
@@ -582,7 +580,7 @@ void Server::sendLoop() {
                 }
             }
             semaphore.acquire();
-            socket.send(packet, sender.value(), player.getPort());
+            std::ignore = socket.send(packet, sender.value(), player.getPort());
             console.addPacket(id, type, COMM_PORT_SERVER, clock.getElapsedTime().asMilliseconds());
             semaphore.release();
         }
@@ -615,7 +613,7 @@ int Server::shutdown() {
     if (socket.send(packet, sender.value(), COMM_PORT_SERVER) == sf::Socket::Status::Done) {
         // Sends DC packet to all clients
         for (auto & [name, player] : clients) {
-            socket.send(packet, sender.value(), player.getPort());
+            std::ignore = socket.send(packet, sender.value(), player.getPort());
         }
         return Err::ERR_NONE;
     }

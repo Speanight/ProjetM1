@@ -115,15 +115,24 @@ void ClientUI::drawConfig() {
     int ping[2] = {getReceivingPing(), getSendingPing()};
     std::array<bool,3> compensations = getCompensations();
 
-    // Ensure the ping sliders only take available space:
-    ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x * 0.5f);
-    ImGui::SliderInt("Packet loss S -> C", &packetLoss[0], 0, 100);
-    ImGui::SliderInt("Packet loss C -> S", &packetLoss[1], 0, 100);
+    // Ensure the sliders only take available space:
+    ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x * 0.25f);
+    ImGui::Text("Packet loss S -> C");
+    ImGui::SameLine();
+    ImGui::SliderInt("##PakLossSC", &packetLoss[0], 0, 100);
+    ImGui::SameLine();
+    ImGui::Text("Packet loss C -> C");
+    ImGui::SameLine();
+    ImGui::SliderInt("##PakLossCS", &packetLoss[1], 0, 100);
     ImGui::PopItemWidth();
     ImGui::PushItemWidth(ImGui::GetContentRegionAvail().x * 0.25f);
-    ImGui::InputInt("Ping S -> C", &ping[RECEIVED]);
-//    ImGui::SameLine();
-    ImGui::InputInt("Ping C -> S", &ping[SENT]);
+    ImGui::Text("Ping S -> C");
+    ImGui::SameLine();
+    ImGui::InputInt("##PingSC", &ping[RECEIVED], 20);
+    ImGui::SameLine();
+    ImGui::Text("Ping C -> S");
+    ImGui::SameLine();
+    ImGui::InputInt("##PingCS", &ping[SENT], 20);
     ImGui::PopItemWidth();
 
     ImGui::Checkbox("Interpolation", &compensations[Compensation::INTERPOLATION]);
@@ -131,6 +140,8 @@ void ClientUI::drawConfig() {
     ImGui::Checkbox("Prediction", &compensations[Compensation::PREDICTION]);
     ImGui::SameLine();
     ImGui::Checkbox("Reconciliation", &compensations[Compensation::RECONCILIATION]);
+
+    ImGui::Checkbox("Detailed interpolation (inputs-based)", &this->detailedInterpolation);
 
     setReceivingPacketLoss(packetLoss[0]);
     setSendingPacketLoss(packetLoss[1]);

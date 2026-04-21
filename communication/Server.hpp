@@ -24,7 +24,7 @@ using namespace Const;
 
 class Server : public ServerUI {
 private:
-    sf::Clock clock;
+    sf::Clock& clock;
     sf::UdpSocket socket;
     Buffer buffer;
 

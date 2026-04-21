@@ -162,10 +162,6 @@ State Buffer::getStateAtTimestamp(Player player, int timestamp) {
     Position p;
     p = state.getPosition();
 
-    if (player.getName() == "Client B") {
-        std::cout << "";
-    }
-
     for (auto& [inputsTimestamp, Input] : state.getInputs()) {
         dt =  std::min(inputsTimestamp, timestamp) - stateTimestamp;
         p.move(Input.getMovementX(), Input.getMovementY(), dt);

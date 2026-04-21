@@ -48,12 +48,7 @@ public:
     void setAttack(bool attack);
     void setWpn(int wpn_id);
     void setPoint(int point);
-//    void setTimestamp(int timestamp);
-
     void flushInputs();
-
-//    void setLastInputsId(unsigned int id);
-//    Input getPercentInput(double percent);
 };
 
 sf::Packet& operator<<(sf::Packet &packet, State state);
