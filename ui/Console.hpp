@@ -23,8 +23,8 @@ class Console {
 private:
     std::mutex m;
     int timestampDelay = 0;
-    std::map<uint32_t, Packet> packets; // {id: Packet}
-    std::map<unsigned short, int> clients; // {PORT: Position}
+    std::map<uint32_t, Packet> packets;     // {id: Packet}
+    std::map<unsigned short, int> clients;  // {PORT: Position}
     bool pause = false;
 
 public:

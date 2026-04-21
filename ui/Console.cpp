@@ -62,6 +62,8 @@ void Console::addPacket(uint32_t id, short type, unsigned short client, int time
 void Console::refreshConsole() {
     clients.clear();
     packets.clear();
+
+    clients.insert({Const::COMM_PORT_SERVER, 50});
 }
 
 
@@ -70,8 +72,6 @@ void Console::draw() {
     spec.MarkerSize = 5.f;
     spec.LineWeight = 2.f;
     spec.FillAlpha = 1.f;
-
-
 
     if (ImPlot::BeginPlot("##MarkerStyles", ImVec2(-1,0), ImPlotFlags_CanvasOnly)) {
 //        ImPlot::SetupAxes(nullptr, nullptr, ImPlotAxisFlags_NoDecorations, ImPlotAxisFlags_NoDecorations);
