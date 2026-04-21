@@ -1,7 +1,7 @@
 #include "Input.hpp"
 
 
-Input::Input(unsigned int id, float x, float y, float r, bool mode, bool attack, bool onController) {
+Input::Input(unsigned int id, short x, short y, float r, bool mode, bool attack, bool onController) {
     this->id = id;
     this->movementX = x;
     this->movementY = y;
@@ -92,22 +92,22 @@ void Input::handleInput(int inputCode, float value) {
     switch (inputCode) {
         case Inputs::MOVEMENT_UP:
             if (fabs(value) > Const::CONTROLLER_DEADZONE) {
-                movementY -= value;
+                movementY -= value*100;
             }
             break;
         case Inputs::MOVEMENT_DOWN:
             if (fabs(value) > Const::CONTROLLER_DEADZONE) {
-                movementY += value;
+                movementY += value*100;
             }
             break;
         case Inputs::MOVEMENT_LEFT:
             if (fabs(value) > Const::CONTROLLER_DEADZONE) {
-                movementX -= value;
+                movementX -= value*100;
             }
             break;
         case Inputs::MOVEMENT_RIGHT:
             if (fabs(value) > Const::CONTROLLER_DEADZONE) {
-                movementX += value;
+                movementX += value*100;
             }
             break;
         case Inputs::WPN_CCW:       // Handle the weapon rotation
@@ -152,6 +152,26 @@ sf::Packet& operator>>(sf::Packet &packet, Input& inputs) {
 
     return packet;
 }
+
+bool Input::operator==(const Input& other) const {
+    return this->getMovementX() == other.getMovementX() and this->getMovementY() == other.getMovementY()
+    and this->getRotate() == other.getRotate() and this->getChangeWpn() == other.getChangeWpn() and
+    this->getAttack() == other.getAttack();
+}
+
+Input& Input::operator=(const Input& other) {
+    if (this != &other) {
+        setId(other.getId());
+        setMovementX(other.getMovementX());
+        setMovementY(other.getMovementY());
+        setRotate(other.getRotate());
+        setChangeWpn(other.getChangeWpn());
+        setAttack(other.getAttack());
+        setOnController(other.getOnController());
+        setModeEnable(other.getModeEnable());
+    }
+}
+
 
 std::ostream &operator<<(std::ostream& os, const Input& inputs) {
     return os << "#" << inputs.getId() << " x=" << inputs.getMovementX() << "; y=" << inputs.getMovementY() << " ATK=" << inputs.getAttack() << " " << inputs.getRotate() << "°";

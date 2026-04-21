@@ -1,7 +1,3 @@
-//
-// Created by OMGiT on 02/03/2026.
-//
-
 #ifndef PROJETM1_STATE_HPP
 #define PROJETM1_STATE_HPP
 
@@ -53,6 +49,8 @@ public:
     void setWpn(int wpn_id);
     void setPoint(int point);
 //    void setTimestamp(int timestamp);
+
+    void flushInputs();
 
 //    void setLastInputsId(unsigned int id);
 //    Input getPercentInput(double percent);

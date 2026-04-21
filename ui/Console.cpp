@@ -30,11 +30,7 @@ void Console::addPacket(uint32_t id, short type, unsigned short client, int time
         // Remove X first element to have GRAPH_DISPLAY_VALUES elems. left.
         std::advance(it, packets.size() - Const::GRAPH_DISPLAY_VALUES);
 
-        try {
-            packets.erase(packets.begin(), it);
-        } catch (int errCode) {
-            std::cout << "Couldn't clear packets from console! Error: " << errCode;
-        }
+        packets.erase(packets.begin(), it);
     }
     timestampDelay = packets.begin()->second.timestampFrom;
 
