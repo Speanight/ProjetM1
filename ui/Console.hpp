@@ -35,7 +35,7 @@ public:
 
     void refreshConsole();
 
-    void draw();
+    void draw(float height);
 };
 
 

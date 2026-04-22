@@ -64,29 +64,6 @@ void ServerUI::addLine(int timestamp, std::string from, std::string to, std::str
     }
 }
 
-/*
-void ServerUI::addToGraph(int timestamp, const std::string& from, const std::string& to) {
-    if (!pauseConsole) {
-        int toPush = (timestamp - lastTimestamp) / Const::GRAPH_DISPLAY_MS; // amt. of values to "push"
-
-        // If we're in to the next displayed bar:
-        m.lock();
-        for (auto & [f, t] : data) {
-                data[f].insert(data[f].end(), toPush, FLT_EPSILON);
-
-            if (data[f].size() > Const::GRAPH_DISPLAY_VALUES) {
-                data[f].erase(data[f].begin(), data[f].begin() + toPush + 1);
-            }
-        }
-        // Finally, we insert the value in last place:
-        data[from].push_back(100.0f);
-        m.unlock();
-
-        lastTimestamp = timestamp;
-    }
-}
-*/
-
 void ServerUI::addToGraph(int timestamp, const std::string& from, const std::string& to) {
     if (pauseConsole) return;
 
@@ -188,6 +165,14 @@ void ServerUI::draw() {
         /////////////
 
         ImGui::BeginChild("GraphZone", ImVec2(0, 0), false);
+
+        ImVec2 avail = ImGui::GetContentRegionAvail();
+        float graphHeight = avail.y;
+
+        // option : si tu veux laisser un peu de marge UI
+        graphHeight -= 5.0f;
+        graphHeight = std::max(graphHeight, 150.0f);
+
         if (selectedGraph == 0) {
             console.setPause(true);
             drawGraph1();
@@ -199,7 +184,7 @@ void ServerUI::draw() {
         } else if (selectedGraph == 2) {
             console.setPause(pauseConsole);
             ImGui::Text("Graphe 3");
-            console.draw();
+            console.draw(graphHeight);
         }
         ImGui::EndChild(); // GraphZone
     }
