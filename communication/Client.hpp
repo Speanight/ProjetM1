@@ -74,7 +74,7 @@ private:
     bool loop = true;
 
 protected:
-    sf::Clock clock;
+    sf::Clock& clock;
     std::map<std::string, Player> opponents;
     Buffer bufferOnReceipt;
 
@@ -82,8 +82,10 @@ protected:
 
     unsigned int lastSentTick = 0;
     int lastServerTick;
+    unsigned int localTimeAtServerTick;
     unsigned int lastInputId = 0;
-//    bool created = false;
+
+    bool detailedInterpolation = true;
 
     int lastUpdate;
 

@@ -222,6 +222,8 @@ void ServerUI::draw() {
             }
         } else if (selectedGraph == 1) {
             drawGame();
+            // Game zone
+
         } else if (selectedGraph == 2) {
             console.setPause(pauseConsole);
             ImGui::Text("Graphe 3");

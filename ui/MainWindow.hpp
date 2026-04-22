@@ -17,6 +17,7 @@
 class MainWindow {
 private:
     std::atomic<bool> running = true;
+    bool closeWindow = false;
     std::thread thread;
     Server server;
     std::vector<ClientUI*> clients;
@@ -26,11 +27,11 @@ private:
     Console console;
 
     sf::Clock clock;
-    std::unique_ptr<sf::RenderWindow> window;
+//    std::unique_ptr<sf::RenderWindow> window;
 
 public:
 //    sf::RenderWindow window;
-    MainWindow(sf::Clock clock, bool quickLaunch = false);
+    MainWindow(sf::Clock& clock, bool quickLaunch = false);
     ~MainWindow();
 
     void addClient(ClientUI* client);

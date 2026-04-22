@@ -1,7 +1,7 @@
 #include "MainWindow.hpp"
 
-MainWindow::MainWindow(sf::Clock clock, bool quickLaunch) : console(), server(console, clock) {
-    std::cout << "Console adress is: " << &console << std::endl;
+MainWindow::MainWindow(sf::Clock& clock, bool quickLaunch) : console(), server(console, clock) {
+    this->clock = clock;
     if (quickLaunch) {
         gameSetup();
     }
@@ -343,9 +343,9 @@ void MainWindow::drawConfirmClose() {
 
             if (ImGui::Button("QUIT", ImVec2(buttonWidth, buttonHeight))) {
                 std::cout<<"QUIT BUTTON PRESSED"<<std::endl;
+                closeWindow = true;
                 shutdown();
             }
-
             ImGui::PopStyleColor(3);
         }
 
@@ -354,17 +354,17 @@ void MainWindow::drawConfirmClose() {
 }
 
 void MainWindow::loop() {
-    window = std::make_unique<sf::RenderWindow>(
-        sf::VideoMode({1280, 880}),
-        "Projet M1"
-    );
+    sf::RenderWindow window(sf::VideoMode({1280, 880}), "Projet M1");
+//    window = std::make_unique<sf::RenderWindow>(
+//        sf::VideoMode({1280, 880}),
+//        "Projet M1"
+//    );
 
-    window->setFramerateLimit(60);
-    window->setPosition({0,0});
+    window.setFramerateLimit(60);
+    window.setPosition({0,0});
 
-    if (!ImGui::SFML::Init(*window)) {
+    if (!ImGui::SFML::Init(window)) {
         return;
-        // TODO: Error handler
     }
 
     ImPlot::CreateContext();
@@ -375,11 +375,14 @@ void MainWindow::loop() {
     ImGuiIO& io = ImGui::GetIO();
 
     // thread of window
-    while (window->isOpen()) {
+    while (window.isOpen()) {
+        if (closeWindow) {
+            window.close();
+        }
         delta = deltaClock.restart();
         // Closing window
-        while (auto event = window->pollEvent()) {
-            ImGui::SFML::ProcessEvent(*window, *event);
+        while (auto event = window.pollEvent()) {
+            ImGui::SFML::ProcessEvent(window, *event);
             if (event->is<sf::Event::Closed>()) {
                 if(screen==Screens::CONFIRM_CLOSE) {
                     std::cout<<"QUIT BUTTON PRESSED"<<std::endl;
@@ -393,16 +396,16 @@ void MainWindow::loop() {
         }
         io.DeltaTime = deltaClock.restart().asSeconds();
 
-        auto size = window->getSize();
+        auto size = window.getSize();
         io.DisplaySize = ImVec2((float)size.x, (float)size.y);
 
-        auto mouse = sf::Mouse::getPosition(*window);
+        auto mouse = sf::Mouse::getPosition(window);
         io.MousePos = ImVec2((float)mouse.x, (float)mouse.y);
         io.MouseDown[0] = sf::Mouse::isButtonPressed(sf::Mouse::Button::Left);
 
-        ImGui::SFML::Update(*window, delta);
+        ImGui::SFML::Update(window, delta);
 
-        window->clear();
+        window.clear();
 
         ImGui::SetNextWindowPos(ImVec2(0, 0));
 
@@ -420,10 +423,10 @@ void MainWindow::loop() {
         glClearColor(0.15f, 0.15f, 0.15f, 1.f);
         glClear(GL_COLOR_BUFFER_BIT);
 
-        window->setView(window->getDefaultView());
+        window.setView(window.getDefaultView());
 
-        ImGui::SFML::Render(*window);
-        window->display();
+        ImGui::SFML::Render(window);
+        window.display();
     }
 
 

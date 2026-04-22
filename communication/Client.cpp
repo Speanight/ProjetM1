@@ -439,7 +439,7 @@ void Client::sendLoop() {
         // Only executes if packet loss % is respected (randomly generated number)
         if (packetLossChance > network.packetLoss[1]) {
             if (packetToSend.has_value()) {
-                socket.send(packetToSend.value().packet, server, COMM_PORT_SERVER);
+                std::ignore = socket.send(packetToSend.value().packet, server, COMM_PORT_SERVER);
             }
         }
 
@@ -544,6 +544,7 @@ void Client::receiveLoop() {
                                 State state;
 
                                 packet >> tick >> lastServerTick;
+                                localTimeAtServerTick = clock.getElapsedTime().asMilliseconds();
 
                                 while (packet >> name >> state) {
                                     m_states.lock();
@@ -560,18 +561,16 @@ void Client::receiveLoop() {
                                         if (!this->getCompensations()[Compensation::RECONCILIATION]) {
                                             this->player.setPosition(currState.getPosition());
                                             this->player.setRadius(currState.getRadius());
+                                            this->player.setIsAttacking(state.getAttack());
+                                            this->player.setWpn(state.getWpn().getId());
                                         }
-                                        this->player.setIsAttacking(state.getAttack());
-                                        this->player.setWpn(state.getWpn().getId());
                                         this->player.setPoint(state.getPoint());
                                     }
                                     else {
                                         // Opponent position:
                                         this->bufferOnReceipt.setNextPlayerState(opponents[name], state);
-//                                        if (!this->getCompensationEnabled(Compensation::INTERPOLATION)) {
                                         opponents[name].setPosition(currentState[name].getPosition());
                                         opponents[name].setRadius(currentState[name].getRadius());
-//                                        }
                                         opponents[name].setWpn(currentState[name].getWpn().getId());
                                         opponents[name].setIsAttacking(currentState[name].getAttack());
                                         opponents[name].setPoint(currentState[name].getPoint());
@@ -624,7 +623,7 @@ sf::Color Client::getColor() {
 // Copy constructors
 Client::Client(const Client& other) : server(other.server), semaphore(1),
     player(other.player.getName(), other.player.getColor()),
-    console(other.console) {
+    console(other.console), clock(other.clock) {
     this->player.setPosition(other.player.getPosition());
     this->player.setRadius(other.player.getRadius());
     this->player.setWpn(other.player.getWpn().getId());
@@ -700,9 +699,18 @@ void Client::compensationInterpolation() {
             Position pos = opponents[name].getPosition();
             float radius = opponents[name].getRadius();
 
-            double tickProgress = std::min(1.0,(clock.getElapsedTime().asMilliseconds() - lastServerTick) / (1000/(double)tickrate));
+            double tickProgress = std::min(1.0,(clock.getElapsedTime().asMilliseconds() - localTimeAtServerTick) / (1000/(double)tickrate));
             Input corrInputs = currState[name].getPercentInput(tickProgress);
-            pos.move(corrInputs.getMovementX(), corrInputs.getMovementY(), clock.getElapsedTime().asMilliseconds() - lastUpdate);
+
+
+            if (detailedInterpolation) {
+                pos.move(corrInputs.getMovementX(), corrInputs.getMovementY(), clock.getElapsedTime().asMilliseconds() - lastUpdate);
+            }
+            else {
+                pos.setX(pastState[name].getPosition().getX() + (currState[name].getPosition().getX() - pastState[name].getPosition().getX()) * tickProgress);
+                pos.setY(pastState[name].getPosition().getY() + (currState[name].getPosition().getY() - pastState[name].getPosition().getY()) * tickProgress);
+            }
+
 
             opponents[name].setPosition(pos);
 
@@ -743,6 +751,12 @@ void Client::compensationPrediction(Input inputs, int now) {
         player.setRadius(getPlayer().getRadius() + inputs.getRotate() * Const::PLAYER_RADIUS_SPEED * (now - lastUpdate));
     }
 
+    player.setIsAttacking(inputs.getAttack());
+
+    if (inputs.getChangeWpn()) {
+        player.switchWeapon();
+    }
+
     State state(now, player.getPosition(), inputs, player.getRadius(), player.getIsAttacking(), player.getWpn().getId(), player.getPoint());
 
     inputsBuffer[lastInputId] = state;
@@ -775,6 +789,8 @@ void Client::compensationReconciliation() {
         p.move(lastLocalInputs.getInputs().begin()->second.getMovementX(), lastLocalInputs.getInputs().begin()->second.getMovementY(), dt);
        ImVec2 diff = {p.getX() - q.getX(), p.getY() - q.getY()};
 
+       // TODO: Reconciliation doesn't fix itself if player is pushed and no input is held!
+
         if (sqrt(pow(diff.x, 2) + pow(diff.y, 2)) >= Const::PLAYER_SPEED * 100 * 5) { // If diff. of pos > eq. of x ms of movement:
             std::cout << "Diff of: " << diff.x << "; " << diff.y << std::endl;
             Position pos = getPosition();
@@ -795,6 +811,10 @@ void Client::compensationReconciliation() {
 
         if (std::fmod(inputsBuffer[lastReceivedInputs].getRadius() - currentState.getRadius(), 2*std::numbers::pi) > 1*std::numbers::pi/180) { // If radius diff. > 1°
             player.setRadius(currentState.getRadius());
+        }
+
+        if (inputsBuffer[lastReceivedInputs].getWpn().getId() != currentState.getWpn().getId()) {
+            player.setWpn(currentState.getWpn().getId());
         }
 
         // Delete all frames up to this one (as it has already been processed)

@@ -120,7 +120,7 @@ void Input::handleInput(int inputCode, float value) {
             changeWpn = value;
             break;
         case Inputs::ATTACK:        // Signal to attack
-            attack = value;         // todo : never used ?
+            attack = value;
             break;
         default:
             break;
@@ -170,6 +170,8 @@ Input& Input::operator=(const Input& other) {
         setOnController(other.getOnController());
         setModeEnable(other.getModeEnable());
     }
+
+    return *this;
 }
 
 
