@@ -342,8 +342,8 @@ void MainWindow::drawConfirmClose() {
             ImGui::PushStyleColor(ImGuiCol_ButtonActive,  IM_COL32(120, 0, 0, 255));
 
             if (ImGui::Button("QUIT", ImVec2(buttonWidth, buttonHeight))) {
-                    std::cout<<"QUIT BUTTON PRESSED"<<std::endl;
-                window->close();
+                std::cout<<"QUIT BUTTON PRESSED"<<std::endl;
+                shutdown();
             }
 
             ImGui::PopStyleColor(3);
@@ -382,9 +382,8 @@ void MainWindow::loop() {
             ImGui::SFML::ProcessEvent(*window, *event);
             if (event->is<sf::Event::Closed>()) {
                 if(screen==Screens::CONFIRM_CLOSE) {
-                    window->close();
                     std::cout<<"QUIT BUTTON PRESSED"<<std::endl;
-                    // TODO : add proper close system here
+                    shutdown();
                 }
                 else {
                     previousScreen = screen;
@@ -532,4 +531,27 @@ void MainWindow::gameSetup(int nbPlayers) {
     this->server.setMaxPlayers(nbPlayers);
     this->server.setDemoMode(false);
     screen = Screens::GAME_WINDOW;
+}
+
+/**
+ * function called when we want to close the program.
+ */
+void MainWindow::shutdown() {
+    std::cout << "Shutting down..." << std::endl;
+
+    if (window) {
+        window->close();
+    }
+
+    for (auto& client : clients) {
+        delete client;
+    }
+    clients.clear();
+
+    server.shutdown();
+
+
+    if (thread.joinable()) {
+        thread.join();
+    }
 }
