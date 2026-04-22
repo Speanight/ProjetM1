@@ -46,11 +46,13 @@ public:
     ServerUI(Console& console);
     void refreshServerUI();
 
+    void draw();
+
     // Graph 1
     void addLine(std::string text, sf::Color color = sf::Color::White);
     void addLine(int timestamp, std::string from, std::string to, std::string details, sf::Color color = sf::Color::White);
     void addToGraph(int timestamp, const std::string& from, const std::string& to);
-    void draw();
+    void drawGraph1();
 
     // Graph 2
     void setPlayer(unsigned short id, Player player);
