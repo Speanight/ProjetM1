@@ -542,10 +542,6 @@ void MainWindow::gameSetup(int nbPlayers) {
 void MainWindow::shutdown() {
     std::cout << "Shutting down..." << std::endl;
 
-    if (window) {
-        window->close();
-    }
-
     for (auto& client : clients) {
         delete client;
     }
