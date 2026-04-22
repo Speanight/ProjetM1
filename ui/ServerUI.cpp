@@ -64,6 +64,7 @@ void ServerUI::addLine(int timestamp, std::string from, std::string to, std::str
     }
 }
 
+/*
 void ServerUI::addToGraph(int timestamp, const std::string& from, const std::string& to) {
     if (!pauseConsole) {
         int toPush = (timestamp - lastTimestamp) / Const::GRAPH_DISPLAY_MS; // amt. of values to "push"
@@ -83,6 +84,31 @@ void ServerUI::addToGraph(int timestamp, const std::string& from, const std::str
 
         lastTimestamp = timestamp;
     }
+}
+*/
+
+void ServerUI::addToGraph(int timestamp, const std::string& from, const std::string& to) {
+    if (pauseConsole) return;
+
+    std::lock_guard<std::mutex> lock(m);
+
+    int dt = timestamp - lastTimestamp;
+    int toPush = std::max(1, dt / Const::GRAPH_DISPLAY_MS);
+
+    for (auto& [name, vec] : data) {
+        vec.insert(vec.end(), toPush, 0.0f);
+
+        if (vec.size() > Const::GRAPH_DISPLAY_VALUES) {
+            vec.erase(vec.begin(), vec.begin() + (vec.size() - Const::GRAPH_DISPLAY_VALUES));
+        }
+    }
+
+    auto& v = data[from];
+    if (!v.empty()) {
+        v.back() += 100.0f;
+    }
+
+    lastTimestamp = timestamp;
 }
 
 void ServerUI::draw() {
@@ -185,6 +211,8 @@ void ServerUI::draw() {
 // ============= GRAPH 1 =============
 void ServerUI::drawGraph1() {
     if (ImGui::BeginTable("##table", 2)) {
+        static int groups = Const::GRAPH_DISPLAY_VALUES; // dataTab of server should have 200 values (items*groups)
+
         // Table headers:
         {
             ImGui::TableSetupColumn("Name", ImGuiTableColumnFlags_WidthFixed, 75.0f);
@@ -192,54 +220,75 @@ void ServerUI::drawGraph1() {
         }
 
         // Server tab:
-        ImGui::TableNextRow();
-        ImGui::TableSetColumnIndex(0);
-        ImGui::Text("Server");
-        ImGui::TableSetColumnIndex(1);
-        ImGui::PushID("server");
+        {
+            ImGui::TableNextRow();
+            ImGui::TableSetColumnIndex(0);
+            ImGui::Text("Server");
+            ImGui::TableSetColumnIndex(1);
+            ImGui::PushID("server");
 
-        static int groups = Const::GRAPH_DISPLAY_VALUES; // dataTab of server should have 200 values (items*groups)
+            if (ImPlot::BeginPlot("Bar Group##", ImVec2{ImGui::GetContentRegionAvail().x, ImGui::GetContentRegionAvail().y / (3)},
+                              ImPlotFlags_NoTitle | ImPlotFlags_NoLegend |
+                              ImPlotFlags_NoMouseText | ImPlotFlags_NoFrame | ImPlotFlags_NoInputs)) {
+                static const char* ilabels[] = {"Packets received", "Packets sent"};
 
-        if (ImPlot::BeginPlot("Bar Group##", ImVec2{ImGui::GetContentRegionAvail().x, ImGui::GetContentRegionAvail().y / (3)},
-                          ImPlotFlags_NoTitle | ImPlotFlags_NoLegend |
-                          ImPlotFlags_NoMouseText | ImPlotFlags_NoFrame | ImPlotFlags_NoInputs)) {
-            static const char* ilabels[] = {"Packets received", "Packets sent"};
+                ImPlot::SetupAxes("Time","Packet",ImPlotAxisFlags_NoDecorations, ImPlotAxisFlags_NoDecorations);
 
-            ImPlot::SetupAxes("Time","Packet",ImPlotAxisFlags_NoDecorations, ImPlotAxisFlags_NoDecorations);
-            ImPlot::PlotBarGroups(ilabels,data["Server"].data(),1,groups,1,0,{ImPlotProp_Flags, ImPlotBarGroupsFlags_Stacked});
+                ImPlot::PlotBarGroups(
+                    ilabels,
+                    data["Server"].data(),
+                    1,
+                    groups,
+                    1,
+                    0,
+                    {ImPlotProp_Flags, ImPlotBarGroupsFlags_Stacked}
+                    );
 
-            ImPlot::EndPlot(); // Server's Bar Group
-                          }
-        ImGui::PopID();
-
-        int i = 1;
-
-        m.lock();
-        for (auto & [from, values] : data) {
-            if (from != "Server") {
-                ImGui::TableNextRow();
-
-                ImGui::TableSetColumnIndex(0);
-                ImGui::Text("%s", from.c_str());
-                ImGui::TableSetColumnIndex(1);
-
-                // Prints data:
-                ImGui::PushID(i);
-                if (ImPlot::BeginPlot("Bar Group##", ImVec2{ImGui::GetContentRegionAvail().x, ImGui::GetContentRegionAvail().y / (data.size()-i)},
-                                  ImPlotFlags_NoTitle | ImPlotFlags_NoLegend |
-                                  ImPlotFlags_NoMouseText | ImPlotFlags_NoFrame | ImPlotFlags_NoInputs)) {
-                    static const char* ilabels[] = {"Packet Loss", "Packet Delivered"};
-
-                    ImPlot::SetupAxes("Time","Packet",ImPlotAxisFlags_NoDecorations, ImPlotAxisFlags_NoDecorations);
-                    ImPlot::PlotBarGroups(ilabels,data[from].data(),1,groups,1,0,{ImPlotProp_Flags, ImPlotBarGroupsFlags_Stacked});
-
-                    ImPlot::EndPlot(); // Bar Group
-                                  }
-                ImGui::PopID();
-                i++;
-            }
+                ImPlot::EndPlot(); // Server's Bar Group
+                }
+            ImGui::PopID();
         }
-        m.unlock();
+
+
+        // CLients tab :
+        int i = 1;
+        {
+            m.lock();
+            for (auto & [from, values] : data) {
+                if (from != "Server") {
+                    ImGui::TableNextRow();
+
+                    ImGui::TableSetColumnIndex(0);
+                    ImGui::Text("%s", from.c_str());
+                    ImGui::TableSetColumnIndex(1);
+
+                    // Prints data:
+                    ImGui::PushID(i);
+                    if (ImPlot::BeginPlot("Bar Group##", ImVec2{ImGui::GetContentRegionAvail().x, ImGui::GetContentRegionAvail().y / (data.size()-i)},
+                                      ImPlotFlags_NoTitle | ImPlotFlags_NoLegend |
+                                      ImPlotFlags_NoMouseText | ImPlotFlags_NoFrame | ImPlotFlags_NoInputs)) {
+                        static const char* ilabels[] = {"Packet Loss", "Packet Delivered"};
+
+                        ImPlot::SetupAxes("Time","Packet",ImPlotAxisFlags_NoDecorations, ImPlotAxisFlags_NoDecorations);
+                        ImPlot::PlotBarGroups(
+                            ilabels,
+                            data[from].data(),
+                            1,
+                            groups,
+                            1,
+                            0,
+                            {ImPlotProp_Flags, ImPlotBarGroupsFlags_Stacked}
+                            );
+
+                        ImPlot::EndPlot(); // Bar Group
+                                      }
+                    ImGui::PopID();
+                    i++;
+                }
+            }
+            m.unlock();
+        }
+
         ImGui::EndTable();
     }
 }
