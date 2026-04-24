@@ -224,7 +224,7 @@ void ServerUI::drawGraph1() {
                     data["Server"].data(),
                     1,
                     groups,
-                    1,
+                    0.5,
                     0,
                     {ImPlotProp_Flags, ImPlotBarGroupsFlags_Stacked}
                     );
@@ -260,12 +260,13 @@ void ServerUI::drawGraph1() {
                             data[from].data(),
                             1,
                             groups,
-                            1,
+                            0.5,
                             0,
                             {ImPlotProp_Flags, ImPlotBarGroupsFlags_Stacked}
                             );
 
                         ImPlot::EndPlot(); // Bar Group
+
                                       }
                     ImGui::PopID();
                     i++;
