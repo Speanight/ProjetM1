@@ -315,7 +315,7 @@ void Server::handleInput(const Player& player, Input inputs, int t, int dt) {
 
     // loops of all interaction between players
     for (auto &[plPort, p]: clients) {
-        int dt = t - pings[p.getName()][Utils::RECEIVED] - 1000/tickrate - pings[player.getName()][Utils::RECEIVED];
+        int dt = t - pings[p.getName()][Utils::RECEIVED] - pings[p.getName()][Utils::SENT] - 1000/tickrate - pings[player.getName()][Utils::RECEIVED];
         auto opponentState = buffer.getNextState(p);
         if (player.getPort() != plPort) {
             bool interaction = false;
@@ -333,7 +333,6 @@ void Server::handleInput(const Player& player, Input inputs, int t, int dt) {
             if (inputs.getAttack() and
             clock.getElapsedTime().asMilliseconds() - playerState.getAttackTimestamp() >=
             (player.getWpn().getAttackSpeed() + player.getWpn().getReload())) {
-                std::cout << "dt = " << t << " - " << pings[p.getName()][Utils::RECEIVED] << " - " << 1000/tickrate << " - " << pings[player.getName()][Utils::RECEIVED] << " = " << dt << std::endl;
                 std::cout << "Attack dt = " << dt << std::endl;
                 interaction = true;
                 semaphore.acquire();

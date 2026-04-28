@@ -109,7 +109,6 @@ public:
     bool getCompensationEnabled(int compensation);
     float getRadius() const;
     Position getPosition() const;
-    int getStatus() const;
     bool getLoop() const;
     short getMapID() const;
     int getTick() const;
@@ -121,8 +120,6 @@ public:
     void setReceivingPing(int ping);
     void setSendingPing(int ping);
     void setKeybinds(std::unordered_map<int, std::variant<sf::Keyboard::Key, sf::Joystick::Axis, int>> keybinds);
-    void setPosition(Position p);
-    void setRadius(float radius);
     void setStatus(int status);
     void setLoop(bool loop);
     void setMapID(short mapID);
@@ -134,8 +131,11 @@ public:
     std::unordered_map<std::string, std::any> init();
 
     void update();
-    void sendLoop();
+    void createPacket();
+    void sendData();
 
+    void handleReceivedPacket();
+    void receiveData();
     void receiveLoop();
     std::optional<QueuedPacket> getLatestQueuedPacket(int status);
 
