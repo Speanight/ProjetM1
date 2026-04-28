@@ -10,11 +10,15 @@ void Console::setPause(bool pause) {
 
 void Console::addClient(unsigned short portToAdd) {
     if (portToAdd != Const::COMM_PORT_SERVER) {
-        int pos = 50 / ceil(clients.size()/2);
+        int pos = 50;
+
         if (clients.size() % 2) {
-            pos = -pos;
+            pos += 50 / ((1+clients.size())/2);
         }
-        pos += 50;
+        else {
+            pos -= 50 / ((1+clients.size())/2);
+        }
+
         clients.insert({portToAdd, pos});
     }
 }

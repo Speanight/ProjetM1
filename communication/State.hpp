@@ -49,6 +49,8 @@ public:
     void setWpn(int wpn_id);
     void setPoint(int point);
     void flushInputs();
+
+    State rollbackInputs(int timestamp);
 };
 
 sf::Packet& operator<<(sf::Packet &packet, State state);

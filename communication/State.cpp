@@ -129,17 +129,30 @@ Input State::getPercentInput(double percent) {
     return lastIn;
 }
 
-//Position State::getPositionPercent(double percent) {
-//    float begin = this->inputs.begin()->first;
-//    float diff = this->timestamp - begin;
-//    Position pos = this->getPosition();
-//
-//    for (auto& [tps, input]: this->inputs) {
-//        if ((float(tps)-begin) / diff < percent) {
-//
-//        }
-//    }
-//}
+State State::rollbackInputs(int timestamp) {
+    State st = *this;
+    int begin = st.getInputs().begin()->first;
+    Input lastIn = st.getInputs().begin()->second;
+    int dt;
+    Position pos = st.getPosition();
+
+    for (auto & [tps, input] : this->inputs) {
+        if (tps >= timestamp) {
+            dt = std::min(tps-begin, tps-timestamp);
+            pos.move(-lastIn.getMovementX(), -lastIn.getMovementY(), dt);
+        }
+        begin = tps;
+        lastIn = input;
+    }
+
+    if (!st.getInputs().empty()) {
+        dt = std::min(st.getTimestamp() - st.getInputs().rend()->first, st.getTimestamp() - timestamp);
+        pos.move(-st.getInputs().rend()->second.getMovementX(), -st.getInputs().rend()->second.getMovementY(), dt);
+    }
+    st.setPosition(pos);
+
+    return st;
+}
 
 void State::flushInputs() {
     this->inputs.clear();

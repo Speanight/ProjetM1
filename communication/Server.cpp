@@ -79,7 +79,8 @@ int Server::addClient(const std::string& name, unsigned short port, sf::Color co
     player.setWpn(1);
 
     clients[port] = player;
-    pings[name] = 0;
+    pings[name][Utils::SENT] = 0;
+    pings[name][Utils::RECEIVED] = 0;
     buffer.addClient(player);
     console.addClient(port);
     // std::cout << "Added client " << name << " on port " << port << std::endl;
@@ -212,12 +213,10 @@ void Server::receiveLoop() {
                             clients[port].setStatus(Status::DONE);
                         }
 
+                        int now = clock.getElapsedTime().asMilliseconds();
                         int amtInputs = 0;
                         int time, timestampInput, dtInput;
-                        packet >> time;
-
-                        // Updates ping of corresponding client:
-                        pings[player.getName()] = clock.getElapsedTime().asMilliseconds() - time;
+                        packet >> time >> pings[player.getName()][Utils::RECEIVED];
 
                         packet >> timestampInput;
 
@@ -256,6 +255,9 @@ void Server::receiveLoop() {
                         );
                         addToGraph(clock.getElapsedTime().asMilliseconds(), player.getName(), "Server");
                         semaphore.release();
+
+                        // Updates ping of corresponding client:
+                        pings[player.getName()][Utils::SENT] = now - time;
 
                         break;
                     }
@@ -313,6 +315,7 @@ void Server::handleInput(const Player& player, Input inputs, int t, int dt) {
 
     // loops of all interaction between players
     for (auto &[plPort, p]: clients) {
+        int dt = t - pings[p.getName()][Utils::RECEIVED] - 1000/tickrate - pings[player.getName()][Utils::RECEIVED];
         auto opponentState = buffer.getNextState(p);
         if (player.getPort() != plPort) {
             bool interaction = false;
@@ -330,17 +333,20 @@ void Server::handleInput(const Player& player, Input inputs, int t, int dt) {
             if (inputs.getAttack() and
             clock.getElapsedTime().asMilliseconds() - playerState.getAttackTimestamp() >=
             (player.getWpn().getAttackSpeed() + player.getWpn().getReload())) {
+                std::cout << "dt = " << t << " - " << pings[p.getName()][Utils::RECEIVED] << " - " << 1000/tickrate << " - " << pings[player.getName()][Utils::RECEIVED] << " = " << dt << std::endl;
+                std::cout << "Attack dt = " << dt << std::endl;
                 interaction = true;
                 semaphore.acquire();
                 State stO;
                 if (rewind) {
-                    stO = buffer.getStateAtTimestamp(p,
-                                                     clock.getElapsedTime().asMilliseconds() -
-                                                     pings[player.getName()] -
-                                                     pings[p.getName()]);
+                    stO = buffer.getStateAtTimestamp(p, dt);
                 } else {
                     stO = buffer.getLastState(p);
                 }
+                // TODO: RollBACK position to get accurate one and not just based off state
+//                std::cout << "Ennemy is at pos.: " << stO.getPosition() << std::endl;
+                stO = stO.rollbackInputs(dt);
+//                std::cout << "Ennemy is rollback'd at pos.: " << stO.getPosition() << std::endl;
                 semaphore.release();
 
                 // Process the attack only if value in buffer (aka. max amt. of lag taken into consideration)

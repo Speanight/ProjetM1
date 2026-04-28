@@ -41,6 +41,7 @@ protected:
 
     std::unordered_map<unsigned short, Player> clients;
     int mapID;
+    bool loop = true;
 
 public:
     ServerUI(Console& console);

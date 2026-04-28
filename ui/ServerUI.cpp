@@ -90,6 +90,10 @@ void ServerUI::draw() {
     // SETTINGS //
     //////////////
 
+    if (!loop) {
+        return;
+    }
+
     ImGui::Text("SERVER | Tickrate: ");
     ImGui::SameLine();
     int tick = tickrate;

@@ -18,7 +18,8 @@ MainWindow::~MainWindow() {
         thread.join();
     }
 
-    server.shutdown();
+    ImPlot::DestroyContext();
+    ImGui::SFML::Shutdown();
 }
 
 /**
@@ -344,7 +345,7 @@ void MainWindow::drawConfirmClose() {
             if (ImGui::Button("QUIT", ImVec2(buttonWidth, buttonHeight))) {
                 std::cout<<"QUIT BUTTON PRESSED"<<std::endl;
                 closeWindow = true;
-                shutdown();
+//                shutdown();
             }
             ImGui::PopStyleColor(3);
         }
@@ -363,10 +364,7 @@ void MainWindow::loop() {
     window.setFramerateLimit(60);
     window.setPosition({0,0});
 
-    if (!ImGui::SFML::Init(window)) {
-        return;
-    }
-
+    ImGui::SFML::Init(window);
     ImPlot::CreateContext();
 
     sf::Clock deltaClock;
@@ -375,10 +373,7 @@ void MainWindow::loop() {
     ImGuiIO& io = ImGui::GetIO();
 
     // thread of window
-    while (window.isOpen()) {
-        if (closeWindow) {
-            window.close();
-        }
+    while (window.isOpen() and !closeWindow) {
         delta = deltaClock.restart();
         // Closing window
         while (auto event = window.pollEvent()) {
@@ -386,7 +381,8 @@ void MainWindow::loop() {
             if (event->is<sf::Event::Closed>()) {
                 if(screen==Screens::CONFIRM_CLOSE) {
                     std::cout<<"QUIT BUTTON PRESSED"<<std::endl;
-                    shutdown();
+                    closeWindow = true;
+//                    shutdown();
                 }
                 else {
                     previousScreen = screen;
@@ -428,10 +424,7 @@ void MainWindow::loop() {
         ImGui::SFML::Render(window);
         window.display();
     }
-
-
-    ImPlot::DestroyContext();
-    ImGui::SFML::Shutdown();
+    server.shutdown();
 //    ImGui::SetCurrentContext(ImGui::GetCurrentContext());
 //    ImGui::DestroyContext();
 }
@@ -542,15 +535,15 @@ void MainWindow::gameSetup(int nbPlayers) {
 void MainWindow::shutdown() {
     std::cout << "Shutting down..." << std::endl;
 
-    for (auto& client : clients) {
-        delete client;
-    }
-    clients.clear();
+//    for (auto& client : clients) {
+//        delete client;
+//    }
+//    clients.clear();
+//
+//    server.shutdown();
 
-    server.shutdown();
 
-
-    if (thread.joinable()) {
-        thread.join();
-    }
+//    if (thread.joinable()) {
+//        thread.join();
+//    }
 }

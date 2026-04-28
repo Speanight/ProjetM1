@@ -132,22 +132,23 @@ State Buffer::getStateAtTimestamp(Player player, int timestamp) {
     State state;
     bool found = false;
 
-    if (auto search = nextState.find(player.getName()); search != nextState.end()) {
-        if (nextState[player.getName()].getTimestamp() <= timestamp) {
-            state = nextState[player.getName()];
+    for (auto& n : pastStates) {
+        if (!found and n[player.getName()].getTimestamp() >= timestamp) {
             found = true;
+            state = n[player.getName()];
         }
     }
+
     if (!found and timestamp >= currentTick) {
         state = currentState[player.getName()];
         found = true;
     }
 
     if (!found) {
-        for (auto& n : pastStates) {
-            if (!found and state.getTimestamp() <= timestamp) {
+        if (auto search = nextState.find(player.getName()); search != nextState.end()) {
+            if (nextState[player.getName()].getTimestamp() >= timestamp) {
+                state = nextState[player.getName()];
                 found = true;
-                state = n[player.getName()];
             }
         }
     }

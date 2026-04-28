@@ -226,6 +226,10 @@ Input Client::getInputs(bool mode_enable, bool attack_enable) {
             case Inputs::ATTACK:
                 if(value > 0.f && !attack_enable && this->player.getTimer_atk() == -1) {
                     input.setAttack(true);
+//                    if (getName() == "Client A") {
+//                        std::cout << "Attack is @" << clock.getElapsedTime().asMilliseconds() << " | player is at " << player.getPosition() << " and opponent is at: " << opponents["Client B"].getPosition() << " (before " << bufferOnReceipt.getCurrentState()["Client B"].getTimestamp() << ")" << std::endl;
+//                        std::cout << "Tick %: " << std::min(1.0,(clock.getElapsedTime().asMilliseconds() - localTimeAtServerTick) / (1000/(double)tickrate)) << std::endl;
+//                    }
                 }
                 input.setAttackEnable(value > 0.f);
                 break;
@@ -405,7 +409,8 @@ void Client::sendLoop() {
             case Status::DONE: {
                 Input lastInput;
                 type = Pkt::INPUTS;
-                pkt.packet << Pkt::INPUTS << int(pkt.timestamp.asMilliseconds());
+                unsigned short receptionPing = localTimeAtServerTick - lastServerTick;
+                pkt.packet << Pkt::INPUTS << int(pkt.timestamp.asMilliseconds()) << receptionPing;
                 m_inputs.lock();
                 for (auto & [dt, input] : inputs) {
                     pkt.packet << int(dt) << input;
@@ -414,11 +419,7 @@ void Client::sendLoop() {
 
                 break;
             }
-            case Status::DEAD: {
-                type = Pkt::END_R;
-                pkt.packet << Pkt::END_R;
-                break;
-            }
+            case Status::DEAD:
             case Status::WIN: {
                 type = Pkt::END_R;
                 pkt.packet << Pkt::END_R;
@@ -723,6 +724,8 @@ void Client::compensationInterpolation() {
                 radius += Const::PLAYER_RADIUS_SPEED * corrInputs.getRotate() * (clock.getElapsedTime().asMilliseconds() - lastUpdate);
             }
             opponents[name].setRadius(radius);
+
+//            player.setPosition(resolveCollision(opponents[name].getPosition(), pos));
         }
     }
 }
@@ -760,6 +763,10 @@ void Client::compensationPrediction(Input inputs, int now) {
     State state(now, player.getPosition(), inputs, player.getRadius(), player.getIsAttacking(), player.getWpn().getId(), player.getPoint());
 
     inputsBuffer[lastInputId] = state;
+
+//    for (auto& [name, p] : opponents) {
+//        opponents[name].setPosition(resolveCollision(pos, opponents[name].getPosition()));
+//    }
 }
 
 /**
@@ -787,7 +794,7 @@ void Client::compensationReconciliation() {
         // We roll-back to be at same timestamp than server:
         int dt = currentState.getTimestamp() - lastLocalInputs.getTimestamp();
         p.move(lastLocalInputs.getInputs().begin()->second.getMovementX(), lastLocalInputs.getInputs().begin()->second.getMovementY(), dt);
-       ImVec2 diff = {p.getX() - q.getX(), p.getY() - q.getY()};
+        ImVec2 diff = {p.getX() - q.getX(), p.getY() - q.getY()};
 
        // TODO: Reconciliation doesn't fix itself if player is pushed and no input is held!
 
