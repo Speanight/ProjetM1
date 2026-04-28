@@ -425,6 +425,10 @@ void MainWindow::loop() {
         window.display();
     }
     server.shutdown();
+
+//    ImPlot::DestroyContext();
+//    ImGui::SFML::Shutdown();
+//    window.close();
 //    ImGui::SetCurrentContext(ImGui::GetCurrentContext());
 //    ImGui::DestroyContext();
 }

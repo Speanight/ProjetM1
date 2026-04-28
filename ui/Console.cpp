@@ -67,13 +67,15 @@ void Console::refreshConsole() {
 }
 
 
-void Console::draw() {
+void Console::draw(float height) {
     static ImPlotSpec spec(ImPlotProp_Marker, ImPlotMarker_Auto);
     spec.MarkerSize = 5.f;
     spec.LineWeight = 2.f;
     spec.FillAlpha = 1.f;
 
-    if (ImPlot::BeginPlot("##MarkerStyles", ImVec2(-1,0), ImPlotFlags_CanvasOnly)) {
+    ImVec2 avail = ImGui::GetContentRegionAvail();
+
+    if (ImPlot::BeginPlot("##MarkerStyles", ImVec2(avail.x, height), ImPlotFlags_CanvasOnly)) {
 //        ImPlot::SetupAxes(nullptr, nullptr, ImPlotAxisFlags_NoDecorations, ImPlotAxisFlags_NoDecorations);
         ImPlot::SetupAxesLimits(0, Const::GRAPH_DISPLAY_VALUES, 0, 100);
         ImPlot::SetupAxisZoomConstraints(ImAxis_Y1, 105, 105);

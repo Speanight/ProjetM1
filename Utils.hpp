@@ -36,8 +36,8 @@ namespace Const {
     static const int CONSOLE_LINES = 50;
 
 //    constexpr auto TICKRATE = std::chrono::milliseconds(1000 / 10); // Amount of ticks in 1s (1s / tickrate)
-    static const int BUFFER_SIZE = 20;
-    static const int GRAPH_DISPLAY_MS = 1; // Defines how long (in ms) a "graph line" will be worth for in the server's console.
+    static const int BUFFER_SIZE = 5;
+    static const int GRAPH_DISPLAY_MS = 15; // Defines how long (in ms) a "graph line" will be worth for in the server's console.
     static const int GRAPH_DISPLAY_VALUES = 200; // Defines how many values are displayed at the same time in server's console. This means console shows the last DISPLAY_VALUES * DISPLAY_MS milliseconds.
 
     static const float PLAYER_SPEED = .003f;
