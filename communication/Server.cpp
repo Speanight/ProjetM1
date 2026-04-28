@@ -315,7 +315,8 @@ void Server::handleInput(const Player& player, Input inputs, int t, int dt) {
 
     // loops of all interaction between players
     for (auto &[plPort, p]: clients) {
-        int dt = t - pings[p.getName()][Utils::RECEIVED] - pings[p.getName()][Utils::SENT] - 1000/tickrate - pings[player.getName()][Utils::RECEIVED];
+        int dt = t - pings[player.getName()][Utils::RECEIVED] - 1000/tickrate;
+//        int dt = t - pings[p.getName()][Utils::RECEIVED] - pings[p.getName()][Utils::SENT] - 1000/tickrate - pings[player.getName()][Utils::RECEIVED];
         auto opponentState = buffer.getNextState(p);
         if (player.getPort() != plPort) {
             bool interaction = false;
