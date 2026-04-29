@@ -36,15 +36,16 @@ namespace Const {
     static const int CONSOLE_LINES = 50;
 
 //    constexpr auto TICKRATE = std::chrono::milliseconds(1000 / 10); // Amount of ticks in 1s (1s / tickrate)
-    static const int BUFFER_SIZE = 5;
+    static const int BUFFER_SIZE = 10;
     static const int GRAPH_DISPLAY_MS = 15; // Defines how long (in ms) a "graph line" will be worth for in the server's console.
     static const int GRAPH_DISPLAY_VALUES = 200; // Defines how many values are displayed at the same time in server's console. This means console shows the last DISPLAY_VALUES * DISPLAY_MS milliseconds.
 
     static const float PLAYER_SPEED = .003f;
     static const float PLAYER_RADIUS_SPEED = .003f;
     static const float PLAYER_SIZE = 20.f;
-    static const float CONTROLLER_DEADZONE = .2f;
-    static const float WEAPON_GRACE_PERCENT = .4f; // [0-1] - Percent of "grace" for weapon hit detection. Value of .5f means hit will be considered if dist. <= 1.5x weapon size.
+    static const float CONTROLLER_DEADZONE = .3f;
+    static const float WEAPON_GRACE_PERCENT = .8f; // Percent of "grace" for weapon hit detection. Value of .5f means hit will be considered if dist. <= 1.5x weapon size.
+    static const int RECONCILIATION_GRACE = 5; // Defines after how many ms. of "desync" the pos. will be adjusted.
 
     static const float MAP_SIZE_X = 500.f;
     static const float MAP_SIZE_Y = 500.f;
@@ -57,7 +58,7 @@ namespace Const {
 
     static const int AMT_PLAYERS_MAX = 4;
 
-    static const short DISPLAY_REFRESH_RATE = 100;
+    static const short DISPLAY_REFRESH_RATE = 200;
 }
 
 namespace Err {

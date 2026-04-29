@@ -222,8 +222,6 @@ Input Client::getInputs(bool mode_enable, bool attack_enable) {
             case Inputs::ATTACK:
                 if(value > 0.f && !attack_enable && this->player.getTimer_atk() == -1) {
                     input.setAttack(true);
-//                    std::cout << "Attack is @" << clock.getElapsedTime().asMilliseconds() << " | player is at " << player.getPosition() << " and opponent is at: " << opponents["Client B"].getPosition() << " (before " << bufferOnReceipt.getCurrentState()["Client B"].getTimestamp() << ")" << std::endl;
-//                    std::cout << "Tick %: " << std::min(1.0,(clock.getElapsedTime().asMilliseconds() - localTimeAtServerTick) / (1000/(double)tickrate)) << std::endl;
                 }
                 input.setAttackEnable(value > 0.f);
                 break;
@@ -781,10 +779,6 @@ void Client::compensationPrediction(Input inputs, int now) {
     State state(now, player.getPosition(), inputs, player.getRadius(), player.getIsAttacking(), player.getWpn().getId(), player.getPoint());
 
     inputsBuffer[lastInputId] = state;
-
-//    for (auto& [name, p] : opponents) {
-//        opponents[name].setPosition(resolveCollision(pos, opponents[name].getPosition()));
-//    }
 }
 
 /**
@@ -816,7 +810,7 @@ void Client::compensationReconciliation() {
 
        // TODO: Reconciliation doesn't fix itself if player is pushed and no input is held!
 
-        if (sqrt(pow(diff.x, 2) + pow(diff.y, 2)) >= Const::PLAYER_SPEED * 100 * 5) { // If diff. of pos > eq. of x ms of movement:
+        if (sqrt(pow(diff.x, 2) + pow(diff.y, 2)) >= Const::PLAYER_SPEED * 100 * RECONCILIATION_GRACE) { // If diff. of pos > eq. of x ms of movement:
             std::cout << "Diff of: " << diff.x << "; " << diff.y << std::endl;
             Position pos = getPosition();
             pos.setX(pos.getX() - diff.x);

@@ -334,7 +334,6 @@ void Server::handleInput(const Player& player, Input inputs, int t, int dt) {
             if (inputs.getAttack() and
             clock.getElapsedTime().asMilliseconds() - playerState.getAttackTimestamp() >=
             (player.getWpn().getAttackSpeed() + player.getWpn().getReload())) {
-                std::cout << "Attack dt = " << dt << std::endl;
                 interaction = true;
                 semaphore.acquire();
                 State stO;
@@ -343,10 +342,7 @@ void Server::handleInput(const Player& player, Input inputs, int t, int dt) {
                 } else {
                     stO = buffer.getLastState(p);
                 }
-                // TODO: RollBACK position to get accurate one and not just based off state
-//                std::cout << "Ennemy is at pos.: " << stO.getPosition() << std::endl;
                 stO = stO.rollbackInputs(dt);
-//                std::cout << "Ennemy is rollback'd at pos.: " << stO.getPosition() << std::endl;
                 semaphore.release();
 
                 // Process the attack only if value in buffer (aka. max amt. of lag taken into consideration)

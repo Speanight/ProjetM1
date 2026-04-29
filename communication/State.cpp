@@ -211,7 +211,7 @@ sf::Packet& operator>>(sf::Packet &packet, State& state) {
     // Get inputs:
     packet >> size;
 
-    if (size < 50) {
+    if (size < 100) {
         while (size > 0) {
             packet >> timestamp >> input;
             state.addInputs(timestamp, input);
