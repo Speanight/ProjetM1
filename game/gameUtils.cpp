@@ -496,7 +496,7 @@ short resolveAttacks(State attacker, State opponent) {
             float enemyRadius = PLAYER_SIZE * (1.0f + WEAPON_GRACE_PERCENT);
 
             // ===== CHECK HIT =====
-            if (h <= enemyRadius) {
+            if (a <= 2*enemyRadius) {
                 // ===== SHIELD =====
                 if (opponent.getWpn().getId() == Weapons::SHIELD) {
 
@@ -572,7 +572,7 @@ short resolveAttacks(State attacker, State opponent) {
             float enemyRadius = PLAYER_SIZE * (1.0f + WEAPON_GRACE_PERCENT);
 
             // ===== CHECK HIT =====
-            if (h <= enemyRadius) {
+            if (a <= 2*enemyRadius) {
                 // ===== SHIELD =====
                 if (opponent.getWpn().getId() == Weapons::SHIELD) {
 
